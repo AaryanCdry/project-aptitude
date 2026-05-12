@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AptitudePro - AI Explanation Module</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-tint": "#4d44e3",
+                        "error": "#ba1a1a",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "secondary-fixed": "#acedff",
+                        "on-primary-container": "#dad7ff",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#e2dfff",
+                        "surface-container": "#eaedff",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "tertiary": "#684000",
+                        "on-secondary-container": "#006172",
+                        "surface-container-low": "#f2f3ff",
+                        "surface": "#faf8ff",
+                        "on-tertiary": "#ffffff",
+                        "secondary-container": "#57dffe",
+                        "primary-container": "#4f46e5",
+                        "surface-container-high": "#e2e7ff",
+                        "background": "#faf8ff",
+                        "outline": "#777587",
+                        "on-primary-fixed": "#0f0069",
+                        "on-background": "#131b2e",
+                        "primary": "#3525cd",
+                        "on-secondary": "#ffffff",
+                        "surface-bright": "#faf8ff",
+                        "outline-variant": "#c7c4d8",
+                        "error-container": "#ffdad6",
+                        "inverse-surface": "#283044",
+                        "surface-dim": "#d2d9f4",
+                        "tertiary-container": "#885500",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-surface": "#131b2e",
+                        "on-tertiary-container": "#ffd4a4",
+                        "on-surface-variant": "#464555",
+                        "on-primary": "#ffffff",
+                        "on-secondary-fixed": "#001f26",
+                        "secondary": "#00687a",
+                        "on-error-container": "#93000a",
+                        "surface-container-highest": "#dae2fd",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "inverse-primary": "#c3c0ff",
+                        "inverse-on-surface": "#eef0ff",
+                        "surface-variant": "#dae2fd",
+                        "on-tertiary-fixed": "#2a1700"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "gutter": "24px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max-width": "1200px",
+                        "assessment-max-width": "800px"
+                    },
+                    "fontFamily": {
+                        "display-lg": ["Geist"],
+                        "body-md": ["Inter"],
+                        "headline-md": ["Geist"],
+                        "caption": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-sm": ["Geist"],
+                        "question-text": ["Inter"],
+                        "metric-label": ["Geist"]
+                    },
+                    "fontSize": {
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "display-sm": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "question-text": ["22px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "metric-label": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background antialiased selection:bg-primary-container selection:text-on-primary-container min-h-screen flex flex-col">
+<!-- TopAppBar Navigation suppressed as this is a focused breakdown screen, but keeping header chrome -->
+<header class="bg-surface border-b border-outline-variant flex justify-between items-center w-full px-gutter h-16 shrink-0 sticky top-0 z-50">
+<div class="flex items-center gap-4">
+<button class="text-on-surface-variant hover:text-primary transition-colors flex items-center justify-center w-10 h-10 rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<div class="flex flex-col">
+<span class="font-metric-label text-metric-label text-on-surface-variant">QID: 8492-LR</span>
+<span class="font-headline-md text-headline-md font-bold text-primary">Logical Reasoning</span>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="font-body-md text-body-md text-on-surface-variant border border-outline-variant rounded-lg px-4 py-2 hover:bg-surface-container-high transition-colors">
+                Report Issue
+            </button>
+</div>
+</header>
+<main class="flex-1 overflow-y-auto">
+<div class="max-w-assessment-max-width mx-auto py-margin-desktop px-gutter flex flex-col gap-8">
+<!-- Question Card -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 shadow-sm">
+<div class="flex justify-between items-start mb-6">
+<h2 class="font-headline-md text-headline-md text-on-background">Question 14</h2>
+<span class="bg-error-container text-on-error-container font-metric-label text-metric-label px-3 py-1 rounded-full flex items-center gap-1">
+<span class="material-symbols-outlined" style="font-size: 16px;">close</span> Incorrect
+                    </span>
+</div>
+<p class="font-question-text text-question-text text-on-background mb-8 leading-relaxed">
+                    If all blips are snurfs, and some snurfs are wabbits, which of the following must be true?
+                </p>
+<div class="space-y-4">
+<div class="p-4 rounded-lg border border-error bg-error-container/20 flex items-center gap-4 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-error"></div>
+<span class="material-symbols-outlined text-error">radio_button_checked</span>
+<span class="font-body-md text-body-md text-on-background flex-1">Some blips are wabbits.</span>
+<span class="font-metric-label text-metric-label text-error uppercase tracking-wider text-xs">Your Answer</span>
+</div>
+<div class="p-4 rounded-lg border border-outline-variant hover:bg-surface-container transition-colors flex items-center gap-4">
+<span class="material-symbols-outlined text-outline">radio_button_unchecked</span>
+<span class="font-body-md text-body-md text-on-background flex-1">All wabbits are blips.</span>
+</div>
+<div class="p-4 rounded-lg border border-[#0f9d58] bg-[#e6f4ea] flex items-center gap-4 relative overflow-hidden">
+<div class="absolute left-0 top-0 bottom-0 w-1 bg-[#0f9d58]"></div>
+<span class="material-symbols-outlined text-[#0f9d58]">check_circle</span>
+<span class="font-body-md text-body-md text-on-background flex-1">It cannot be determined from the information given.</span>
+<span class="font-metric-label text-metric-label text-[#0f9d58] uppercase tracking-wider text-xs">Correct Answer</span>
+</div>
+</div>
+</section>
+<!-- AI Breakdown Panel -->
+<section class="bg-gradient-to-br from-surface-container-low to-primary-fixed/30 border border-primary-fixed-dim rounded-xl p-1 relative overflow-hidden shadow-sm">
+<!-- Inner card to create gradient border effect -->
+<div class="bg-surface-container-lowest rounded-[10px] p-8 h-full flex flex-col gap-6 relative z-10">
+<div class="flex items-center gap-3 border-b border-outline-variant pb-4">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">auto_awesome</span>
+<h3 class="font-headline-md text-headline-md text-on-background">AI Breakdown</h3>
+</div>
+<!-- Cognitive Path -->
+<div>
+<h4 class="font-metric-label text-metric-label text-on-surface-variant mb-4 uppercase tracking-wider">Cognitive Path</h4>
+<ol class="relative border-l border-outline-variant ml-3 space-y-6">
+<li class="pl-6">
+<span class="absolute flex items-center justify-center w-6 h-6 bg-surface-container-highest rounded-full -left-3 ring-4 ring-surface-container-lowest text-primary font-bold text-xs">1</span>
+<p class="font-body-md text-body-md text-on-background"><strong>Premise 1:</strong> "All blips are snurfs." This establishes that the set of blips is entirely contained within the set of snurfs.</p>
+</li>
+<li class="pl-6">
+<span class="absolute flex items-center justify-center w-6 h-6 bg-surface-container-highest rounded-full -left-3 ring-4 ring-surface-container-lowest text-primary font-bold text-xs">2</span>
+<p class="font-body-md text-body-md text-on-background"><strong>Premise 2:</strong> "Some snurfs are wabbits." This means there is an intersection between the set of snurfs and the set of wabbits.</p>
+</li>
+<li class="pl-6">
+<span class="absolute flex items-center justify-center w-6 h-6 bg-primary text-on-primary rounded-full -left-3 ring-4 ring-surface-container-lowest font-bold text-xs">3</span>
+<p class="font-body-md text-body-md text-on-background"><strong>Conclusion:</strong> Because the intersection of snurfs and wabbits might not overlap with the smaller set of blips inside snurfs, we cannot guarantee any relationship between blips and wabbits.</p>
+</li>
+</ol>
+</div>
+<!-- Common Pitfalls -->
+<div class="bg-error-container/10 border border-error-container rounded-lg p-5 mt-2">
+<div class="flex items-center gap-2 mb-2">
+<span class="material-symbols-outlined text-on-error-container" style="font-size: 20px;">warning</span>
+<h4 class="font-metric-label text-metric-label text-on-error-container uppercase tracking-wider">Common Pitfall</h4>
+</div>
+<p class="font-body-md text-body-md text-on-background">You selected "Some blips are wabbits." This is a common logical fallacy known as the undistributed middle. While it's *possible* some blips are wabbits, the question asks what *must* be true. You assumed the overlap between snurfs and wabbits necessarily included the blips.</p>
+</div>
+<!-- Related Concept -->
+<div class="flex items-center justify-between bg-surface-container px-5 py-4 rounded-lg mt-2 border border-outline-variant hover:border-primary-fixed-dim transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="bg-primary-container text-on-primary-container w-10 h-10 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">menu_book</span>
+</div>
+<div>
+<span class="font-caption text-caption text-on-surface-variant block mb-1">Related Concept</span>
+<span class="font-body-md text-body-md text-on-background font-semibold group-hover:text-primary transition-colors">Syllogistic Logic &amp; Set Theory</span>
+</div>
+</div>
+<span class="material-symbols-outlined text-outline group-hover:text-primary transition-colors">chevron_right</span>
+</div>
+</div>
+</section>
+<!-- Bottom Actions -->
+<div class="flex justify-between items-center pt-4 border-t border-outline-variant">
+<button class="font-body-md text-body-md font-semibold text-on-surface-variant px-6 py-3 rounded-lg border border-outline-variant hover:bg-surface-container-high transition-colors">
+                    Back to Results
+                </button>
+<div class="flex gap-4">
+<button class="font-body-md text-body-md font-semibold text-primary bg-primary-fixed hover:bg-primary-fixed-dim px-6 py-3 rounded-lg transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined" style="font-size: 20px;">fitness_center</span>
+                        Strengthen This
+                    </button>
+<button class="font-body-md text-body-md font-semibold text-on-primary bg-primary hover:bg-primary/90 px-6 py-3 rounded-lg shadow-sm transition-all hover:shadow-md flex items-center gap-2">
+                        Next Question
+                        <span class="material-symbols-outlined" style="font-size: 20px;">arrow_forward</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+</body></html>

@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AptitudePro - Billing &amp; Subscription</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary": "#ffffff",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "tertiary": "#684000",
+                      "surface-container-low": "#f2f3ff",
+                      "surface-bright": "#faf8ff",
+                      "primary-container": "#4f46e5",
+                      "inverse-primary": "#c3c0ff",
+                      "on-surface-variant": "#464555",
+                      "on-tertiary-container": "#ffd4a4",
+                      "surface-variant": "#dae2fd",
+                      "inverse-surface": "#283044",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "error-container": "#ffdad6",
+                      "surface-container": "#eaedff",
+                      "secondary-fixed-dim": "#4cd7f6",
+                      "primary-fixed-dim": "#c3c0ff",
+                      "on-secondary-fixed": "#001f26",
+                      "outline-variant": "#c7c4d8",
+                      "on-error-container": "#93000a",
+                      "surface": "#faf8ff",
+                      "on-background": "#131b2e",
+                      "surface-container-high": "#e2e7ff",
+                      "primary": "#3525cd",
+                      "outline": "#777587",
+                      "secondary": "#00687a",
+                      "inverse-on-surface": "#eef0ff",
+                      "on-secondary-fixed-variant": "#004e5c",
+                      "on-secondary-container": "#006172",
+                      "secondary-fixed": "#acedff",
+                      "background": "#faf8ff",
+                      "on-primary-fixed": "#0f0069",
+                      "error": "#ba1a1a",
+                      "surface-tint": "#4d44e3",
+                      "on-surface": "#131b2e",
+                      "on-tertiary": "#ffffff",
+                      "surface-container-lowest": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "on-tertiary-fixed": "#2a1700",
+                      "secondary-container": "#57dffe",
+                      "surface-dim": "#d2d9f4",
+                      "on-primary-fixed-variant": "#3323cc",
+                      "tertiary-container": "#885500",
+                      "primary-fixed": "#e2dfff",
+                      "on-primary-container": "#dad7ff",
+                      "surface-container-highest": "#dae2fd",
+                      "tertiary-fixed": "#ffddb8",
+                      "on-error": "#ffffff"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "8px",
+                      "margin-mobile": "16px",
+                      "margin-desktop": "40px",
+                      "gutter": "24px",
+                      "assessment-max-width": "800px",
+                      "container-max-width": "1200px"
+              },
+              "fontFamily": {
+                      "display-lg": [
+                              "Geist"
+                      ],
+                      "display-sm": [
+                              "Geist"
+                      ],
+                      "caption": [
+                              "Inter"
+                      ],
+                      "question-text": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "metric-label": [
+                              "Geist"
+                      ],
+                      "headline-md": [
+                              "Geist"
+                      ],
+                      "body-lg": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "display-lg": [
+                              "48px",
+                              {
+                                      "lineHeight": "1.1",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "display-sm": [
+                              "36px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "caption": [
+                              "12px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "question-text": [
+                              "22px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "letterSpacing": "0",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "16px",
+                              {
+                                      "lineHeight": "1.5",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "metric-label": [
+                              "14px",
+                              {
+                                      "lineHeight": "1.2",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "1.4",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "body-lg": [
+                              "18px",
+                              {
+                                      "lineHeight": "1.6",
+                                      "fontWeight": "400"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+    </script>
+</head>
+<body class="bg-background text-on-background font-body-md min-h-screen flex">
+<!-- SideNavBar Component -->
+<nav class="bg-surface-container-low dark:bg-on-surface docked h-screen left-0 w-64 border-r border-outline-variant dark:border-outline flat no shadows hidden md:flex flex-col py-gutter px-4 space-y-2 flex-shrink-0 z-10">
+<div class="mb-8 px-4 flex items-center justify-between">
+<span class="text-headline-md font-headline-md text-primary font-bold">AptitudePro</span>
+</div>
+<div class="flex-1 space-y-2">
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined mr-3">dashboard</span>
+<span class="font-body-md text-body-md">Overview</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined mr-3">trending_up</span>
+<span class="font-body-md text-body-md">Analytics</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined mr-3">verified</span>
+<span class="font-body-md text-body-md">Certificates</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined mr-3">history</span>
+<span class="font-body-md text-body-md">History</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary font-bold" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+<span class="font-body-md text-body-md">Settings</span>
+</a>
+</div>
+<div class="mt-auto pt-6 border-t border-outline-variant dark:border-outline">
+<div class="flex items-center px-4 mb-4">
+<img alt="User Avatar" class="h-10 w-10 rounded-full border border-outline-variant" data-alt="A highly detailed portrait of a professional male user, clean-cut with a friendly expression. He is wearing a dark navy corporate blazer over a crisp white shirt, photographed against a neutral, well-lit modern office background. The lighting is bright and high-key, aligning with a light-mode aesthetic, creating a sense of trust and authority." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC_BbV5tim87ybrof0IGmlY8Wg77cGr3R5BbbEgNaRb1gSI_cqY1F3HJJ42Oa4czuDYHpTxsbbOf73Rg29FCVe4KJSz0HVdCwivedjq1DDN8Ya82qKFn99eRnmWWnXQ63nhY74PvktTLVLaoD2_4OG-ubv4tPI2jFUkS2VxJ_-QLnwBtsP08Yiw4MXQDjV2-S6rkw1SFA_KxPCqfOCsFfdy1M9uq5w3zNaa3PyTFQ_opYyFv0GJN5vUpo175Cor-EQCfbx8QCtR0b0"/>
+<div class="ml-3">
+<p class="font-metric-label text-metric-label text-on-surface">Alex Rivers</p>
+<p class="font-caption text-caption text-on-surface-variant">Level 4 Analyst</p>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2 px-4 rounded-lg font-metric-label text-metric-label hover:bg-on-primary-fixed transition-colors">Upgrade Plan</button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 flex flex-col min-h-screen">
+<!-- TopAppBar Component (Mobile Only for Settings context) -->
+<header class="md:hidden bg-surface dark:bg-on-surface border-b border-outline-variant dark:border-outline flex justify-between items-center w-full px-gutter h-16 sticky top-0 z-20">
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">AptitudePro</span>
+<button class="text-on-surface">
+<span class="material-symbols-outlined">menu</span>
+</button>
+</header>
+<div class="flex-1 p-margin-mobile md:p-margin-desktop overflow-y-auto">
+<div class="max-w-container-max-width mx-auto">
+<h1 class="font-display-sm text-display-sm text-on-surface mb-8">Settings</h1>
+<div class="flex flex-col lg:flex-row gap-gutter">
+<!-- Settings Profile Sidebar -->
+<aside class="w-full lg:w-64 flex-shrink-0">
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-2 sticky top-24">
+<nav class="space-y-1">
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 0;">person</span>
+<span class="font-body-md text-body-md">Personal Info</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 0;">security</span>
+<span class="font-body-md text-body-md">Security</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg text-on-surface-variant hover:bg-surface-container-low transition-colors" href="#">
+<span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 0;">tune</span>
+<span class="font-body-md text-body-md">Preferences</span>
+</a>
+<a class="flex items-center px-4 py-3 rounded-lg bg-surface-container-low text-primary font-bold transition-colors" href="#">
+<span class="material-symbols-outlined mr-3" style="font-variation-settings: 'FILL' 1;">credit_card</span>
+<span class="font-body-md text-body-md">Billing/Subscription</span>
+</a>
+</nav>
+</div>
+</aside>
+<!-- Billing Content -->
+<div class="flex-1 space-y-8">
+<!-- Current Plan Card & Usage Metrics Bento -->
+<div class="grid grid-cols-1 xl:grid-cols-3 gap-6">
+<!-- Plan Card -->
+<div class="xl:col-span-2 bg-surface-container-lowest rounded-xl border border-outline-variant p-8 relative overflow-hidden group hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<!-- Decorative element -->
+<div class="absolute top-0 right-0 w-32 h-32 bg-primary/5 rounded-bl-full -mr-8 -mt-8"></div>
+<div class="flex flex-col sm:flex-row justify-between items-start mb-6">
+<div>
+<h2 class="font-headline-md text-headline-md text-on-surface mb-1">Pro Analyst Plan</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Billed monthly. Next charge on Oct 15, 2023.</p>
+</div>
+<div class="mt-4 sm:mt-0 text-right">
+<span class="font-display-sm text-display-sm text-primary">$29</span>
+<span class="font-body-md text-body-md text-on-surface-variant">/mo</span>
+</div>
+</div>
+<div class="mb-8">
+<h3 class="font-metric-label text-metric-label text-on-surface mb-4 uppercase tracking-wider">Plan Benefits</h3>
+<ul class="space-y-3">
+<li class="flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary mr-2 text-[20px]">check_circle</span>
+<span class="font-body-md text-body-md">Unlimited Assessments</span>
+</li>
+<li class="flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary mr-2 text-[20px]">check_circle</span>
+<span class="font-body-md text-body-md">Priority Support</span>
+</li>
+<li class="flex items-center text-on-surface-variant">
+<span class="material-symbols-outlined text-secondary mr-2 text-[20px]">check_circle</span>
+<span class="font-body-md text-body-md">Advanced Analytics</span>
+</li>
+</ul>
+</div>
+<div class="flex gap-4">
+<button class="bg-primary text-on-primary font-metric-label text-metric-label py-2 px-6 rounded-lg hover:bg-on-primary-fixed transition-colors shadow-sm">Change Plan</button>
+<button class="bg-transparent border border-outline text-on-surface font-metric-label text-metric-label py-2 px-6 rounded-lg hover:bg-surface-container-low transition-colors">Cancel Subscription</button>
+</div>
+</div>
+<!-- Usage Metrics -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6 flex flex-col justify-between">
+<div>
+<div class="flex items-center justify-between mb-2">
+<h3 class="font-metric-label text-metric-label text-on-surface uppercase tracking-wider">Usage This Month</h3>
+<span class="material-symbols-outlined text-outline">pie_chart</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-6">Your current assessment quota utilization.</p>
+<div class="mb-2 flex justify-between items-end">
+<span class="font-headline-md text-headline-md text-on-surface">12 <span class="font-body-md text-body-md text-on-surface-variant">/ 20</span></span>
+<span class="font-caption text-caption text-secondary font-bold">60%</span>
+</div>
+<!-- Linear Progress -->
+<div class="w-full bg-surface-container-high rounded-full h-2 mb-2 overflow-hidden">
+<div class="bg-secondary h-2 rounded-full" style="width: 60%"></div>
+</div>
+<p class="font-caption text-caption text-outline">8 assessments remaining until reset.</p>
+</div>
+<button class="mt-6 w-full bg-transparent border border-outline text-on-surface font-metric-label text-metric-label py-2 px-4 rounded-lg hover:bg-surface-container-low transition-colors">Buy Extra Quota</button>
+</div>
+</div>
+<!-- Payment Method Section -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant p-6">
+<h3 class="font-headline-md text-headline-md text-on-surface mb-6">Payment Method</h3>
+<div class="flex flex-col sm:flex-row items-center justify-between border border-outline-variant rounded-lg p-4 bg-surface">
+<div class="flex items-center w-full sm:w-auto mb-4 sm:mb-0">
+<div class="w-12 h-8 bg-surface-container-high rounded flex items-center justify-center mr-4 border border-outline-variant">
+<!-- Visa Placeholder Icon -->
+<span class="font-metric-label text-metric-label text-primary text-[10px] italic font-bold">VISA</span>
+</div>
+<div>
+<p class="font-body-md text-body-md text-on-surface font-semibold">Visa ending in 4242</p>
+<p class="font-caption text-caption text-on-surface-variant">Expires 12/2025</p>
+</div>
+</div>
+<div class="flex gap-2 w-full sm:w-auto">
+<button class="flex-1 sm:flex-none text-primary font-metric-label text-metric-label py-2 px-4 rounded hover:bg-surface-container-low transition-colors">Edit</button>
+<button class="flex-1 sm:flex-none text-primary font-metric-label text-metric-label py-2 px-4 rounded hover:bg-surface-container-low transition-colors">Replace</button>
+</div>
+</div>
+</div>
+<!-- Invoicing History -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant overflow-hidden">
+<div class="p-6 border-b border-outline-variant flex justify-between items-center">
+<h3 class="font-headline-md text-headline-md text-on-surface">Invoicing History</h3>
+<button class="text-primary font-metric-label text-metric-label hover:underline">View All</button>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-lowest border-b border-outline-variant">
+<th class="py-4 px-6 font-metric-label text-metric-label text-outline uppercase tracking-wider">Date</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-outline uppercase tracking-wider">Description</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-outline uppercase tracking-wider">Amount</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-outline uppercase tracking-wider">Status</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-outline uppercase tracking-wider text-right">Action</th>
+</tr>
+</thead>
+<tbody class="divide-y divide-outline-variant">
+<tr class="hover:bg-surface-container-lowest/50 transition-colors">
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">Sep 15, 2023</td>
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">Pro Analyst Plan - Monthly</td>
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">$29.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-caption text-caption font-medium bg-surface-container-high text-primary">
+                                                    Paid
+                                                </span>
+</td>
+<td class="py-4 px-6 text-right">
+<button class="text-primary hover:text-primary-fixed-dim transition-colors" title="Download PDF">
+<span class="material-symbols-outlined">download</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest/50 transition-colors">
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">Aug 15, 2023</td>
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">Pro Analyst Plan - Monthly</td>
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">$29.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-caption text-caption font-medium bg-surface-container-high text-primary">
+                                                    Paid
+                                                </span>
+</td>
+<td class="py-4 px-6 text-right">
+<button class="text-primary hover:text-primary-fixed-dim transition-colors" title="Download PDF">
+<span class="material-symbols-outlined">download</span>
+</button>
+</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest/50 transition-colors">
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">Jul 15, 2023</td>
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">Pro Analyst Plan - Monthly</td>
+<td class="py-4 px-6 font-body-md text-body-md text-on-surface">$29.00</td>
+<td class="py-4 px-6">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full font-caption text-caption font-medium bg-surface-container-high text-primary">
+                                                    Paid
+                                                </span>
+</td>
+<td class="py-4 px-6 text-right">
+<button class="text-primary hover:text-primary-fixed-dim transition-colors" title="Download PDF">
+<span class="material-symbols-outlined">download</span>
+</button>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

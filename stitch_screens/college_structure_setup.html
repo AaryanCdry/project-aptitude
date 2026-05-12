@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>College Admin Dashboard - Structure Setup</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Inter:wght@400;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#eaedff",
+                        "on-tertiary": "#ffffff",
+                        "surface-container-high": "#e2e7ff",
+                        "on-background": "#131b2e",
+                        "error-container": "#ffdad6",
+                        "outline": "#777587",
+                        "surface-tint": "#4d44e3",
+                        "on-primary-container": "#dad7ff",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "secondary": "#00687a",
+                        "primary": "#3525cd",
+                        "background": "#faf8ff",
+                        "on-secondary-fixed": "#001f26",
+                        "tertiary-fixed": "#ffddb8",
+                        "surface-container-lowest": "#ffffff",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "secondary-container": "#57dffe",
+                        "inverse-surface": "#283044",
+                        "tertiary-container": "#885500",
+                        "on-error": "#ffffff",
+                        "primary-fixed": "#e2dfff",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "inverse-primary": "#c3c0ff",
+                        "on-secondary": "#ffffff",
+                        "surface-variant": "#dae2fd",
+                        "on-surface-variant": "#464555",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f2f3ff",
+                        "inverse-on-surface": "#eef0ff",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "outline-variant": "#c7c4d8",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "surface-bright": "#faf8ff",
+                        "secondary-fixed": "#acedff",
+                        "surface-dim": "#d2d9f4",
+                        "surface-container-highest": "#dae2fd",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-primary": "#ffffff",
+                        "primary-container": "#4f46e5",
+                        "tertiary": "#684000",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-secondary-container": "#006172",
+                        "on-primary-fixed": "#0f0069",
+                        "on-surface": "#131b2e",
+                        "on-tertiary-container": "#ffd4a4",
+                        "surface": "#faf8ff",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "unit": "8px",
+                        "margin-desktop": "40px",
+                        "margin-mobile": "16px",
+                        "container-max-width": "1200px",
+                        "assessment-max-width": "800px",
+                        "gutter": "24px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist"],
+                        "caption": ["Inter"],
+                        "question-text": ["Inter"],
+                        "display-sm": ["Geist"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "metric-label": ["Geist"],
+                        "display-lg": ["Geist"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "question-text": ["22px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "display-sm": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "metric-label": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body { background-color: #faf8ff; }
+    </style>
+</head>
+<body class="flex h-screen bg-surface font-body-md text-on-surface overflow-hidden">
+<!-- SideNavBar -->
+<nav class="hidden md:flex flex-col py-gutter px-4 space-y-2 bg-surface-container-low dark:bg-on-surface border-r border-outline-variant dark:border-outline h-screen left-0 w-64 shrink-0">
+<div class="mb-8 px-4 pt-4 flex flex-col gap-4">
+<h1 class="text-headline-md font-headline-md text-primary font-bold">AptitudePro</h1>
+<div class="flex items-center gap-3">
+<img alt="User Avatar" class="w-10 h-10 rounded-full" data-alt="A small, circular profile picture of a professional individual, likely a college administrator. The person has a neutral, approachable expression. The lighting is clean and bright, fitting a modern corporate or academic dashboard environment. The background of the portrait is simple and uncluttered." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDZ0VyXF9E26dzc-UewZbz4kz4ceLAdAAZ3IujakUR6shWMDF_HhdjuTz2T3X_emzznEqtW8EX7dA9lg4x0DsyPSxiRCoY-kCYTl-zxNbwwv3P21AYATpogiLvH1oJ_k90YeLy6pPDlewI_CZD323p4By43XY7Uq37a00MBaQLXsZeziYvZMLin_WWRLVWn2N89KwsMh-nTIG5CcF3W56IpJg3C9Z-TJOR3JpEa2fYTljtyXs5iyeHsadP7kclP6EC48--SOyNLbHo"/>
+<div>
+<div class="font-metric-label text-metric-label text-on-surface">Alex Rivers</div>
+<div class="font-caption text-caption text-on-surface-variant">Level 4 Analyst</div>
+</div>
+</div>
+</div>
+<div class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Overview
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-lg font-bold transition-all font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+                Analytics
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">verified</span>
+                Certificates
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">history</span>
+                History
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</div>
+<div class="mt-auto px-4 pb-4">
+<button class="w-full bg-primary text-on-primary py-2 px-4 rounded-lg font-metric-label text-metric-label hover:opacity-90 transition-opacity">Upgrade Plan</button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<main class="flex-1 overflow-y-auto bg-surface p-gutter">
+<div class="max-w-container-max-width mx-auto">
+<!-- Page Header -->
+<header class="mb-8">
+<h2 class="font-display-sm text-display-sm text-on-background mb-2">Structure Setup</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant">Define and manage your institution's academic hierarchy.</p>
+</header>
+<!-- Multi-step Indicator -->
+<div class="mb-10 flex items-center max-w-2xl">
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-primary text-on-primary flex items-center justify-center font-metric-label text-metric-label z-10">1</div>
+<span class="font-metric-label text-metric-label text-primary mt-2">Departments</span>
+</div>
+<div class="flex-1 h-2 bg-surface-container-high mx-2 rounded-full relative -top-3">
+<div class="absolute h-full bg-primary rounded-full" style="width: 50%;"></div>
+</div>
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center font-metric-label text-metric-label z-10">2</div>
+<span class="font-metric-label text-metric-label text-outline mt-2">Programs</span>
+</div>
+<div class="flex-1 h-2 bg-surface-container-high mx-2 rounded-full relative -top-3"></div>
+<div class="flex flex-col items-center">
+<div class="w-8 h-8 rounded-full bg-surface-container-high text-outline flex items-center justify-center font-metric-label text-metric-label z-10">3</div>
+<span class="font-metric-label text-metric-label text-outline mt-2">Classes</span>
+</div>
+</div>
+<!-- Bento Grid Layout for Setup -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Left Column: Department List -->
+<div class="lg:col-span-1 space-y-6">
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<div class="flex justify-between items-center mb-6">
+<h3 class="font-headline-md text-headline-md text-on-background">Departments</h3>
+<button class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center hover:bg-primary hover:text-on-primary transition-colors">
+<span class="material-symbols-outlined text-sm">add</span>
+</button>
+</div>
+<div class="space-y-3">
+<!-- Active Item -->
+<div class="p-3 bg-surface-container rounded-lg border-l-4 border-primary flex items-center justify-between cursor-pointer">
+<div>
+<h4 class="font-metric-label text-metric-label text-on-surface">School of Business</h4>
+<p class="font-caption text-caption text-on-surface-variant">4 Programs • 1200 Students</p>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+<!-- Inactive Items -->
+<div class="p-3 hover:bg-surface-container-low rounded-lg border border-transparent hover:border-outline-variant transition-all flex items-center justify-between cursor-pointer">
+<div>
+<h4 class="font-metric-label text-metric-label text-on-surface">School of Engineering</h4>
+<p class="font-caption text-caption text-on-surface-variant">6 Programs • 2100 Students</p>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+<div class="p-3 hover:bg-surface-container-low rounded-lg border border-transparent hover:border-outline-variant transition-all flex items-center justify-between cursor-pointer">
+<div>
+<h4 class="font-metric-label text-metric-label text-on-surface">Arts &amp; Sciences</h4>
+<p class="font-caption text-caption text-on-surface-variant">8 Programs • 3500 Students</p>
+</div>
+<span class="material-symbols-outlined text-outline">chevron_right</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Detail View & Setup -->
+<div class="lg:col-span-2 space-y-6">
+<!-- Glassmorphism Style Header Card -->
+<div class="bg-surface-container-lowest/80 backdrop-blur-md border border-outline-variant rounded-xl p-6 shadow-sm">
+<div class="flex justify-between items-start mb-4">
+<div>
+<h3 class="font-headline-md text-headline-md text-on-background">School of Business</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Manage programs, course types, and semester configurations.</p>
+</div>
+<div class="flex gap-2">
+<button class="px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-metric-label text-metric-label hover:bg-surface-container-low transition-colors">Edit Details</button>
+</div>
+</div>
+</div>
+<!-- Setup Forms / Grid -->
+<div class="grid grid-cols-1 md:grid-cols-2 gap-6">
+<!-- Add Program Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+<h4 class="font-metric-label text-metric-label text-on-surface mb-4">Add New Program</h4>
+<div class="space-y-4">
+<div>
+<label class="block font-caption text-caption text-on-surface-variant mb-1">Program Name</label>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary font-body-md text-body-md" placeholder="e.g., Master of Business Administration" type="text"/>
+</div>
+<div>
+<label class="block font-caption text-caption text-on-surface-variant mb-1">Course Type</label>
+<select class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary font-body-md text-body-md">
+<option>Postgraduate Degree (PG)</option>
+<option>Undergraduate Degree (UG)</option>
+<option>Diploma</option>
+</select>
+</div>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<label class="block font-caption text-caption text-on-surface-variant mb-1">Duration (Years)</label>
+<input class="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface focus:outline-none focus:border-primary font-body-md text-body-md" type="number" value="2"/>
+</div>
+<div>
+<label class="block font-caption text-caption text-on-surface-variant mb-1">Semesters (Auto)</label>
+<input class="w-full bg-surface-variant border border-outline-variant rounded-lg px-3 py-2 text-on-surface-variant font-body-md text-body-md cursor-not-allowed" disabled="" type="number" value="4"/>
+</div>
+</div>
+<button class="w-full bg-primary text-on-primary py-2 rounded-lg font-metric-label text-metric-label hover:opacity-90 transition-opacity mt-2">Create Program</button>
+</div>
+</div>
+<!-- Existing Programs List -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+<h4 class="font-metric-label text-metric-label text-on-surface mb-4">Current Programs</h4>
+<div class="space-y-4">
+<!-- Program Item -->
+<div class="p-4 border border-outline-variant rounded-lg bg-surface">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h5 class="font-metric-label text-metric-label text-on-background">MBA</h5>
+<p class="font-caption text-caption text-on-surface-variant">Postgraduate • 4 Semesters</p>
+</div>
+<span class="material-symbols-outlined text-outline text-sm cursor-pointer hover:text-primary">more_vert</span>
+</div>
+<div class="flex gap-2 mt-3">
+<span class="inline-flex items-center px-2 py-1 rounded-md bg-surface-container-high text-on-surface font-caption text-caption">12 Classes</span>
+<span class="inline-flex items-center px-2 py-1 rounded-md bg-surface-container-high text-on-surface font-caption text-caption">48 Sections</span>
+</div>
+</div>
+<!-- Program Item -->
+<div class="p-4 border border-outline-variant rounded-lg bg-surface">
+<div class="flex justify-between items-start mb-2">
+<div>
+<h5 class="font-metric-label text-metric-label text-on-background">BBA</h5>
+<p class="font-caption text-caption text-on-surface-variant">Undergraduate • 6 Semesters</p>
+</div>
+<span class="material-symbols-outlined text-outline text-sm cursor-pointer hover:text-primary">more_vert</span>
+</div>
+<div class="flex gap-2 mt-3">
+<span class="inline-flex items-center px-2 py-1 rounded-md bg-surface-container-high text-on-surface font-caption text-caption">18 Classes</span>
+<span class="inline-flex items-center px-2 py-1 rounded-md bg-surface-container-high text-on-surface font-caption text-caption">72 Sections</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

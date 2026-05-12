@@ -1,0 +1,385 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Assessment Analytics - AptitudePro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ba1a1a",
+                    "on-surface-variant": "#464555",
+                    "surface-bright": "#faf8ff",
+                    "inverse-primary": "#c3c0ff",
+                    "secondary-container": "#57dffe",
+                    "on-tertiary": "#ffffff",
+                    "surface-tint": "#4d44e3",
+                    "on-secondary-container": "#006172",
+                    "background": "#faf8ff",
+                    "surface-container-low": "#f2f3ff",
+                    "on-error": "#ffffff",
+                    "surface-container-highest": "#dae2fd",
+                    "on-tertiary-container": "#ffd4a4",
+                    "on-primary-container": "#dad7ff",
+                    "on-background": "#131b2e",
+                    "primary-fixed": "#e2dfff",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-fixed": "#001f26",
+                    "tertiary-fixed-dim": "#ffb95f",
+                    "on-error-container": "#93000a",
+                    "secondary-fixed": "#acedff",
+                    "surface-container": "#eaedff",
+                    "on-primary-fixed": "#0f0069",
+                    "on-secondary": "#ffffff",
+                    "on-primary-fixed-variant": "#3323cc",
+                    "secondary-fixed-dim": "#4cd7f6",
+                    "tertiary": "#684000",
+                    "outline": "#777587",
+                    "primary-container": "#4f46e5",
+                    "on-primary": "#ffffff",
+                    "surface-container-high": "#e2e7ff",
+                    "surface": "#faf8ff",
+                    "error-container": "#ffdad6",
+                    "tertiary-fixed": "#ffddb8",
+                    "outline-variant": "#c7c4d8",
+                    "on-secondary-fixed-variant": "#004e5c",
+                    "inverse-on-surface": "#eef0ff",
+                    "on-surface": "#131b2e",
+                    "surface-dim": "#d2d9f4",
+                    "primary": "#3525cd",
+                    "on-tertiary-fixed-variant": "#653e00",
+                    "primary-fixed-dim": "#c3c0ff",
+                    "surface-variant": "#dae2fd",
+                    "on-tertiary-fixed": "#2a1700",
+                    "secondary": "#00687a",
+                    "inverse-surface": "#283044",
+                    "tertiary-container": "#885500"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-desktop": "40px",
+                    "assessment-max-width": "800px",
+                    "margin-mobile": "16px",
+                    "container-max-width": "1200px",
+                    "unit": "8px",
+                    "gutter": "24px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "caption": ["Inter"],
+                    "question-text": ["Inter"],
+                    "headline-md": ["Geist"],
+                    "display-lg": ["Geist"],
+                    "body-md": ["Inter"],
+                    "metric-label": ["Geist"],
+                    "display-sm": ["Geist"]
+            },
+            "fontSize": {
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "caption": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                    "question-text": ["22px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "metric-label": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "display-sm": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        body { background-color: #faf8ff; }
+    </style>
+</head>
+<body class="bg-background text-on-background min-h-screen flex flex-col md:flex-row overflow-x-hidden">
+<!-- SideNavBar (Web Only) -->
+<aside class="hidden md:flex flex-col py-gutter px-4 space-y-2 bg-surface-container-low dark:bg-on-surface text-primary dark:text-primary-fixed font-body-md text-body-md docked h-screen left-0 w-64 border-r border-outline-variant dark:border-outline flat no shadows z-20 sticky top-0">
+<div class="mb-8 px-4 flex items-center justify-between">
+<span class="text-headline-md font-headline-md text-primary font-bold">AptitudePro</span>
+</div>
+<div class="mb-6 px-4 flex items-center gap-4">
+<img alt="User Avatar" class="w-12 h-12 rounded-full object-cover border border-outline-variant" data-alt="A professional headshot of a person, well-lit against a neutral background. The lighting is soft and even, typical of corporate portraiture. The individual appears confident and approachable. The image is cropped to show mostly the face and shoulders, serving as an avatar placeholder." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBsHJzb2ygQYtYRoEnpaVrCqI9UE3hZl_OPWmUoK-hUBu-IZ-pb65z8jQCUh5Oidh3Lct10ZPXVsPjOCB6bkS7yTsX8rq1yiJkrM3BPvVREK2mUmS-l9Gfy-j7oRwPiC7t7iDkyxx_AzD_qv37_ssWSse4GOrp-YNzlvGk01FRwazqfyPEEQxUBUMfkeDoqOT9wSFKNqstUEnttQmo2OTD1NfHwaqrKVeEWcm67GsJtuOnU3yJImTXv4uM1Ip6741pRAWA6Y-W55ig"/>
+<div>
+<p class="font-bold text-on-surface">Alex Rivers</p>
+<p class="text-caption font-caption text-on-surface-variant">Level 4 Analyst</p>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                Overview
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-lg font-bold" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">trending_up</span>
+                Analytics
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined">verified</span>
+                Certificates
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined">history</span>
+                History
+            </a>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all" href="#">
+<span class="material-symbols-outlined">settings</span>
+                Settings
+            </a>
+</nav>
+<div class="mt-auto px-4">
+<button class="w-full bg-surface-container-high text-on-surface font-bold py-2 px-4 rounded-lg hover:bg-surface-variant transition-colors border border-outline-variant">
+                Upgrade Plan
+            </button>
+</div>
+</aside>
+<div class="flex-1 flex flex-col min-w-0">
+<!-- TopAppBar (Mobile & Web) -->
+<header class="bg-surface dark:bg-on-surface font-headline-md text-headline-md for headers, font-body-md text-body-md for nav links docked full-width top-0 border-b border-outline-variant dark:border-outline flat no shadows flex justify-between items-center w-full px-gutter h-16 z-10 sticky md:static">
+<div class="flex items-center gap-4">
+<button class="md:hidden text-on-surface">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="md:hidden font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">AptitudePro</span>
+</div>
+<!-- Web Navigation Links in TopNav as per JSON logic, though SideNav is primary for analytics -->
+<nav class="hidden md:flex h-full items-center gap-6">
+<a class="flex items-center h-full px-2 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors" href="#">Dashboard</a>
+<a class="flex items-center h-full px-2 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors" href="#">Assessments</a>
+<a class="flex items-center h-full px-2 text-primary dark:text-primary-fixed font-bold border-b-2 border-primary" href="#">Growth</a>
+<a class="flex items-center h-full px-2 text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors" href="#">Certificates</a>
+</nav>
+<div class="flex items-center gap-4">
+<div class="relative hidden sm:block">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
+<input class="pl-10 pr-4 py-1.5 rounded-full bg-surface-container-low border-outline-variant text-body-md font-body-md focus:border-primary focus:ring-1 focus:ring-primary w-48" placeholder="Search..." type="text"/>
+</div>
+<button class="hidden sm:flex bg-primary text-on-primary px-4 py-1.5 rounded-lg font-bold text-body-md font-body-md hover:bg-primary-fixed-variant transition-colors items-center gap-2">
+<span class="material-symbols-outlined text-sm">add</span> New Test
+                </button>
+<img alt="Student Profile" class="w-8 h-8 rounded-full border border-outline-variant object-cover md:hidden" data-alt="A small circular avatar image showing a young student. The photo is well-lit and professional, intended for use as a profile picture icon in a user interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuB0OCpJ_NmyuaIxuT-EguzmZ6o9j5g_iCLXJkvt9zk7OlblWfyfVWT2RdraVIf_CDdzUd2EH0fgqQatTSfXd8pbHuwB4FuU0i23YrwNwdbOA3FBtaRUWM-vMYZ5He4g-TpOf45naw028f9oWe8TjYUGxWT_m0yVuQcL2r8_Or7jaV45Gg18Qb-q6dYa6186lSslWwA6yImtLepXXb1kj00ERhkW97CQMJQPscnJjmB8xZugrVuaX84UOD-O83Qr2-QOLHP_M1Iy4QU"/>
+</div>
+</header>
+<!-- Main Content -->
+<main class="flex-1 p-margin-mobile md:p-margin-desktop overflow-y-auto">
+<div class="max-w-container-max-width mx-auto space-y-6">
+<!-- Page Header & Filters -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-4 mb-8">
+<div>
+<h1 class="font-display-sm text-display-sm text-on-surface mb-2">Analytics Overview</h1>
+<p class="text-body-lg font-body-lg text-on-surface-variant">Performance metrics across all cognitive domains.</p>
+</div>
+<div class="flex flex-wrap gap-3">
+<select class="bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-primary">
+<option>Last 30 Days</option>
+<option>Last Quarter</option>
+<option>Year to Date</option>
+</select>
+<select class="bg-surface border border-outline-variant rounded-lg px-3 py-2 text-body-md font-body-md text-on-surface focus:border-primary focus:ring-primary">
+<option>All Cohorts</option>
+<option>Engineering Intake</option>
+<option>Graduate Program</option>
+</select>
+<button class="bg-surface border border-outline-variant p-2 rounded-lg text-on-surface hover:bg-surface-container-low transition-colors">
+<span class="material-symbols-outlined">filter_list</span>
+</button>
+</div>
+</div>
+<!-- Key Metrics Summary Bar -->
+<div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+<div class="bg-surface rounded-xl border border-outline-variant p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<span class="text-metric-label font-metric-label text-on-surface-variant">Avg Score</span>
+<span class="material-symbols-outlined text-primary bg-primary-container/20 p-1.5 rounded-lg">analytics</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-display-sm font-display-sm text-on-surface">82.4</span>
+<span class="text-body-md font-body-md text-secondary">+2.1%</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl border border-outline-variant p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<span class="text-metric-label font-metric-label text-on-surface-variant">Completion Rate</span>
+<span class="material-symbols-outlined text-secondary bg-secondary-container/20 p-1.5 rounded-lg">task_alt</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-display-sm font-display-sm text-on-surface">94%</span>
+<span class="text-body-md font-body-md text-secondary">+0.5%</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl border border-outline-variant p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<span class="text-metric-label font-metric-label text-on-surface-variant">Top Category</span>
+<span class="material-symbols-outlined text-primary bg-primary-container/20 p-1.5 rounded-lg">psychology</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-headline-md font-headline-md text-on-surface">Logic</span>
+<span class="text-body-md font-body-md text-on-surface-variant">88 avg</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl border border-outline-variant p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<div class="flex justify-between items-start mb-4">
+<span class="text-metric-label font-metric-label text-on-surface-variant">Total Analyzed</span>
+<span class="material-symbols-outlined text-outline bg-surface-container p-1.5 rounded-lg">group</span>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="text-display-sm font-display-sm text-on-surface">1,248</span>
+<span class="text-body-md font-body-md text-secondary">+124</span>
+</div>
+</div>
+</div>
+<!-- Bento Grid Layout for Charts & Data -->
+<div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+<!-- Performance Trends (Spans 2 columns) -->
+<div class="bg-surface rounded-xl border border-outline-variant p-6 lg:col-span-2 flex flex-col">
+<div class="flex justify-between items-center mb-6">
+<h2 class="text-headline-md font-headline-md text-on-surface">Performance Trends</h2>
+<button class="text-primary text-body-md font-body-md font-bold flex items-center gap-1">Export <span class="material-symbols-outlined text-sm">download</span></button>
+</div>
+<!-- Placeholder for Line Chart -->
+<div class="flex-1 min-h-[300px] border-b border-l border-outline-variant relative flex items-end px-4 pt-4 pb-0">
+<!-- Y-axis labels -->
+<div class="absolute left-[-30px] top-0 bottom-0 flex flex-col justify-between text-caption font-caption text-on-surface-variant">
+<span>100</span><span>75</span><span>50</span><span>25</span><span>0</span>
+</div>
+<!-- Mock lines (SVG) -->
+<svg class="w-full h-full overflow-visible" preserveaspectratio="none" viewbox="0 0 100 100">
+<polyline fill="none" points="0,70 20,65 40,50 60,45 80,30 100,20" stroke="#4f46e5" stroke-width="2"></polyline>
+<polyline fill="none" points="0,80 20,75 40,70 60,65 80,60 100,55" stroke="#00687a" stroke-dasharray="4" stroke-width="2"></polyline>
+</svg>
+<!-- X-axis labels -->
+<div class="absolute bottom-[-25px] left-0 right-0 flex justify-between text-caption font-caption text-on-surface-variant px-4">
+<span>Week 1</span><span>Week 2</span><span>Week 3</span><span>Week 4</span>
+</div>
+</div>
+<div class="mt-8 flex gap-6 justify-center">
+<div class="flex items-center gap-2 text-caption font-caption text-on-surface-variant"><span class="w-3 h-3 rounded-full bg-primary-container"></span> Current Cohort</div>
+<div class="flex items-center gap-2 text-caption font-caption text-on-surface-variant"><span class="w-3 h-3 rounded-full bg-secondary border border-secondary"></span> Historical Avg</div>
+</div>
+</div>
+<!-- Skill Proficiency Heatmap -->
+<div class="bg-surface rounded-xl border border-outline-variant p-6 flex flex-col">
+<h2 class="text-headline-md font-headline-md text-on-surface mb-6">Domain Proficiency</h2>
+<div class="space-y-6 flex-1">
+<!-- Skill Bar -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-body-md font-body-md text-on-surface">Logical Reasoning</span>
+<span class="text-body-md font-body-md font-bold text-on-surface">88%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 88%"></div>
+</div>
+</div>
+<!-- Skill Bar -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-body-md font-body-md text-on-surface">Numerical</span>
+<span class="text-body-md font-body-md font-bold text-on-surface">76%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 76%"></div>
+</div>
+</div>
+<!-- Skill Bar -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-body-md font-body-md text-on-surface">Verbal</span>
+<span class="text-body-md font-body-md font-bold text-on-surface">82%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-primary-container rounded-full" style="width: 82%"></div>
+</div>
+</div>
+<!-- Skill Bar -->
+<div>
+<div class="flex justify-between mb-1">
+<span class="text-body-md font-body-md text-on-surface">Spatial Awareness</span>
+<span class="text-body-md font-body-md font-bold text-on-surface">65%</span>
+</div>
+<div class="h-2 w-full bg-surface-container-high rounded-full overflow-hidden">
+<div class="h-full bg-tertiary rounded-full" style="width: 65%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Cohort Comparison Table (Spans 2 columns) -->
+<div class="bg-surface rounded-xl border border-outline-variant p-0 lg:col-span-2 overflow-hidden">
+<div class="p-6 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h2 class="text-headline-md font-headline-md text-on-surface">Cohort Comparison</h2>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low border-b border-outline-variant">
+<th class="p-4 text-metric-label font-metric-label text-on-surface-variant font-medium">Cohort Group</th>
+<th class="p-4 text-metric-label font-metric-label text-on-surface-variant font-medium">Participants</th>
+<th class="p-4 text-metric-label font-metric-label text-on-surface-variant font-medium">Avg Score</th>
+<th class="p-4 text-metric-label font-metric-label text-on-surface-variant font-medium">Growth</th>
+</tr>
+</thead>
+<tbody class="text-body-md font-body-md">
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="p-4 font-bold text-on-surface">Engineering Intake Fall '23</td>
+<td class="p-4 text-on-surface-variant">342</td>
+<td class="p-4 text-on-surface">85.2</td>
+<td class="p-4 text-secondary flex items-center gap-1"><span class="material-symbols-outlined text-sm">arrow_upward</span> 4.5%</td>
+</tr>
+<tr class="border-b border-outline-variant hover:bg-surface-container-lowest transition-colors">
+<td class="p-4 font-bold text-on-surface">Business Dev Q3</td>
+<td class="p-4 text-on-surface-variant">128</td>
+<td class="p-4 text-on-surface">78.9</td>
+<td class="p-4 text-secondary flex items-center gap-1"><span class="material-symbols-outlined text-sm">arrow_upward</span> 1.2%</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors">
+<td class="p-4 font-bold text-on-surface">Design Fellowship</td>
+<td class="p-4 text-on-surface-variant">85</td>
+<td class="p-4 text-on-surface">81.4</td>
+<td class="p-4 text-error flex items-center gap-1"><span class="material-symbols-outlined text-sm">arrow_downward</span> 0.8%</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+<!-- At-Risk Students Widget -->
+<div class="bg-error-container rounded-xl border border-error/20 p-6">
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-error">warning</span>
+<h2 class="text-headline-md font-headline-md text-on-error-container">Attention Needed</h2>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant mb-6">3 individuals scoring &gt;2 standard deviations below baseline in logic modules.</p>
+<div class="space-y-4">
+<div class="flex items-center justify-between bg-surface rounded-lg p-3 border border-error/10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-metric-label font-metric-label font-bold">MJ</div>
+<span class="text-body-md font-body-md font-bold text-on-surface">Marcus J.</span>
+</div>
+<span class="text-error font-bold text-body-md font-body-md">42%</span>
+</div>
+<div class="flex items-center justify-between bg-surface rounded-lg p-3 border border-error/10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-container-highest flex items-center justify-center text-metric-label font-metric-label font-bold">SL</div>
+<span class="text-body-md font-body-md font-bold text-on-surface">Sarah L.</span>
+</div>
+<span class="text-error font-bold text-body-md font-body-md">45%</span>
+</div>
+<button class="w-full mt-2 text-center text-body-md font-body-md font-bold text-error hover:underline">View All At-Risk Profiles</button>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

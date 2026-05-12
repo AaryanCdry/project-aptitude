@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Individual Proctoring Log - AptitudePro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-background": "#131b2e",
+                      "on-surface-variant": "#464555",
+                      "tertiary-fixed-dim": "#ffb95f",
+                      "secondary-fixed-dim": "#4cd7f6",
+                      "on-secondary-fixed": "#001f26",
+                      "on-primary-fixed-variant": "#3323cc",
+                      "inverse-surface": "#283044",
+                      "on-surface": "#131b2e",
+                      "surface-tint": "#4d44e3",
+                      "surface-container-highest": "#dae2fd",
+                      "surface-container-low": "#f2f3ff",
+                      "surface-container-high": "#e2e7ff",
+                      "primary-container": "#4f46e5",
+                      "on-error-container": "#93000a",
+                      "on-tertiary": "#ffffff",
+                      "tertiary": "#684000",
+                      "inverse-primary": "#c3c0ff",
+                      "on-primary-container": "#dad7ff",
+                      "error": "#ba1a1a",
+                      "on-tertiary-fixed": "#2a1700",
+                      "on-primary": "#ffffff",
+                      "on-secondary-container": "#006172",
+                      "surface-container": "#eaedff",
+                      "surface-container-lowest": "#ffffff",
+                      "primary-fixed": "#e2dfff",
+                      "outline": "#777587",
+                      "surface-bright": "#faf8ff",
+                      "on-error": "#ffffff",
+                      "background": "#faf8ff",
+                      "secondary-container": "#57dffe",
+                      "tertiary-fixed": "#ffddb8",
+                      "surface": "#faf8ff",
+                      "primary-fixed-dim": "#c3c0ff",
+                      "on-tertiary-fixed-variant": "#653e00",
+                      "surface-dim": "#d2d9f4",
+                      "outline-variant": "#c7c4d8",
+                      "secondary-fixed": "#acedff",
+                      "on-tertiary-container": "#ffd4a4",
+                      "inverse-on-surface": "#eef0ff",
+                      "on-secondary-fixed-variant": "#004e5c",
+                      "error-container": "#ffdad6",
+                      "on-secondary": "#ffffff",
+                      "secondary": "#00687a",
+                      "primary": "#3525cd",
+                      "surface-variant": "#dae2fd",
+                      "on-primary-fixed": "#0f0069",
+                      "tertiary-container": "#885500"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "unit": "8px",
+                      "margin-desktop": "40px",
+                      "gutter": "24px",
+                      "assessment-max-width": "800px",
+                      "margin-mobile": "16px",
+                      "container-max-width": "1200px"
+              },
+              "fontFamily": {
+                      "metric-label": ["Geist"],
+                      "body-lg": ["Inter"],
+                      "caption": ["Inter"],
+                      "body-md": ["Inter"],
+                      "display-sm": ["Geist"],
+                      "question-text": ["Inter"],
+                      "headline-md": ["Geist"],
+                      "display-lg": ["Geist"]
+              },
+              "fontSize": {
+                      "metric-label": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                      "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                      "caption": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                      "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                      "display-sm": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                      "question-text": ["22px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                      "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                      "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { background-color: theme('colors.background'); color: theme('colors.on-background'); }
+        /* Tonal elevation hover effect as per guidance */
+        .hover-elevation:hover {
+            box-shadow: 0px 10px 15px -3px rgba(79, 70, 229, 0.05);
+            transform: translateY(-1px);
+            transition: all 0.2s ease-in-out;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-body-md text-body-md">
+<!-- TopAppBar from JSON -->
+<header class="bg-surface border-b border-outline-variant w-full px-gutter h-16 flex justify-between items-center sticky top-0 z-50">
+<div class="flex items-center gap-8">
+<div class="font-headline-md text-headline-md font-bold text-primary">AptitudePro</div>
+<nav class="hidden md:flex gap-6 h-full items-center">
+<!-- Dashboard -->
+<a class="text-on-surface-variant hover:text-primary transition-colors h-full flex items-center px-2" href="#">Dashboard</a>
+<!-- Assessments - Marked Active due to contextual proximity to a specific assessment session -->
+<a class="text-primary font-bold border-b-2 border-primary h-full flex items-center px-2" href="#">Assessments</a>
+<!-- Growth -->
+<a class="text-on-surface-variant hover:text-primary transition-colors h-full flex items-center px-2" href="#">Growth</a>
+<!-- Certificates -->
+<a class="text-on-surface-variant hover:text-primary transition-colors h-full flex items-center px-2" href="#">Certificates</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="bg-primary text-on-primary px-4 py-2 rounded-lg font-metric-label text-metric-label hover:bg-on-primary-fixed transition-colors">New Test</button>
+<div class="w-8 h-8 rounded-full bg-surface-container-highest overflow-hidden border border-outline-variant">
+<img alt="Student Profile" class="w-full h-full object-cover" data-alt="A professional headshot of an administrator in a minimalist corporate setting, soft high-key lighting, bright white background, tech-forward aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAqFn9tBOn3ZzH1e0c9ciXJrFbLH_yewtd9oSXqoD23HjXXErdsT8Hkf9vtObANn_S1atcMG5MqjYQ0RISD7CpeO92STRQ34fjmEaSiBSSieCxq-A5r_Bwy-kY4rNTAsNVrLTdV6ZSoa9aqLWEqyJgaovyNnw8ai1tQidWpaqvVJNEpadeN3tMZsuqTuYXDCFhnWOKpB35-s9dQjEKUdRLmd51EShSKnIXNt3k6B30l4e-CNfT5ykkZF4NKtNvppmV1Y1mN7LZZ4Zs"/>
+</div>
+</div>
+</header>
+<!-- Note: SideNavBar is suppressed according to the Shell Visibility Rule for Task-Focused/Detail screens -->
+<main class="flex-1 w-full max-w-container-max-width mx-auto px-gutter py-margin-desktop">
+<!-- Page Header & Controls -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-center mb-10 gap-4">
+<div>
+<div class="flex items-center gap-2 text-outline mb-2">
+<a class="hover:text-primary transition-colors" href="#"><span class="material-symbols-outlined text-[18px]">arrow_back</span></a>
+<span class="font-caption text-caption uppercase tracking-wider">Assessment History</span>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="font-caption text-caption text-on-surface-variant">Log ID: #ALX-992-B</span>
+</div>
+<h1 class="font-display-sm text-display-sm text-on-background">Proctoring Log: Elena Rostova</h1>
+</div>
+<div class="flex items-center gap-3">
+<button class="px-4 py-2 rounded-lg border border-outline text-on-surface-variant font-metric-label text-metric-label hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">download</span>
+                    Export Evidence Log
+                </button>
+<button class="px-4 py-2 rounded-lg border border-outline text-on-surface-variant font-metric-label text-metric-label hover:bg-surface-container-low transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">cleaning_services</span>
+                    Clear Flags
+                </button>
+<button class="px-4 py-2 rounded-lg bg-error text-on-error font-metric-label text-metric-label hover:bg-on-error-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">block</span>
+                    Disqualify Session
+                </button>
+</div>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-12 gap-6">
+<!-- Left Column: Primary Evidence (Span 8) -->
+<div class="md:col-span-8 flex flex-col gap-6">
+<!-- Live/Recorded Feed Section -->
+<section class="bg-surface border border-outline-variant rounded-xl overflow-hidden flex flex-col">
+<div class="p-4 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
+<h2 class="font-headline-md text-headline-md text-on-background flex items-center gap-2">
+<span class="material-symbols-outlined text-error">videocam</span>
+                            Session Recording
+                        </h2>
+<div class="flex items-center gap-2 font-metric-label text-metric-label text-on-surface-variant">
+<span class="w-2 h-2 rounded-full bg-error animate-pulse"></span>
+                            00:45:12 / 01:30:00
+                        </div>
+</div>
+<!-- Video Player Placeholder -->
+<div class="relative w-full aspect-video bg-inverse-surface flex items-center justify-center group overflow-hidden">
+<img alt="Session Feed" class="w-full h-full object-cover opacity-80" data-alt="A simulated webcam view of a young woman taking an online exam. She is looking slightly away from the center of the screen with a focused, slightly tense expression. The room lighting is natural but slightly dim. A subtle, high-tech UI overlay indicates a 'Multiple Faces Detected' warning with a red geometric bounding box near the edge of the frame. The overall aesthetic is clean, objective, and corporate." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDMAzPtyWMzwHpNCTbPjwqagZef1kA9qbMhn-E6T5_As2Uuh2iXkH8hR7PoUeHQTFffuXfLSef5xbddLwEmzq11IzgN9ZZHt9ooYyKfcLH4rRoyUrN2yNqykycqGUE-iOO_0XvNJvH33d-1RRsjZjUo3QnT8Lx9csWDmQbsqJywUjI62WHV_XqC6uYnHcVKTt0qpUFsa7EW7EXYQ7E6ot1imwOylyRN6omfnGZMpuDe43Mx1oj8aSZtL5qgcGCE-ljFQgkjmJu3iNQ"/>
+<!-- Overlay Controls -->
+<div class="absolute inset-0 bg-on-background/20 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
+<button class="w-16 h-16 rounded-full bg-surface/90 text-primary flex items-center justify-center hover:scale-105 transition-transform shadow-lg">
+<span class="material-symbols-outlined" style="font-size: 32px; font-variation-settings: 'FILL' 1;">play_arrow</span>
+</button>
+</div>
+<!-- Timeline Scrubber -->
+<div class="absolute bottom-0 left-0 right-0 h-12 bg-gradient-to-t from-on-background/80 to-transparent flex items-end px-4 pb-3">
+<div class="w-full h-1.5 bg-surface/30 rounded-full relative overflow-hidden">
+<div class="absolute top-0 left-0 h-full w-[45%] bg-primary"></div>
+<!-- Flag Markers on timeline -->
+<div class="absolute top-0 left-[15%] w-1.5 h-full bg-tertiary-fixed-dim"></div>
+<div class="absolute top-0 left-[42%] w-1.5 h-full bg-error"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- Timeline of Flags (Bento-style layout for visual impact) -->
+<section>
+<h3 class="font-headline-md text-headline-md text-on-background mb-4">Risk Flag Timeline</h3>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+<!-- Warning Flag -->
+<div class="bg-surface border border-tertiary-fixed-dim rounded-xl p-6 hover-elevation relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-tertiary-fixed-dim"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2 text-tertiary">
+<span class="material-symbols-outlined">tab_move</span>
+<span class="font-metric-label text-metric-label">TAB SWITCH</span>
+</div>
+<span class="font-caption text-caption text-outline">10:15:22 AM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">User navigated away from the assessment window for 8 seconds.</p>
+<button class="text-primary font-metric-label text-metric-label hover:underline flex items-center gap-1">
+                                View Snapshot <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+<!-- Critical Flag -->
+<div class="bg-error-container/20 border border-error/30 rounded-xl p-6 hover-elevation relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-error"></div>
+<div class="flex justify-between items-start mb-4">
+<div class="flex items-center gap-2 text-error">
+<span class="material-symbols-outlined">group</span>
+<span class="font-metric-label text-metric-label">MULTIPLE FACES</span>
+</div>
+<span class="font-caption text-caption text-outline">10:42:05 AM</span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mb-4">Secondary face detected in the background frame for 12 seconds.</p>
+<button class="text-error font-metric-label text-metric-label hover:underline flex items-center gap-1">
+                                View Snapshot <span class="material-symbols-outlined text-[16px]">open_in_new</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Proctoring Log Table -->
+<section class="bg-surface border border-outline-variant rounded-xl overflow-hidden mt-2">
+<div class="p-6 border-b border-outline-variant">
+<h3 class="font-headline-md text-headline-md text-on-background">Detailed Event Log</h3>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-bright border-b border-outline-variant">
+<th class="py-3 px-6 font-metric-label text-metric-label text-on-surface-variant uppercase">Time</th>
+<th class="py-3 px-6 font-metric-label text-metric-label text-on-surface-variant uppercase">Event Type</th>
+<th class="py-3 px-6 font-metric-label text-metric-label text-on-surface-variant uppercase">Description</th>
+<th class="py-3 px-6 font-metric-label text-metric-label text-on-surface-variant uppercase">Duration</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="py-4 px-6 text-on-surface-variant">10:00:00 AM</td>
+<td class="py-4 px-6"><span class="inline-flex items-center gap-1 text-secondary"><span class="material-symbols-outlined text-[16px]">check_circle</span> System Check</span></td>
+<td class="py-4 px-6 text-on-background">Environment and hardware validated.</td>
+<td class="py-4 px-6 text-outline">-</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="py-4 px-6 text-on-surface-variant">10:05:12 AM</td>
+<td class="py-4 px-6"><span class="inline-flex items-center gap-1 text-on-background"><span class="material-symbols-outlined text-[16px]">edit_document</span> Question Answered</span></td>
+<td class="py-4 px-6 text-on-background">Submitted response for Q1 (Quant).</td>
+<td class="py-4 px-6 text-outline">5m 12s</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors bg-surface-container-highest/30">
+<td class="py-4 px-6 text-on-surface-variant font-medium">10:15:22 AM</td>
+<td class="py-4 px-6"><span class="inline-flex items-center gap-1 text-tertiary font-medium"><span class="material-symbols-outlined text-[16px]">warning</span> Risk Flag</span></td>
+<td class="py-4 px-6 text-on-background font-medium">Tab Switch detected.</td>
+<td class="py-4 px-6 text-tertiary">8s</td>
+</tr>
+<tr class="border-b border-outline-variant/50 hover:bg-surface-container-lowest transition-colors">
+<td class="py-4 px-6 text-on-surface-variant">10:22:45 AM</td>
+<td class="py-4 px-6"><span class="inline-flex items-center gap-1 text-on-background"><span class="material-symbols-outlined text-[16px]">edit_document</span> Question Answered</span></td>
+<td class="py-4 px-6 text-on-background">Submitted response for Q2-Q5 (Verbal).</td>
+<td class="py-4 px-6 text-outline">7m 23s</td>
+</tr>
+<tr class="hover:bg-surface-container-lowest transition-colors bg-error-container/10">
+<td class="py-4 px-6 text-on-surface-variant font-medium">10:42:05 AM</td>
+<td class="py-4 px-6"><span class="inline-flex items-center gap-1 text-error font-medium"><span class="material-symbols-outlined text-[16px]">error</span> Critical Flag</span></td>
+<td class="py-4 px-6 text-on-background font-medium">Multiple faces detected in frame.</td>
+<td class="py-4 px-6 text-error">12s</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+</div>
+<!-- Right Column: Context & Metrics (Span 4) -->
+<div class="md:col-span-4 flex flex-col gap-6">
+<!-- Integrity Score Gauge -->
+<div class="bg-surface border border-outline-variant rounded-xl p-8 flex flex-col items-center justify-center text-center relative overflow-hidden">
+<!-- Subtle background indicator based on score -->
+<div class="absolute top-0 left-0 w-full h-2 bg-error"></div>
+<h2 class="font-metric-label text-metric-label text-on-surface-variant uppercase tracking-wider mb-6">Session Integrity Score</h2>
+<div class="relative w-40 h-40 flex items-center justify-center mb-4">
+<!-- SVG Ring -->
+<svg class="w-full h-full transform -rotate-90" viewbox="0 0 100 100">
+<circle class="text-surface-container-high" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-width="8"></circle>
+<circle class="text-error" cx="50" cy="50" fill="none" r="45" stroke="currentColor" stroke-dasharray="282.7" stroke-dashoffset="84.81" stroke-width="8" style="transition: stroke-dashoffset 1s ease-in-out;"></circle>
+</svg>
+<div class="absolute flex flex-col items-center">
+<span class="font-display-lg text-display-lg text-on-background">70</span>
+<span class="font-caption text-caption text-outline">/ 100</span>
+</div>
+</div>
+<div class="px-4 py-1.5 rounded-full bg-error-container text-on-error-container font-metric-label text-metric-label inline-flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">info</span> Needs Review
+                    </div>
+</div>
+<!-- Student Profile Summary -->
+<div class="bg-surface border border-outline-variant rounded-xl p-6">
+<h3 class="font-metric-label text-metric-label text-on-surface-variant uppercase mb-4 pb-2 border-b border-outline-variant">Candidate Details</h3>
+<div class="space-y-4">
+<div>
+<span class="block font-caption text-caption text-outline">Full Name</span>
+<span class="block font-body-md text-body-md text-on-background font-medium">Elena Rostova</span>
+</div>
+<div>
+<span class="block font-caption text-caption text-outline">Candidate ID</span>
+<span class="block font-body-md text-body-md text-on-background">#ER-2023-8841</span>
+</div>
+<div>
+<span class="block font-caption text-caption text-outline">Assessment</span>
+<span class="block font-body-md text-body-md text-on-background">Advanced Quantitative Reasoning - Form B</span>
+</div>
+<div class="grid grid-cols-2 gap-4 pt-2">
+<div>
+<span class="block font-caption text-caption text-outline">Started</span>
+<span class="block font-body-md text-body-md text-on-background">Oct 24, 10:00 AM</span>
+</div>
+<div>
+<span class="block font-caption text-caption text-outline">Completed</span>
+<span class="block font-body-md text-body-md text-on-background">Oct 24, 11:30 AM</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Cognitive Snapshot (Behavior correlation) -->
+<div class="bg-surface border border-outline-variant rounded-xl p-6 bg-gradient-to-br from-surface to-surface-container-low">
+<div class="flex items-center gap-2 mb-4 pb-2 border-b border-outline-variant">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<h3 class="font-metric-label text-metric-label text-primary uppercase">Cognitive Snapshot</h3>
+</div>
+<p class="font-caption text-caption text-on-surface-variant mb-6">Correlation between testing behavior and domain performance pacing.</p>
+<div class="space-y-5">
+<!-- Metric 1 -->
+<div>
+<div class="flex justify-between items-end mb-1">
+<span class="font-body-md text-body-md text-on-background">Quantitative Domain</span>
+<span class="font-metric-label text-metric-label text-error">-15% pace</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden">
+<div class="h-full bg-error w-[35%]"></div>
+</div>
+<p class="font-caption text-caption text-outline mt-1 leading-snug">Slower than baseline. Multiple face flag occurred during Q8 of this section.</p>
+</div>
+<!-- Metric 2 -->
+<div>
+<div class="flex justify-between items-end mb-1">
+<span class="font-body-md text-body-md text-on-background">Verbal Domain</span>
+<span class="font-metric-label text-metric-label text-secondary">+12% pace</span>
+</div>
+<div class="w-full h-2 bg-surface-container-highest rounded-full overflow-hidden relative">
+<div class="absolute left-[50%] h-full bg-secondary w-[12%]"></div>
+<div class="absolute left-[50%] top-0 bottom-0 w-[1px] bg-outline z-10"></div>
+</div>
+<p class="font-caption text-caption text-outline mt-1 leading-snug">Slightly faster than baseline. Tab switch flag recorded at beginning of section.</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>

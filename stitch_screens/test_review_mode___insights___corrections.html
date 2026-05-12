@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AptitudePro - Review Mode</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&amp;family=Geist:wght@600;700&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-container": "#885500",
+                        "surface-container-high": "#e2e7ff",
+                        "tertiary-fixed": "#ffddb8",
+                        "error": "#ba1a1a",
+                        "outline": "#777587",
+                        "background": "#faf8ff",
+                        "surface-container-lowest": "#ffffff",
+                        "secondary": "#00687a",
+                        "surface-container": "#eaedff",
+                        "on-surface-variant": "#464555",
+                        "secondary-container": "#57dffe",
+                        "surface-bright": "#faf8ff",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "on-secondary": "#ffffff",
+                        "on-error": "#ffffff",
+                        "tertiary": "#684000",
+                        "primary": "#3525cd",
+                        "surface-dim": "#d2d9f4",
+                        "on-tertiary": "#ffffff",
+                        "inverse-surface": "#283044",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-primary-container": "#dad7ff",
+                        "inverse-primary": "#c3c0ff",
+                        "secondary-fixed": "#acedff",
+                        "on-primary": "#ffffff",
+                        "surface-container-highest": "#dae2fd",
+                        "surface-variant": "#dae2fd",
+                        "surface-tint": "#4d44e3",
+                        "surface": "#faf8ff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-container": "#ffd4a4",
+                        "outline-variant": "#c7c4d8",
+                        "on-tertiary-fixed": "#2a1700",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "on-background": "#131b2e",
+                        "inverse-on-surface": "#eef0ff",
+                        "surface-container-low": "#f2f3ff",
+                        "on-primary-fixed": "#0f0069",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "primary-container": "#4f46e5",
+                        "on-surface": "#131b2e",
+                        "on-secondary-fixed": "#001f26",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-secondary-container": "#006172",
+                        "primary-fixed": "#e2dfff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max-width": "1200px",
+                        "gutter": "24px",
+                        "margin-desktop": "40px",
+                        "assessment-max-width": "800px",
+                        "unit": "8px"
+                    },
+                    "fontFamily": {
+                        "body-md": ["Inter"],
+                        "headline-md": ["Geist"],
+                        "display-sm": ["Geist"],
+                        "caption": ["Inter"],
+                        "question-text": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "metric-label": ["Geist"],
+                        "display-lg": ["Geist"]
+                    },
+                    "fontSize": {
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "display-sm": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "caption": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                        "question-text": ["22px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "metric-label": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .correct-answer-glow {
+            box-shadow: 0px 10px 15px -3px rgba(16, 185, 129, 0.1);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface font-body-md antialiased">
+<!-- Top Navigation Shell -->
+<header class="fixed top-0 left-0 w-full bg-surface-container-lowest h-16 flex justify-between items-center px-6 border-b border-outline-variant z-50">
+<div class="flex items-center gap-4">
+<span class="bg-primary-container text-on-primary-container text-caption px-3 py-1 rounded-full font-bold">REVIEW MODE</span>
+<h1 class="font-headline-md text-headline-md text-primary font-bold tracking-tight">Quantitative Reasoning — Level 3</h1>
+</div>
+<div class="flex items-center gap-6">
+<button class="flex items-center gap-2 text-on-surface-variant hover:text-primary transition-colors font-metric-label">
+<span class="material-symbols-outlined">arrow_back</span>
+                Back to Results
+            </button>
+<div class="h-8 w-[1px] bg-outline-variant"></div>
+<div class="flex items-center gap-2">
+<span class="font-metric-label text-on-surface-variant">QUESTION</span>
+<span class="font-headline-md text-headline-md text-on-surface">14<span class="text-on-surface-variant font-normal">/25</span></span>
+</div>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 pb-12 px-gutter max-w-container-max-width mx-auto grid grid-cols-12 gap-8">
+<!-- Left: Question Area -->
+<section class="col-span-12 lg:col-span-8 space-y-8">
+<!-- Question Card -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 transition-all">
+<div class="flex justify-between items-start mb-6">
+<span class="text-metric-label text-on-surface-variant uppercase tracking-widest">Question Narrative</span>
+<span class="material-symbols-outlined text-outline-variant">info</span>
+</div>
+<p class="font-question-text text-question-text text-on-surface mb-8">
+                    An express train travels from Station A to Station B at a constant speed of 120 mph for 2.5 hours. For the final leg of the journey, due to track maintenance, the train's speed is reduced by 25% for another 1.5 hours until it reaches Station C. What is the total distance covered by the train from Station A to Station C?
+                </p>
+<!-- Options -->
+<div class="space-y-4">
+<!-- Option A: User Choice (Correct) -->
+<div class="group relative border-2 border-primary bg-primary/5 rounded-lg p-5 flex justify-between items-center transition-all correct-answer-glow">
+<div class="flex items-center gap-4">
+<span class="w-8 h-8 flex items-center justify-center rounded-full bg-primary text-on-primary font-bold">A</span>
+<span class="font-body-lg text-body-lg text-on-surface font-semibold">435 miles</span>
+</div>
+<div class="flex items-center gap-2 text-primary">
+<span class="text-caption font-bold">YOUR CHOICE • CORRECT</span>
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+</div>
+<!-- Option B -->
+<div class="group border border-outline-variant bg-surface rounded-lg p-5 flex items-center gap-4 hover:border-outline transition-all">
+<span class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant font-bold">B</span>
+<span class="font-body-lg text-body-lg text-on-surface">405 miles</span>
+</div>
+<!-- Option C -->
+<div class="group border border-outline-variant bg-surface rounded-lg p-5 flex items-center gap-4 hover:border-outline transition-all">
+<span class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant font-bold">C</span>
+<span class="font-body-lg text-body-lg text-on-surface">450 miles</span>
+</div>
+<!-- Option D -->
+<div class="group border border-outline-variant bg-surface rounded-lg p-5 flex items-center gap-4 hover:border-outline transition-all">
+<span class="w-8 h-8 flex items-center justify-center rounded-full bg-surface-container-high text-on-surface-variant font-bold">D</span>
+<span class="font-body-lg text-body-lg text-on-surface">395 miles</span>
+</div>
+</div>
+</div>
+<!-- Footer Navigation -->
+<div class="flex justify-between items-center py-4">
+<button class="flex items-center gap-2 px-6 py-3 text-secondary hover:bg-secondary/5 rounded-lg transition-all font-metric-label">
+<span class="material-symbols-outlined">chevron_left</span>
+                    PREVIOUS
+                </button>
+<div class="flex gap-4">
+<button class="flex items-center gap-2 px-8 py-3 bg-primary text-on-primary rounded-lg font-metric-label hover:opacity-90 active:scale-95 transition-all">
+                        NEXT QUESTION
+                        <span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Right: Insights & Map Sidebar -->
+<aside class="col-span-12 lg:col-span-4 space-y-6">
+<!-- Performance Insight -->
+<div class="bg-surface-container border border-outline-variant rounded-xl p-6">
+<div class="flex items-center justify-between mb-4">
+<h3 class="font-headline-md text-primary text-[18px]">Insight Status</h3>
+<span class="bg-secondary-container text-on-secondary-container text-[11px] px-2 py-0.5 rounded font-bold uppercase tracking-wider">Correct</span>
+</div>
+<div class="space-y-4">
+<div class="p-4 bg-surface-container-lowest rounded-lg border border-outline-variant/30">
+<p class="text-caption text-on-surface-variant uppercase font-bold mb-2">Detailed Solution</p>
+<div class="space-y-2 text-body-md text-on-surface leading-relaxed">
+<p><strong>Step 1:</strong> Distance AB = 120 mph × 2.5 h = <span class="font-bold">300 miles</span>.</p>
+<p><strong>Step 2:</strong> Maintenance speed = 120 mph × (1 - 0.25) = <span class="font-bold">90 mph</span>.</p>
+<p><strong>Step 3:</strong> Distance BC = 90 mph × 1.5 h = <span class="font-bold">135 miles</span>.</p>
+<p><strong>Step 4:</strong> Total = 300 + 135 = <span class="font-bold">435 miles</span>.</p>
+</div>
+</div>
+<div class="flex gap-3 items-start">
+<span class="material-symbols-outlined text-secondary">psychology</span>
+<div>
+<p class="text-caption text-secondary font-bold uppercase">Cognitive Insight</p>
+<p class="text-body-md text-on-surface-variant">This question tests spatial-temporal reasoning and percentage-based velocity adjustments under multi-stage conditions.</p>
+</div>
+</div>
+</div>
+</div>
+<!-- Navigation Map -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-6">
+<div class="flex items-center justify-between mb-6">
+<h3 class="font-metric-label text-on-surface font-bold">ASSESSMENT MAP</h3>
+<div class="flex gap-2">
+<div class="flex items-center gap-1">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="text-[10px] text-on-surface-variant">Correct</span>
+</div>
+<div class="flex items-center gap-1">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<span class="text-[10px] text-on-surface-variant">Incorrect</span>
+</div>
+</div>
+</div>
+<div class="grid grid-cols-5 gap-3">
+<!-- Row 1 -->
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">1</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">2</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-error text-on-error text-caption font-bold border border-error">3</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">4</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">5</div>
+<!-- Row 2 -->
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">6</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">7</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">8</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-surface-container-highest text-on-surface-variant text-caption font-bold border border-outline-variant relative">
+                        9
+                        <span class="absolute -top-1 -right-1 material-symbols-outlined text-[14px] text-tertiary" style="font-variation-settings: 'FILL' 1;">flag</span>
+</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">10</div>
+<!-- Row 3 -->
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">11</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-error text-on-error text-caption font-bold border border-error">12</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border border-primary">13</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-primary text-on-primary text-caption font-bold border-4 border-on-background shadow-lg scale-110 z-10">14</div>
+<div class="w-full aspect-square flex items-center justify-center rounded-lg bg-surface-container text-on-surface-variant text-caption font-bold border border-outline-variant">15</div>
+<!-- Row 4-5 omitted for brevity, adding a "next incorrect" CTA below -->
+</div>
+<button class="w-full mt-6 py-3 border border-error text-error font-metric-label rounded-lg hover:bg-error/5 transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">error</span>
+                    NEXT INCORRECT
+                </button>
+</div>
+<!-- Promotion / Upgrade -->
+<div class="relative overflow-hidden rounded-xl bg-on-background p-6 text-white">
+<div class="relative z-10">
+<h4 class="font-headline-md text-[16px] mb-2">Personalized Growth Plan</h4>
+<p class="text-caption text-outline-variant mb-4">Master Quantitative Reasoning with targeted drills based on your Review Mode insights.</p>
+<button class="bg-secondary-container text-on-secondary-container px-4 py-2 rounded-lg font-bold text-caption uppercase tracking-wider hover:opacity-90">Unlock Drills</button>
+</div>
+<div class="absolute -bottom-10 -right-10 w-32 h-32 bg-primary/20 rounded-full blur-3xl"></div>
+</div>
+</aside>
+</main>
+<!-- Bottom Context (Mobile Only Fallback) -->
+<div class="md:hidden fixed bottom-0 left-0 w-full bg-surface-container-lowest border-t border-outline-variant px-6 py-4 flex justify-between items-center z-50">
+<button class="p-2 text-on-surface-variant">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<button class="bg-primary text-on-primary px-6 py-2 rounded-lg font-bold">NEXT</button>
+</div>
+</body></html>

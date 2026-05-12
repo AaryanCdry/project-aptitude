@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>AptitudePro - Global Leaderboard</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@100..900&amp;family=Inter:ital,opsz,wght@0,14..32,100..900;1,14..32,100..900&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "error": "#ba1a1a",
+                        "on-background": "#131b2e",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "surface-tint": "#4d44e3",
+                        "surface-container-low": "#f2f3ff",
+                        "on-secondary-fixed": "#001f26",
+                        "primary": "#3525cd",
+                        "on-primary-fixed": "#0f0069",
+                        "inverse-surface": "#283044",
+                        "surface-bright": "#faf8ff",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-primary-container": "#dad7ff",
+                        "on-tertiary": "#ffffff",
+                        "inverse-primary": "#c3c0ff",
+                        "on-tertiary-container": "#ffd4a4",
+                        "on-secondary-container": "#006172",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface": "#faf8ff",
+                        "tertiary-fixed": "#ffddb8",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "surface-variant": "#dae2fd",
+                        "on-error": "#ffffff",
+                        "primary-container": "#4f46e5",
+                        "on-surface": "#131b2e",
+                        "surface-container-highest": "#dae2fd",
+                        "on-secondary": "#ffffff",
+                        "background": "#faf8ff",
+                        "tertiary-container": "#885500",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "surface-container-high": "#e2e7ff",
+                        "outline-variant": "#c7c4d8",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "tertiary": "#684000",
+                        "surface-container-lowest": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "surface-container": "#eaedff",
+                        "secondary-container": "#57dffe",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "outline": "#777587",
+                        "secondary-fixed": "#acedff",
+                        "inverse-on-surface": "#eef0ff",
+                        "on-surface-variant": "#464555",
+                        "secondary": "#00687a",
+                        "primary-fixed": "#e2dfff",
+                        "on-primary": "#ffffff",
+                        "surface-dim": "#d2d9f4",
+                        "on-error-container": "#93000a"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "16px",
+                        "container-max-width": "1200px",
+                        "unit": "8px",
+                        "assessment-max-width": "800px",
+                        "gutter": "24px",
+                        "margin-desktop": "40px"
+                    },
+                    "fontFamily": {
+                        "caption": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "question-text": ["Inter"],
+                        "headline-md": ["Geist"],
+                        "metric-label": ["Geist"],
+                        "display-sm": ["Geist"],
+                        "display-lg": ["Geist"]
+                    },
+                    "fontSize": {
+                        "caption": ["12px", { "lineHeight": "1.4", "fontWeight": "400" }],
+                        "body-md": ["16px", { "lineHeight": "1.5", "fontWeight": "400" }],
+                        "body-lg": ["18px", { "lineHeight": "1.6", "fontWeight": "400" }],
+                        "question-text": ["22px", { "lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400" }],
+                        "headline-md": ["24px", { "lineHeight": "1.4", "fontWeight": "600" }],
+                        "metric-label": ["14px", { "lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "display-sm": ["36px", { "lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "display-lg": ["48px", { "lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .glass-header {
+            background: rgba(250, 248, 255, 0.85);
+            backdrop-filter: blur(12px);
+        }
+        .table-row-hover:hover {
+            box-shadow: 0px 10px 15px -3px rgba(79, 70, 229, 0.05);
+            transform: translateY(-1px);
+            transition: all 0.2s ease-in-out;
+        }
+        .standings-bar {
+            box-shadow: 0px -4px 20px rgba(0, 0, 0, 0.05);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md h-screen flex overflow-hidden">
+<!-- SideNavBar -->
+<nav class="bg-surface-container-low dark:bg-on-surface docked h-screen left-0 w-64 border-r border-outline-variant dark:border-outline flat no shadows hidden md:flex flex-col py-gutter px-4 space-y-2 shrink-0">
+<div class="flex items-center gap-3 mb-8 px-4">
+<span class="material-symbols-outlined text-primary text-3xl">token</span>
+<span class="text-headline-md font-headline-md text-primary">AptitudePro</span>
+</div>
+<div class="flex items-center gap-3 px-4 py-3 mb-6 bg-surface-container-highest rounded-lg">
+<img alt="Alex Rivers" class="w-10 h-10 rounded-full object-cover" data-alt="A professional headshot of a young man, Alex Rivers, looking directly at the camera with a confident, slight smile. He is wearing a crisp white collared shirt. The background is a clean, minimal light grey, emphasizing his features. The lighting is bright and evenly distributed, highlighting a modern, corporate aesthetic suitable for a professional profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuATbkpimxBKjJyE79RMd7mE3sKCh-KgdAPOyYlsRgcQ7nOSy46y1E348KUk4O_1gZwX7OvpATLaIxZ4I3v1daxaSVxAhnDIzAT_WTHLsjwd-RBMuNjdqWqOt7kVh1uAcrKbcOy1lhHmOG0gfnGb8_MjxkM411wVtfobcSx8PO6UtYc8gFwPs7UtZ0EsOhR__iA3tW46XEuyXEtZlsh6TQKVwjPX2ugsqVfRngihimYxHwpv2FQkHuPlxx2U0DkWdDUYBYQUmEfH2UE"/>
+<div>
+<p class="font-metric-label text-metric-label text-on-surface">Alex Rivers</p>
+<p class="font-caption text-caption text-on-surface-variant">Level 4 Analyst</p>
+</div>
+</div>
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all flex items-center gap-3 px-4 py-3 rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+            Overview
+        </a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all flex items-center gap-3 px-4 py-3 rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">trending_up</span>
+            Analytics
+        </a>
+<a class="bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-lg font-bold hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all flex items-center gap-3 px-4 py-3 font-body-md text-body-md" href="#" style="transform: scale(0.98);">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">verified</span>
+            Certificates
+        </a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all flex items-center gap-3 px-4 py-3 rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">history</span>
+            History
+        </a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10 transition-all flex items-center gap-3 px-4 py-3 rounded-lg font-body-md text-body-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+            Settings
+        </a>
+<div class="mt-auto pt-4">
+<button class="w-full bg-surface-variant text-on-surface hover:bg-surface-dim transition-colors py-2 rounded-lg font-metric-label text-metric-label flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">upgrade</span>
+                 Upgrade Plan
+             </button>
+</div>
+</nav>
+<!-- Main Content Area -->
+<div class="flex-1 flex flex-col min-w-0 bg-background relative">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-on-surface docked full-width top-0 border-b border-outline-variant dark:border-outline flat no shadows flex justify-between items-center w-full px-gutter h-16 shrink-0 z-10 glass-header">
+<!-- Mobile Menu Button (visible only on mobile) -->
+<button class="md:hidden text-on-surface p-2 -ml-2">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<!-- Brand Logo (Mobile Only) -->
+<div class="md:hidden flex items-center gap-2">
+<span class="material-symbols-outlined text-primary">token</span>
+<span class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed">AptitudePro</span>
+</div>
+<!-- Navigation Links (Desktop) -->
+<nav class="hidden md:flex items-center space-x-8 font-body-md text-body-md h-full">
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors h-full flex items-center" href="#">Dashboard</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors h-full flex items-center" href="#">Assessments</a>
+<a class="text-on-surface-variant dark:text-outline-variant hover:text-primary dark:hover:text-primary-fixed-dim transition-colors h-full flex items-center" href="#">Growth</a>
+<a class="text-primary dark:text-primary-fixed font-bold border-b-2 border-primary h-full flex items-center hover:text-primary dark:hover:text-primary-fixed-dim transition-colors" href="#">Certificates</a>
+</nav>
+<div class="flex items-center gap-4">
+<!-- Search Icon -->
+<button class="text-on-surface-variant hover:text-primary transition-colors p-2 rounded-full hover:bg-surface-variant">
+<span class="material-symbols-outlined">search</span>
+</button>
+<button class="hidden md:flex bg-primary text-on-primary px-4 py-2 rounded font-metric-label text-metric-label hover:bg-on-primary-fixed transition-colors">
+                    New Test
+                </button>
+</div>
+</header>
+<!-- Scrollable Content Canvas -->
+<main class="flex-1 overflow-y-auto p-margin-mobile md:p-gutter">
+<div class="max-w-container-max-width mx-auto pb-24"> <!-- Added padding bottom for sticky footer -->
+<div class="flex flex-col md:flex-row justify-between items-start md:items-end mb-8 gap-4">
+<div>
+<h1 class="font-display-sm text-display-sm text-on-surface mb-2">Global Leaderboard</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Compare your aptitude scores against top performers worldwide.</p>
+</div>
+</div>
+<!-- Filter Bar -->
+<div class="flex overflow-x-auto pb-2 mb-8 gap-2 no-scrollbar border-b border-outline-variant">
+<button class="px-4 py-2 border-b-2 border-primary text-primary font-metric-label text-metric-label whitespace-nowrap">Overall</button>
+<button class="px-4 py-2 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:border-outline-variant transition-colors font-metric-label text-metric-label whitespace-nowrap">Quantitative</button>
+<button class="px-4 py-2 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:border-outline-variant transition-colors font-metric-label text-metric-label whitespace-nowrap">Verbal</button>
+<button class="px-4 py-2 border-b-2 border-transparent text-on-surface-variant hover:text-primary hover:border-outline-variant transition-colors font-metric-label text-metric-label whitespace-nowrap">Logical Reasoning</button>
+</div>
+<!-- Top Performers Bento -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-6 mb-12 items-end">
+<!-- Rank 2: Silver -->
+<div class="bg-surface border border-outline-variant rounded-xl p-6 flex flex-col items-center relative order-2 md:order-1 h-[280px] justify-end">
+<div class="absolute top-4 left-4 w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center font-metric-label text-metric-label text-on-surface">2</div>
+<div class="relative mb-4">
+<img alt="Sarah Jenkins" class="w-20 h-20 rounded-full border-4 border-surface object-cover shadow-sm" data-alt="A professional headshot of a young woman, Sarah Jenkins, smiling warmly. She has dark hair and is wearing a smart casual blazer. The background is slightly blurred, focusing entirely on her face. The lighting is soft and flattering, suitable for a corporate or academic profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC3fzgKsZhgZWt8bHMVK67YiQUU0a7ETWl0r7Y9T2JbCR9hTAioIpN0Mch6y3WedPwiZ7NHjgxdCervwtU9JlNI04VozRZr8_OT0Yu3gY8AlJJygyqDpj5RAl37RTxoDqejUqiHGjW9uOPveYgcaGK43tLce6kdEuZtkD25z-MAHgarb_1UJpJ39sWfeYjwPo7JR5fenlz1F637dNY263StGb36JG9AYEogrDpw76MEmqLoQ1ctaApcmDz6KMMDXQhmen8ywaO3JR0"/>
+<div class="absolute -bottom-2 -right-2 w-8 h-8 bg-[#cbd5e1] rounded-full border-2 border-surface flex items-center justify-center shadow-sm"> <!-- Silver accent -->
+<span class="material-symbols-outlined text-[16px] text-white" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface text-center mb-1">Sarah Jenkins</h3>
+<p class="font-caption text-caption text-on-surface-variant mb-3">Level 5 Strategist</p>
+<div class="bg-surface-container-low px-4 py-2 rounded-full w-full text-center border border-outline-variant">
+<span class="font-metric-label text-metric-label text-primary">99.2th Percentile</span>
+</div>
+</div>
+<!-- Rank 1: Gold -->
+<div class="bg-primary border-0 rounded-xl p-6 flex flex-col items-center relative order-1 md:order-2 h-[320px] justify-end shadow-lg" style="box-shadow: 0px 10px 25px -5px rgba(79, 70, 229, 0.4);">
+<div class="absolute top-4 left-4 w-8 h-8 rounded-full bg-white/20 flex items-center justify-center font-metric-label text-metric-label text-white">1</div>
+<span class="material-symbols-outlined absolute top-4 right-4 text-white/50 text-4xl">emoji_events</span>
+<div class="relative mb-4">
+<img alt="Michael Chen" class="w-24 h-24 rounded-full border-4 border-primary object-cover shadow-md" data-alt="A confident headshot of a young man, Michael Chen, wearing glasses and a light blue dress shirt. He has short black hair. The background is a clean white studio setting. The image is sharp and well-lit, conveying intelligence and professionalism." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCP5bsHUWvT3aL5Lldjs63RUMwVEgTrVSmHE42UENsy62oJYrbbhrGoX4a9STAvi14zTt4cA_aEiEKWj33Evye7bBq33gvEANc54xfP5g7F4F6hQizZ2AtsAAITtBt5O0qalGkd6Zk68VY0grqHcLCwID7ySSv2kOjhPuF5BXoVs-13EoYXPuL3aQ7a055lGApg7sNjJoe13bcqIkYCkZiwSycxonWTnK8NZzr8QYgmc5rlOvbBTC1NofUviXdUzyx66Z977ZJmWbI"/>
+<div class="absolute -bottom-2 -right-2 w-10 h-10 bg-[#fbbf24] rounded-full border-2 border-primary flex items-center justify-center shadow-md"> <!-- Gold accent -->
+<span class="material-symbols-outlined text-[20px] text-white" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+</div>
+<h3 class="font-headline-md text-headline-md text-white text-center mb-1">Michael Chen</h3>
+<p class="font-caption text-caption text-white/80 mb-4">Master Analyst</p>
+<div class="bg-white/10 px-4 py-2 rounded-full w-full text-center border border-white/20 backdrop-blur-sm">
+<span class="font-metric-label text-metric-label text-white">99.9th Percentile</span>
+</div>
+</div>
+<!-- Rank 3: Bronze -->
+<div class="bg-surface border border-outline-variant rounded-xl p-6 flex flex-col items-center relative order-3 h-[260px] justify-end">
+<div class="absolute top-4 left-4 w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center font-metric-label text-metric-label text-on-surface">3</div>
+<div class="relative mb-4">
+<img alt="Elena Rodriguez" class="w-16 h-16 rounded-full border-4 border-surface object-cover shadow-sm" data-alt="A professional, friendly headshot of a young woman, Elena Rodriguez. She has shoulder-length brown hair and is wearing a simple navy top. The setting is outdoors with soft, natural lighting and a highly blurred background of green foliage. It looks approachable yet professional." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgWPooXE_tGX-sWiKD2KQpRtTosQTnG1vNbSN9WubVkeApL0aUCyP789Cy5xqO-qSCRlCTD5jgBaD0-0eDxSygkRTVNQ6NwaNljYad7hCUTwb6rSAUc-3hQ2Q9C0t6TLGjpyBgoGJXHgZ6uaejFLPtDwW6Jin6R9vps9Bi2VuVnSumWRMIVU93Xt__Jbfv6QPsymPv9goHba5efIoNfUvzgJzBVxTb-3BlJ9G4Vsv34curXceLEZL_1X7v3Hd-dvrOQzjejjOfpMw"/>
+<div class="absolute -bottom-2 -right-2 w-7 h-7 bg-[#d97706] rounded-full border-2 border-surface flex items-center justify-center shadow-sm"> <!-- Bronze accent -->
+<span class="material-symbols-outlined text-[14px] text-white" style="font-variation-settings: 'FILL' 1;">military_tech</span>
+</div>
+</div>
+<h3 class="font-headline-md text-headline-md text-on-surface text-center mb-1">Elena Rodriguez</h3>
+<p class="font-caption text-caption text-on-surface-variant mb-3">Level 4 Specialist</p>
+<div class="bg-surface-container-low px-4 py-2 rounded-full w-full text-center border border-outline-variant">
+<span class="font-metric-label text-metric-label text-primary">98.5th Percentile</span>
+</div>
+</div>
+</div>
+<!-- Leaderboard Table List -->
+<div class="bg-surface border border-outline-variant rounded-xl overflow-hidden">
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="border-b border-outline-variant bg-surface-container-lowest">
+<th class="py-4 px-6 font-metric-label text-metric-label text-on-surface-variant font-semibold">Rank</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-on-surface-variant font-semibold">Student</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-on-surface-variant font-semibold hidden sm:table-cell">Title</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-on-surface-variant font-semibold text-right">Percentile</th>
+<th class="py-4 px-6 font-metric-label text-metric-label text-on-surface-variant font-semibold text-right hidden md:table-cell">Growth</th>
+</tr>
+</thead>
+<tbody class="font-body-md text-body-md">
+<!-- Row 4 -->
+<tr class="border-b border-outline-variant bg-surface table-row-hover transition-all">
+<td class="py-4 px-6 text-on-surface font-metric-label">4</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<img alt="David Kim" class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular avatar image of a man, David Kim, with short dark hair, smiling subtly against a plain grey background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6xj3zUazvIDVzsqMaMvCKp5Lb0KVjYsUabJQ7XdCJuuDP7XQnIPcdQVKRteUGkoJCpyyJ7CoFt2ZD4vdeBzKxkj-LYz94I7kwa1P71IaEsM1ZUpTJMbGyComu3fIYi5O1_LrrEcrnup00_3u7OKlZnwu2dsenRWHe-OhNVFkmxxyxbqlDthF2RfvEHpYdswnDI0HncUBzwA6LTWe8o_KoIo1zNK83z4_gao3kWKT1gFlInCQdFHmn3cZCjeXwzfYUlTMubslfwbM"/>
+<span class="text-on-surface font-medium">David Kim</span>
+</div>
+</td>
+<td class="py-4 px-6 text-on-surface-variant hidden sm:table-cell">Level 4 Analyst</td>
+<td class="py-4 px-6 text-right text-primary font-metric-label">98.1%</td>
+<td class="py-4 px-6 text-right hidden md:table-cell">
+<span class="inline-flex items-center gap-1 text-[#059669] bg-[#d1fae5] px-2 py-1 rounded text-caption font-metric-label">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +2.4%
+                                        </span>
+</td>
+</tr>
+<!-- Row 5 -->
+<tr class="border-b border-outline-variant bg-surface table-row-hover transition-all">
+<td class="py-4 px-6 text-on-surface font-metric-label">5</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<img alt="Anita Patel" class="w-8 h-8 rounded-full object-cover" data-alt="A small, circular avatar image of a woman, Anita Patel, with long dark hair, looking thoughtful against a neutral background." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDUMq0VXBHk04N8Cljleeb5CE0Fx5VeHchcKhnvntsctDCoNI5siqsOTt9aBdUenNi5EY78i0DVLrgpMc3koqL3dZqGDk3mNX8bipfflRhUBypjac7QUJYtCYi4UDKB-3Jtejcp0VLkIDEX6SfkvrAustaytq2a_6VPpevx6-XfEZaY5gzNO0_xmTK_WoLXTvFspMKCq3gVFM9Vwf8Gzy_wzx192z3-xZr__qXDPvHCcwNGOOYdh-ixazLV_RObpn1fMgT7d6y0GSY"/>
+<span class="text-on-surface font-medium">Anita Patel</span>
+</div>
+</td>
+<td class="py-4 px-6 text-on-surface-variant hidden sm:table-cell">Level 4 Analyst</td>
+<td class="py-4 px-6 text-right text-primary font-metric-label">97.8%</td>
+<td class="py-4 px-6 text-right hidden md:table-cell">
+<span class="inline-flex items-center gap-1 text-[#059669] bg-[#d1fae5] px-2 py-1 rounded text-caption font-metric-label">
+<span class="material-symbols-outlined text-[14px]">trending_up</span> +1.1%
+                                        </span>
+</td>
+</tr>
+<!-- Row 6 -->
+<tr class="border-b border-outline-variant bg-surface table-row-hover transition-all">
+<td class="py-4 px-6 text-on-surface font-metric-label">6</td>
+<td class="py-4 px-6">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant flex items-center justify-center text-on-surface-variant font-metric-label text-caption">TJ</div>
+<span class="text-on-surface font-medium">Thomas Jones</span>
+</div>
+</td>
+<td class="py-4 px-6 text-on-surface-variant hidden sm:table-cell">Level 3 Associate</td>
+<td class="py-4 px-6 text-right text-primary font-metric-label">97.5%</td>
+<td class="py-4 px-6 text-right hidden md:table-cell">
+<span class="inline-flex items-center gap-1 text-outline bg-surface-variant px-2 py-1 rounded text-caption font-metric-label">
+<span class="material-symbols-outlined text-[14px]">remove</span> 0.0%
+                                        </span>
+</td>
+</tr>
+<!-- Ellipsis Row to imply more data -->
+<tr class="bg-surface">
+<td class="py-2 text-center text-on-surface-variant" colspan="5">
+<span class="material-symbols-outlined">more_vert</span>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</div>
+</div>
+</main>
+<!-- Sticky 'Your Standing' Footer -->
+<div class="absolute bottom-0 left-0 w-full bg-surface border-t border-outline-variant standings-bar p-4 md:px-gutter z-20">
+<div class="max-w-container-max-width mx-auto flex items-center justify-between">
+<div class="flex items-center gap-4 md:gap-8">
+<div class="flex flex-col items-center justify-center bg-primary-container/10 border border-primary/20 rounded-lg w-12 h-12 md:w-16 md:h-16">
+<span class="font-metric-label text-[10px] md:text-caption text-primary uppercase tracking-wider mb-[-4px]">Rank</span>
+<span class="font-display-sm text-display-sm text-primary">142</span>
+</div>
+<div class="flex items-center gap-3">
+<img alt="Alex Rivers" class="hidden sm:block w-10 h-10 rounded-full object-cover border-2 border-surface" data-alt="A professional headshot of a young man, Alex Rivers, looking directly at the camera with a confident, slight smile. He is wearing a crisp white collared shirt. The background is a clean, minimal light grey, emphasizing his features. The lighting is bright and evenly distributed, highlighting a modern, corporate aesthetic suitable for a professional profile avatar." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCgIfi34GAcW5-4iCHKje2ZhJeHuDL-0Rma4FCqLo59WLyAbmyfk8YfbDpnQPSQ9vOSbINJ1_7JUFeAdwDqih8yXYl4JqDHenzGyODgDlfBCxf9RgQffHF1UHep0UM0wuW3y1AzVWM9mFXksKkuHOClm6Z1DYgROQ9KmBL0oj6RstSv7d13EVdnlHssTZQN6UCb6EVswkB3FxtVgg735e8X6_zG1iweLq8zFx1PvjgbJ51anthBF7haFyR-wnthZzBgHVFCN9X_eis"/>
+<div>
+<p class="font-metric-label text-metric-label text-on-surface">Alex Rivers (You)</p>
+<div class="flex items-center gap-2 mt-1">
+<p class="font-caption text-caption text-on-surface-variant">Level 4 Analyst</p>
+<span class="w-1 h-1 rounded-full bg-outline-variant"></span>
+<p class="font-caption text-caption text-primary font-medium">89.4%</p>
+</div>
+</div>
+</div>
+</div>
+<div class="hidden md:flex flex-col items-end text-right">
+<p class="font-metric-label text-metric-label text-on-surface mb-1">Next Tier: Level 5 Strategist</p>
+<div class="flex items-center gap-2 w-48">
+<div class="h-2 flex-1 bg-surface-variant rounded-full overflow-hidden">
+<div class="h-full bg-secondary rounded-full" style="width: 75%;"></div>
+</div>
+<span class="font-caption text-caption text-on-surface-variant">25 pts</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</body></html>
