@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
+import { getStudentDashboardData } from '@/app/actions/dashboard';
 
-export default function StudentDashboard() {
+export default async function StudentDashboard() {
+  const { tests, domainScores, averageScore, totalTests } = await getStudentDashboardData();
+  const recentTests = tests.slice(0, 5);
   return (
     <>
       <div className="p-margin-desktop overflow-y-auto">
@@ -32,40 +35,35 @@ export default function StudentDashboard() {
 <button className="text-primary text-sm font-metric-label hover:underline">Details</button>
 </div>
 <div className="flex-1 flex flex-col gap-6">
+{domainScores.length === 0 ? (
+  <div className="text-sm text-on-surface-variant text-center my-auto">
+    Take a test to generate your cognitive profile.
+  </div>
+) : (
+  domainScores.map((ds: any, idx: number) => {
+    // Pick colors based on index
+    const colors = [
+      { border: 'border-t-primary', bg: 'bg-primary' },
+      { border: 'border-t-secondary border-r-secondary', bg: 'bg-secondary' },
+      { border: 'border-t-tertiary border-r-tertiary border-b-tertiary', bg: 'bg-tertiary' }
+    ];
+    const style = colors[idx % colors.length];
 
-<div className="flex items-center gap-4">
-<div className="w-16 h-16 rounded-full border-4 border-surface-container-high border-t-primary flex items-center justify-center">
-<span className="font-metric-label text-on-surface">85%</span>
-</div>
-<div className="flex-1">
-<p className="font-metric-label text-on-surface mb-1">Quantitative Reasoning</p>
-<div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
-<div className="bg-primary h-full w-[85%] rounded-full"></div>
-</div>
-</div>
-</div>
-<div className="flex items-center gap-4">
-<div className="w-16 h-16 rounded-full border-4 border-surface-container-high border-t-secondary border-r-secondary flex items-center justify-center">
-<span className="font-metric-label text-on-surface">72%</span>
-</div>
-<div className="flex-1">
-<p className="font-metric-label text-on-surface mb-1">Verbal Ability</p>
-<div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
-<div className="bg-secondary h-full w-[72%] rounded-full"></div>
-</div>
-</div>
-</div>
-<div className="flex items-center gap-4">
-<div className="w-16 h-16 rounded-full border-4 border-surface-container-high border-t-primary border-r-primary border-b-primary flex items-center justify-center">
-<span className="font-metric-label text-on-surface">90%</span>
-</div>
-<div className="flex-1">
-<p className="font-metric-label text-on-surface mb-1">Logical Deduction</p>
-<div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
-<div className="bg-primary h-full w-[90%] rounded-full"></div>
-</div>
-</div>
-</div>
+    return (
+      <div key={ds.domain} className="flex items-center gap-4">
+        <div className={`w-16 h-16 rounded-full border-4 border-surface-container-high ${style.border} flex items-center justify-center`}>
+          <span className="font-metric-label text-on-surface">{ds.average}%</span>
+        </div>
+        <div className="flex-1">
+          <p className="font-metric-label text-on-surface mb-1 capitalize">{ds.domain.toLowerCase()}</p>
+          <div className="w-full bg-surface-container-high h-2 rounded-full overflow-hidden">
+            <div className={`${style.bg} h-full rounded-full`} style={{ width: `${ds.average}%` }}></div>
+          </div>
+        </div>
+      </div>
+    );
+  })
+)}
 </div>
 </div>
 
@@ -211,69 +209,39 @@ export default function StudentDashboard() {
 <section>
 <h4 className="font-headline-md text-on-surface mb-4">Recent Activity</h4>
 <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
-
-<div className="flex items-center justify-between p-4 border-b border-outline-variant hover:bg-surface-container transition-colors">
-<div className="flex items-center gap-4">
-<div className="bg-surface-container-high p-2 rounded-full text-on-surface">
-<span className="material-symbols-outlined">assignment</span>
-</div>
-<div>
-<p className="font-metric-label text-on-surface">Adaptive Mock Test #42</p>
-<p className="font-caption text-on-surface-variant">Completed Oct 24, 2023 • 45 mins</p>
-</div>
-</div>
-<div className="flex items-center gap-6">
-<div className="text-right hidden sm:block">
-<p className="font-metric-label text-on-surface">88%</p>
-<p className="font-caption text-secondary">High Pass</p>
-</div>
-<button className="text-primary text-sm font-metric-label hover:underline flex items-center gap-1">
-                                    Insights <span className="material-symbols-outlined text-sm">arrow_forward</span>
-</button>
-</div>
-</div>
-
-<div className="flex items-center justify-between p-4 border-b border-outline-variant hover:bg-surface-container transition-colors">
-<div className="flex items-center gap-4">
-<div className="bg-surface-container-high p-2 rounded-full text-on-surface">
-<span className="material-symbols-outlined">quiz</span>
-</div>
-<div>
-<p className="font-metric-label text-on-surface">Verbal Drill: Comprehension</p>
-<p className="font-caption text-on-surface-variant">Completed Oct 22, 2023 • 15 mins</p>
-</div>
-</div>
-<div className="flex items-center gap-6">
-<div className="text-right hidden sm:block">
-<p className="font-metric-label text-on-surface">65%</p>
-<p className="font-caption text-error">Needs Work</p>
-</div>
-<button className="text-primary text-sm font-metric-label hover:underline flex items-center gap-1">
-                                    Insights <span className="material-symbols-outlined text-sm">arrow_forward</span>
-</button>
-</div>
-</div>
-
-<div className="flex items-center justify-between p-4 hover:bg-surface-container transition-colors">
-<div className="flex items-center gap-4">
-<div className="bg-surface-container-high p-2 rounded-full text-on-surface">
-<span className="material-symbols-outlined">assignment</span>
-</div>
-<div>
-<p className="font-metric-label text-on-surface">Full Length Assessment Alpha</p>
-<p className="font-caption text-on-surface-variant">Completed Oct 15, 2023 • 90 mins</p>
-</div>
-</div>
-<div className="flex items-center gap-6">
-<div className="text-right hidden sm:block">
-<p className="font-metric-label text-on-surface">82%</p>
-<p className="font-caption text-on-surface-variant">Pass</p>
-</div>
-<button className="text-primary text-sm font-metric-label hover:underline flex items-center gap-1">
-                                    Insights <span className="material-symbols-outlined text-sm">arrow_forward</span>
-</button>
-</div>
-</div>
+{recentTests.length === 0 ? (
+  <div className="p-8 text-center text-on-surface-variant font-body-md">
+    No recent activity. Start an assessment to see your progress!
+  </div>
+) : (
+  recentTests.map((test: any, index: number) => {
+    const score = test.scores?.[0]?.score || 0;
+    const isPass = score >= 70;
+    
+    return (
+      <div key={test.id} className={`flex items-center justify-between p-4 hover:bg-surface-container transition-colors ${index < recentTests.length - 1 ? 'border-b border-outline-variant' : ''}`}>
+        <div className="flex items-center gap-4">
+          <div className="bg-surface-container-high p-2 rounded-full text-on-surface">
+            <span className="material-symbols-outlined">{test.type === 'SELF' ? 'quiz' : 'assignment'}</span>
+          </div>
+          <div>
+            <p className="font-metric-label text-on-surface">Adaptive Mock Test</p>
+            <p className="font-caption text-on-surface-variant">Completed {new Date(test.completed_at).toLocaleDateString()}</p>
+          </div>
+        </div>
+        <div className="flex items-center gap-6">
+          <div className="text-right hidden sm:block">
+            <p className="font-metric-label text-on-surface">{score}%</p>
+            <p className={`font-caption ${isPass ? 'text-secondary' : 'text-error'}`}>{isPass ? 'Pass' : 'Needs Work'}</p>
+          </div>
+          <button className="text-primary text-sm font-metric-label hover:underline flex items-center gap-1">
+            Insights <span className="material-symbols-outlined text-sm">arrow_forward</span>
+          </button>
+        </div>
+      </div>
+    );
+  })
+)}
 </div>
 </section>
 </div>

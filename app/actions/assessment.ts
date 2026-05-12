@@ -58,7 +58,8 @@ export async function fetchNextQuestion(testId: string) {
   let targetDifficulty = 3; // start with medium
   if (attempts && attempts.length > 0) {
     const lastAttempt = attempts[attempts.length - 1];
-    const lastDifficulty = lastAttempt.questions?.difficulty || 3;
+    const q: any = Array.isArray(lastAttempt.questions) ? lastAttempt.questions[0] : lastAttempt.questions;
+    const lastDifficulty = q?.difficulty || 3;
     if (lastAttempt.is_correct) {
       targetDifficulty = Math.min(5, lastDifficulty + 1);
     } else {
@@ -144,10 +145,19 @@ export async function finishTest(testId: string) {
     .update({ status: 'COMPLETED', completed_at: new Date().toISOString() })
     .eq('id', testId);
 
-  // Calculate score
+  // Calculate score and fetch attempt details for review
   const { data: attempts } = await supabase
     .from('test_attempts')
-    .select('is_correct')
+    .select(`
+      is_correct,
+      selected_answer,
+      questions (
+        text,
+        options,
+        correct_answer,
+        explanation
+      )
+    `)
     .eq('test_id', testId);
 
   const correctCount = attempts ? attempts.filter(a => a.is_correct).length : 0;
@@ -167,5 +177,5 @@ export async function finishTest(testId: string) {
       });
   }
 
-  return { score: scorePercent };
+  return { score: scorePercent, attempts };
 }

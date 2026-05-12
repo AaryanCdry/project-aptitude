@@ -3,7 +3,34 @@
 import React, { useState, useEffect } from 'react';
 import { fetchNextQuestion, submitAnswer, finishTest } from '../actions/assessment';
 import { useRouter } from 'next/navigation';
+import ReactMarkdown from 'react-markdown';
 
+const ExplanationSection = ({ explanation }: { explanation: string }) => {
+  const [isOpen, setIsOpen] = useState(false);
+  return (
+    <div className="mt-6 border border-outline-variant rounded-lg overflow-hidden">
+      <button 
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full flex items-center justify-between p-4 bg-surface-container-low hover:bg-surface-container transition-colors"
+      >
+        <div className="flex items-center gap-2">
+          <span className="material-symbols-outlined text-primary text-sm">auto_awesome</span>
+          <span className="font-headline-sm text-primary font-medium text-sm">AI Explanation</span>
+        </div>
+        <span className="material-symbols-outlined text-on-surface-variant transition-transform" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+          expand_more
+        </span>
+      </button>
+      {isOpen && (
+        <div className="p-5 bg-primary/5 border-t border-outline-variant/50">
+          <div className="prose prose-sm max-w-none text-on-surface-variant font-body-md leading-relaxed prose-p:my-2 prose-strong:text-primary prose-ul:my-2 prose-li:my-0">
+            <ReactMarkdown>{explanation}</ReactMarkdown>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+};
 interface AssessmentClientProps {
   testId: string;
 }
@@ -18,6 +45,7 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
   const [loading, setLoading] = useState(true);
   const [testFinished, setTestFinished] = useState(false);
   const [score, setScore] = useState<number | null>(null);
+  const [attempts, setAttempts] = useState<any[]>([]);
 
   useEffect(() => {
     loadNextQuestion();
@@ -31,8 +59,8 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
         await handleFinishTest();
       } else {
         setQuestion(res.question);
-        setProgress(res.progress);
-        setTotal(res.total);
+        setProgress(res.progress || 0);
+        setTotal(res.total || 25);
         setSelectedOption(null);
       }
     } catch (error) {
@@ -46,6 +74,7 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
     setTestFinished(true);
     const res = await finishTest(testId);
     setScore(res.score);
+    setAttempts(res.attempts || []);
   };
 
   const handleSubmit = async () => {
@@ -72,21 +101,86 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
 
   if (testFinished) {
     return (
-      <div className="min-h-screen flex items-center justify-center bg-surface-container-lowest p-6">
-        <div className="max-w-md w-full bg-surface-container rounded-xl p-8 text-center border border-outline-variant shadow-lg">
-          <span className="material-symbols-outlined text-6xl text-primary mb-4">task_alt</span>
-          <h1 className="font-headline-md text-2xl mb-2 text-on-surface">Test Completed!</h1>
-          <p className="font-body-md text-on-surface-variant mb-6">Your adaptive assessment is finished.</p>
-          <div className="bg-surface-container-highest p-6 rounded-lg mb-8">
-            <p className="font-metric-label text-sm text-on-surface-variant mb-1">Final Score</p>
-            <p className="font-headline-lg text-4xl text-primary">{score}%</p>
+      <div className="min-h-screen bg-surface-container-lowest p-6 md:p-10 pb-24">
+        <div className="max-w-4xl mx-auto">
+          {/* Summary Header */}
+          <div className="bg-surface-container rounded-xl p-8 text-center border border-outline-variant shadow-lg mb-8">
+            <span className="material-symbols-outlined text-6xl text-primary mb-4">task_alt</span>
+            <h1 className="font-headline-md text-2xl mb-2 text-on-surface">Test Completed!</h1>
+            <p className="font-body-md text-on-surface-variant mb-6">Your adaptive assessment is finished. Review your performance below.</p>
+            <div className="bg-surface-container-highest p-6 rounded-lg mb-8 max-w-sm mx-auto">
+              <p className="font-metric-label text-sm text-on-surface-variant mb-1">Final Score</p>
+              <p className="font-headline-lg text-4xl text-primary">{score}%</p>
+            </div>
+            <button 
+              onClick={() => router.push('/student')}
+              className="bg-primary text-on-primary font-metric-label py-3 px-8 rounded-lg hover:bg-primary/90 transition-colors"
+            >
+              Return to Dashboard
+            </button>
           </div>
-          <button 
-            onClick={() => router.push('/student')}
-            className="w-full bg-primary text-on-primary font-metric-label py-3 rounded-lg hover:bg-primary/90 transition-colors"
-          >
-            Return to Dashboard
-          </button>
+
+          {/* Post-Test Review */}
+          {attempts.length > 0 && (
+            <div className="space-y-6">
+              <h2 className="font-headline-md text-xl text-on-surface mb-6">Question Review</h2>
+              {attempts.map((attempt, index) => {
+                const q = attempt.questions;
+                if (!q) return null;
+                
+                return (
+                  <div key={index} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm">
+                    <div className="flex items-start justify-between mb-4">
+                      <div className="flex items-center gap-3">
+                        <span className={`flex items-center justify-center w-8 h-8 rounded-full font-metric-label text-sm ${attempt.is_correct ? 'bg-secondary text-on-secondary' : 'bg-error text-on-error'}`}>
+                          {index + 1}
+                        </span>
+                        <span className={`font-metric-label text-sm ${attempt.is_correct ? 'text-secondary' : 'text-error'}`}>
+                          {attempt.is_correct ? 'Correct' : 'Incorrect'}
+                        </span>
+                      </div>
+                    </div>
+                    
+                    <p className="font-body-lg text-on-surface mb-6 leading-relaxed">
+                      {q.text}
+                    </p>
+
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
+                      {Array.isArray(q.options) && q.options.map((opt: string, i: number) => {
+                        const isSelected = attempt.selected_answer === opt;
+                        const isCorrect = q.correct_answer === opt;
+                        
+                        let borderClass = 'border-outline-variant';
+                        let bgClass = 'bg-surface-container-lowest';
+                        let textClass = 'text-on-surface';
+
+                        if (isCorrect) {
+                          borderClass = 'border-secondary';
+                          bgClass = 'bg-secondary/10';
+                          textClass = 'text-secondary font-medium';
+                        } else if (isSelected && !isCorrect) {
+                          borderClass = 'border-error';
+                          bgClass = 'bg-error/10';
+                          textClass = 'text-error font-medium';
+                        }
+
+                        return (
+                          <div key={i} className={`p-4 rounded-lg border-2 ${borderClass} ${bgClass} flex items-center gap-3`}>
+                            <span className="font-metric-label">{String.fromCharCode(65 + i)}.</span>
+                            <span className={`font-body-md ${textClass}`}>{opt}</span>
+                            {isCorrect && <span className="material-symbols-outlined text-secondary ml-auto text-sm">check_circle</span>}
+                            {isSelected && !isCorrect && <span className="material-symbols-outlined text-error ml-auto text-sm">cancel</span>}
+                          </div>
+                        );
+                      })}
+                    </div>
+
+                    {q.explanation && <ExplanationSection explanation={q.explanation} />}
+                  </div>
+                );
+              })}
+            </div>
+          )}
         </div>
       </div>
     );
@@ -137,7 +231,7 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
       <main className="flex-grow flex justify-center py-margin-desktop px-margin-mobile pb-24 md:pb-margin-desktop">
         <div className="w-full max-w-container-max-width flex flex-col lg:flex-row gap-gutter items-start">
           
-          <div className="flex-grow w-full max-w-assessment-max-width bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-10 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div key={question.id} className="animate-slide-up flex-grow w-full max-w-assessment-max-width bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-10 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.05)]">
             <div className="mb-8">
               <span className="inline-block px-3 py-1 bg-surface-container rounded-full text-primary font-metric-label text-xs mb-4">Question {currentQuestionNumber} (Lvl {question.difficulty})</span>
               <p className="font-question-text text-on-surface text-lg leading-relaxed">
