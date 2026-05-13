@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Assessment Results - Quantitative Reasoning</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Geist:wght@400;600;700&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary-container": "#4f46e5",
+                        "outline-variant": "#c7c4d8",
+                        "outline": "#777587",
+                        "surface-variant": "#dae2fd",
+                        "secondary-fixed-dim": "#4cd7f6",
+                        "on-error": "#ffffff",
+                        "secondary-fixed": "#acedff",
+                        "on-tertiary": "#ffffff",
+                        "secondary": "#00687a",
+                        "surface-container": "#eaedff",
+                        "surface-tint": "#4d44e3",
+                        "on-tertiary-fixed": "#2a1700",
+                        "surface-bright": "#faf8ff",
+                        "tertiary": "#684000",
+                        "surface-dim": "#d2d9f4",
+                        "surface-container-highest": "#dae2fd",
+                        "inverse-primary": "#c3c0ff",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#ffd4a4",
+                        "tertiary-container": "#885500",
+                        "surface": "#faf8ff",
+                        "on-primary": "#ffffff",
+                        "primary-fixed": "#e2dfff",
+                        "on-surface-variant": "#464555",
+                        "on-tertiary-fixed-variant": "#653e00",
+                        "on-secondary-fixed": "#001f26",
+                        "on-primary-fixed": "#0f0069",
+                        "on-primary-container": "#dad7ff",
+                        "inverse-surface": "#283044",
+                        "on-error-container": "#93000a",
+                        "primary-fixed-dim": "#c3c0ff",
+                        "on-secondary": "#ffffff",
+                        "error-container": "#ffdad6",
+                        "on-surface": "#131b2e",
+                        "on-secondary-fixed-variant": "#004e5c",
+                        "primary": "#3525cd",
+                        "background": "#faf8ff",
+                        "surface-container-high": "#e2e7ff",
+                        "tertiary-fixed-dim": "#ffb95f",
+                        "inverse-on-surface": "#eef0ff",
+                        "tertiary-fixed": "#ffddb8",
+                        "secondary-container": "#57dffe",
+                        "on-background": "#131b2e",
+                        "on-primary-fixed-variant": "#3323cc",
+                        "error": "#ba1a1a",
+                        "surface-container-low": "#f2f3ff",
+                        "on-secondary-container": "#006172"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-desktop": "40px",
+                        "gutter": "24px",
+                        "container-max-width": "1200px",
+                        "margin-mobile": "16px",
+                        "assessment-max-width": "800px",
+                        "unit": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Geist", "sans-serif"],
+                        "display-sm": ["Geist", "sans-serif"],
+                        "caption": ["Inter", "sans-serif"],
+                        "body-md": ["Inter", "sans-serif"],
+                        "question-text": ["Inter", "sans-serif"],
+                        "metric-label": ["Geist", "sans-serif"],
+                        "body-lg": ["Inter", "sans-serif"],
+                        "display-lg": ["Geist", "sans-serif"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                        "display-sm": ["36px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "caption": ["12px", {"lineHeight": "1.4", "fontWeight": "400"}],
+                        "body-md": ["16px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                        "question-text": ["22px", {"lineHeight": "1.6", "letterSpacing": "0", "fontWeight": "400"}],
+                        "metric-label": ["14px", {"lineHeight": "1.2", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                        "display-lg": ["48px", {"lineHeight": "1.1", "letterSpacing": "-0.02em", "fontWeight": "700"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background font-body-md antialiased overflow-x-hidden">
+<div class="relative flex h-auto min-h-screen w-full flex-col group/design-root">
+<!-- Top Navigation (Destination/Dashboard flow) -->
+<header class="flex items-center justify-between px-margin-desktop py-4 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<span class="material-symbols-outlined text-primary text-3xl">psychology</span>
+<span class="font-headline-md text-on-surface">Cognitive Modern</span>
+</div>
+<nav class="hidden md:flex gap-8">
+<a class="text-on-surface font-metric-label hover:text-primary transition-colors" href="#">Dashboard</a>
+<a class="text-primary font-metric-label border-b-2 border-primary pb-1" href="#">Assessments</a>
+<a class="text-on-surface font-metric-label hover:text-primary transition-colors" href="#">Analytics</a>
+</nav>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center hover:bg-surface-container-high transition-colors">
+<span class="material-symbols-outlined text-on-surface">notifications</span>
+</button>
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary flex items-center justify-center font-bold">
+                    JS
+                </div>
+</div>
+</header>
+<main class="layout-container flex h-full grow flex-col px-margin-mobile md:px-margin-desktop py-8 max-w-container-max-width mx-auto w-full">
+<!-- Page Heading (Shared Component adapted) -->
+<div class="flex flex-col gap-6 mb-10">
+<div class="flex flex-wrap items-start justify-between gap-4">
+<div class="flex flex-col gap-2 max-w-2xl">
+<div class="flex items-center gap-2 mb-2">
+<span class="px-3 py-1 bg-surface-container-high text-on-surface-variant font-metric-label rounded-full text-xs">Test Complete</span>
+<span class="text-on-surface-variant font-caption">Completed Oct 24, 2023 • 45 Mins</span>
+</div>
+<h1 class="font-display-sm text-on-surface">Assessment Complete: Quantitative Reasoning - Level 3</h1>
+<p class="text-on-surface-variant font-body-lg">You scored 88% (High Pass) and are in the 92nd percentile.</p>
+</div>
+<div class="flex gap-3">
+<button class="px-6 py-2 border border-outline text-on-surface font-metric-label rounded-lg hover:bg-surface-container transition-colors">
+                            Download PDF
+                        </button>
+<button class="px-6 py-2 bg-primary text-on-primary font-metric-label rounded-lg hover:bg-primary-fixed-variant transition-colors shadow-sm">
+                            View Certificate
+                        </button>
+</div>
+</div>
+<!-- High Level Metrics -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+<div class="bg-surface rounded-xl p-6 border border-outline-variant flex flex-col gap-2 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<p class="font-metric-label text-on-surface-variant uppercase">Overall Score</p>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-primary">88%</span>
+<span class="text-secondary font-metric-label bg-secondary-fixed px-2 py-1 rounded">High Pass</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl p-6 border border-outline-variant flex flex-col gap-2 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<p class="font-metric-label text-on-surface-variant uppercase">Percentile Rank</p>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-on-surface">92nd</span>
+<span class="text-on-surface-variant font-body-md">vs. Peer Group</span>
+</div>
+</div>
+<div class="bg-surface rounded-xl p-6 border border-outline-variant flex flex-col gap-2 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<p class="font-metric-label text-on-surface-variant uppercase">Average Speed</p>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-on-surface">1m 15s</span>
+<span class="text-on-surface-variant font-body-md">per question</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Performance Summary Section -->
+<section class="mb-12">
+<h2 class="font-headline-md text-on-surface mb-6">Performance Summary</h2>
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+<!-- Domain Breakdown -->
+<div class="bg-surface rounded-xl p-8 border border-outline-variant">
+<h3 class="font-metric-label text-on-surface-variant uppercase mb-6">Accuracy by Domain</h3>
+<div class="flex flex-col gap-5">
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<span class="font-body-md text-on-surface font-medium">Algebraic Expressions</span>
+<span class="font-metric-label text-on-surface">95%</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 95%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<span class="font-body-md text-on-surface font-medium">Data Interpretation</span>
+<span class="font-metric-label text-on-surface">88%</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 88%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<span class="font-body-md text-on-surface font-medium">Geometry &amp; Spatial</span>
+<span class="font-metric-label text-on-surface">82%</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 82%"></div>
+</div>
+</div>
+<div class="flex flex-col gap-2">
+<div class="flex justify-between items-end">
+<span class="font-body-md text-on-surface font-medium">Ratio &amp; Proportion</span>
+<span class="font-metric-label text-error">65%</span>
+</div>
+<div class="w-full bg-surface-container h-2 rounded-full overflow-hidden">
+<div class="bg-error h-full rounded-full" style="width: 65%"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Difficulty Distribution Chart -->
+<div class="bg-surface rounded-xl p-8 border border-outline-variant flex flex-col">
+<h3 class="font-metric-label text-on-surface-variant uppercase mb-2">Difficulty Distribution</h3>
+<p class="font-body-md text-on-surface-variant mb-8">Performance across Level 1, 2, and 3 complexity.</p>
+<div class="flex-grow flex items-end justify-center gap-12 px-6 h-[200px]">
+<!-- L1 Bar -->
+<div class="flex flex-col items-center gap-3 w-16 h-full justify-end group">
+<span class="font-metric-label text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">98%</span>
+<div class="w-full bg-primary-fixed hover:bg-primary-fixed-dim transition-colors rounded-t-sm border-t-2 border-primary" style="height: 98%"></div>
+<span class="font-metric-label text-on-surface-variant">L1</span>
+</div>
+<!-- L2 Bar -->
+<div class="flex flex-col items-center gap-3 w-16 h-full justify-end group">
+<span class="font-metric-label text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">85%</span>
+<div class="w-full bg-primary-fixed hover:bg-primary-fixed-dim transition-colors rounded-t-sm border-t-2 border-primary" style="height: 85%"></div>
+<span class="font-metric-label text-on-surface-variant">L2</span>
+</div>
+<!-- L3 Bar -->
+<div class="flex flex-col items-center gap-3 w-16 h-full justify-end group">
+<span class="font-metric-label text-on-surface opacity-0 group-hover:opacity-100 transition-opacity">70%</span>
+<div class="w-full bg-primary-fixed hover:bg-primary-fixed-dim transition-colors rounded-t-sm border-t-2 border-primary" style="height: 70%"></div>
+<span class="font-metric-label text-on-surface-variant">L3</span>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Question Review & AI Insights -->
+<section class="mb-12">
+<div class="flex items-center justify-between mb-6">
+<h2 class="font-headline-md text-on-surface">Question Review &amp; AI Insights</h2>
+<div class="flex gap-2">
+<span class="px-3 py-1 bg-error-container text-on-error-container font-metric-label rounded-full text-xs flex items-center gap-1">
+<span class="material-symbols-outlined text-[14px]">error</span> 4 Incorrect
+                        </span>
+<button class="text-primary font-metric-label hover:underline">Filter Incorrect</button>
+</div>
+</div>
+<div class="flex flex-col gap-4">
+<!-- Correct Question Item -->
+<div class="bg-surface rounded-xl border border-outline-variant p-6 flex items-start gap-4 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed text-secondary flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-[20px]">check</span>
+</div>
+<div class="flex flex-col flex-grow gap-2">
+<div class="flex justify-between items-center">
+<span class="font-metric-label text-on-surface-variant">Q12 • Algebraic Expressions • L2</span>
+<span class="font-caption text-on-surface-variant">0m 45s</span>
+</div>
+<p class="font-body-lg text-on-surface">If 3x + 7 = 22, what is the value of x²?</p>
+</div>
+</div>
+<!-- Incorrect Question Item with AI Insight Action -->
+<div class="bg-surface rounded-xl border border-error p-6 flex flex-col gap-4 shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)]">
+<div class="flex items-start gap-4">
+<div class="w-8 h-8 rounded-full bg-error-container text-error flex items-center justify-center shrink-0 mt-1">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</div>
+<div class="flex flex-col flex-grow gap-2">
+<div class="flex justify-between items-center">
+<span class="font-metric-label text-on-surface-variant">Q15 • Ratio &amp; Proportion • L3</span>
+<span class="font-caption text-on-surface-variant">2m 10s (Slow)</span>
+</div>
+<p class="font-body-lg text-on-surface">Train A leaves Station X at 60 mph. Train B leaves Station Y 2 hours later at 90 mph. If the distance between stations is 400 miles, when will they meet?</p>
+<div class="flex gap-6 mt-2">
+<div class="flex flex-col">
+<span class="font-caption text-on-surface-variant">Your Answer</span>
+<span class="font-body-md text-error line-through">3 hours</span>
+</div>
+<div class="flex flex-col">
+<span class="font-caption text-on-surface-variant">Correct Answer</span>
+<span class="font-body-md text-secondary">3.8 hours</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Inline AI Insight Section -->
+<div class="mt-2 bg-surface-container-low rounded-lg p-6 border border-outline-variant relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-primary"></div>
+<div class="flex items-center gap-2 mb-4">
+<span class="material-symbols-outlined text-primary">psychology</span>
+<h4 class="font-metric-label text-primary uppercase">AI Visual Explanation</h4>
+</div>
+<div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+<div class="flex flex-col gap-4">
+<p class="font-body-md text-on-surface">You calculated the relative speed correctly but missed the 2-hour head start Train A had. Let's visualize the timeline.</p>
+<ol class="list-decimal list-inside font-body-md text-on-surface-variant space-y-2">
+<li>Train A travels for 2 hours alone: <code class="bg-surface px-1 py-0.5 rounded border border-outline-variant">60 mph × 2 hr = 120 miles</code></li>
+<li>Remaining distance: <code class="bg-surface px-1 py-0.5 rounded border border-outline-variant">400 - 120 = 280 miles</code></li>
+<li>Combined speed when both travel: <code class="bg-surface px-1 py-0.5 rounded border border-outline-variant">60 + 90 = 150 mph</code></li>
+<li>Time to meet: <code class="bg-surface px-1 py-0.5 rounded border border-outline-variant">280 / 150 = 1.86 hours</code></li>
+<li>Total time for Train A: <code class="bg-surface px-1 py-0.5 rounded border border-outline-variant">2 + 1.86 = 3.86 hours</code></li>
+</ol>
+</div>
+<div class="bg-surface rounded border border-outline-variant p-4 flex items-center justify-center min-h-[200px]">
+<!-- Placeholder for Animated SVG/Visual -->
+<div class="w-full flex flex-col gap-4 relative">
+<div class="flex justify-between font-caption text-on-surface-variant">
+<span>Station X</span>
+<span>Station Y</span>
+</div>
+<div class="h-1 bg-outline-variant w-full relative rounded">
+<!-- Train A path -->
+<div class="absolute top-0 left-0 h-full bg-primary rounded" style="width: 45%;"></div>
+<!-- Head start marker -->
+<div class="absolute top-[-4px] left-[30%] w-2 h-3 bg-secondary"></div>
+<!-- Train B path -->
+<div class="absolute top-0 right-0 h-full bg-tertiary rounded" style="width: 55%;"></div>
+<!-- Meeting point -->
+<div class="absolute top-[-8px] left-[45%] w-1 h-5 bg-error"></div>
+</div>
+<div class="flex justify-between font-caption text-on-surface-variant">
+<span class="text-primary">Train A (60mph)</span>
+<span class="text-tertiary">Train B (90mph)</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+<!-- Growth Path -->
+<section class="mb-12">
+<h2 class="font-headline-md text-on-surface mb-6">Recommended Growth Path</h2>
+<div class="bg-surface rounded-xl p-8 border border-outline-variant">
+<div class="flex flex-col md:flex-row gap-8 items-center">
+<div class="w-16 h-16 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-[32px]">trending_up</span>
+</div>
+<div class="flex flex-col gap-2 flex-grow">
+<h3 class="font-headline-md text-on-surface">Strengthen "Ratio &amp; Proportion"</h3>
+<p class="font-body-md text-on-surface-variant max-w-3xl">Based on your performance, focusing on multi-variable rate problems will significantly improve your overall quantitative score. Your foundational logic is sound, but pacing drops on Level 3 complexity.</p>
+</div>
+<button class="px-6 py-3 bg-primary text-on-primary font-metric-label rounded-lg hover:bg-primary-fixed-variant transition-colors whitespace-nowrap shadow-sm">
+                            Start Practice Set
+                        </button>
+</div>
+</div>
+</section>
+</main>
+</div>
+</body></html>

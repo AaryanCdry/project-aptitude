@@ -179,3 +179,48 @@ export async function finishTest(testId: string) {
 
   return { score: scorePercent, attempts };
 }
+
+export async function getTestResultDetails(testId: string) {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  // Fetch test details
+  const { data: test, error: testError } = await supabase
+    .from('tests')
+    .select('*')
+    .eq('id', testId)
+    .single();
+
+  if (testError || !test) throw new Error('Test not found');
+
+  // Fetch overall score
+  const { data: scoreData } = await supabase
+    .from('scores')
+    .select('*')
+    .eq('test_id', testId)
+    .single();
+
+  // Fetch attempts with question details
+  const { data: attempts } = await supabase
+    .from('test_attempts')
+    .select(`
+      id,
+      is_correct,
+      selected_answer,
+      time_taken_ms,
+      questions (
+        id,
+        text,
+        options,
+        correct_answer,
+        explanation,
+        difficulty,
+        domain
+      )
+    `)
+    .eq('test_id', testId)
+    .order('created_at', { ascending: true });
+
+  return { test, score: scoreData, attempts };
+}

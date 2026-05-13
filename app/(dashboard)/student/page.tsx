@@ -234,9 +234,9 @@ export default async function StudentDashboard() {
             <p className="font-metric-label text-on-surface">{score}%</p>
             <p className={`font-caption ${isPass ? 'text-secondary' : 'text-error'}`}>{isPass ? 'Pass' : 'Needs Work'}</p>
           </div>
-          <button className="text-primary text-sm font-metric-label hover:underline flex items-center gap-1">
+          <Link href={`/student/results/${test.id}`} className="text-primary text-sm font-metric-label hover:underline flex items-center gap-1">
             Insights <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </button>
+          </Link>
         </div>
       </div>
     );

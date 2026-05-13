@@ -5,32 +5,7 @@ import { fetchNextQuestion, submitAnswer, finishTest } from '../actions/assessme
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 
-const ExplanationSection = ({ explanation }: { explanation: string }) => {
-  const [isOpen, setIsOpen] = useState(false);
-  return (
-    <div className="mt-6 border border-outline-variant rounded-lg overflow-hidden">
-      <button 
-        onClick={() => setIsOpen(!isOpen)}
-        className="w-full flex items-center justify-between p-4 bg-surface-container-low hover:bg-surface-container transition-colors"
-      >
-        <div className="flex items-center gap-2">
-          <span className="material-symbols-outlined text-primary text-sm">auto_awesome</span>
-          <span className="font-headline-sm text-primary font-medium text-sm">AI Explanation</span>
-        </div>
-        <span className="material-symbols-outlined text-on-surface-variant transition-transform" style={{ transform: isOpen ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-          expand_more
-        </span>
-      </button>
-      {isOpen && (
-        <div className="p-5 bg-primary/5 border-t border-outline-variant/50">
-          <div className="prose prose-sm max-w-none text-on-surface-variant font-body-md leading-relaxed prose-p:my-2 prose-strong:text-primary prose-ul:my-2 prose-li:my-0">
-            <ReactMarkdown>{explanation}</ReactMarkdown>
-          </div>
-        </div>
-      )}
-    </div>
-  );
-};
+
 interface AssessmentClientProps {
   testId: string;
 }
@@ -112,75 +87,22 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
               <p className="font-metric-label text-sm text-on-surface-variant mb-1">Final Score</p>
               <p className="font-headline-lg text-4xl text-primary">{score}%</p>
             </div>
-            <button 
-              onClick={() => router.push('/student')}
-              className="bg-primary text-on-primary font-metric-label py-3 px-8 rounded-lg hover:bg-primary/90 transition-colors"
-            >
-              Return to Dashboard
-            </button>
-          </div>
-
-          {/* Post-Test Review */}
-          {attempts.length > 0 && (
-            <div className="space-y-6">
-              <h2 className="font-headline-md text-xl text-on-surface mb-6">Question Review</h2>
-              {attempts.map((attempt, index) => {
-                const q = attempt.questions;
-                if (!q) return null;
-                
-                return (
-                  <div key={index} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm">
-                    <div className="flex items-start justify-between mb-4">
-                      <div className="flex items-center gap-3">
-                        <span className={`flex items-center justify-center w-8 h-8 rounded-full font-metric-label text-sm ${attempt.is_correct ? 'bg-secondary text-on-secondary' : 'bg-error text-on-error'}`}>
-                          {index + 1}
-                        </span>
-                        <span className={`font-metric-label text-sm ${attempt.is_correct ? 'text-secondary' : 'text-error'}`}>
-                          {attempt.is_correct ? 'Correct' : 'Incorrect'}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    <p className="font-body-lg text-on-surface mb-6 leading-relaxed">
-                      {q.text}
-                    </p>
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6">
-                      {Array.isArray(q.options) && q.options.map((opt: string, i: number) => {
-                        const isSelected = attempt.selected_answer === opt;
-                        const isCorrect = q.correct_answer === opt;
-                        
-                        let borderClass = 'border-outline-variant';
-                        let bgClass = 'bg-surface-container-lowest';
-                        let textClass = 'text-on-surface';
-
-                        if (isCorrect) {
-                          borderClass = 'border-secondary';
-                          bgClass = 'bg-secondary/10';
-                          textClass = 'text-secondary font-medium';
-                        } else if (isSelected && !isCorrect) {
-                          borderClass = 'border-error';
-                          bgClass = 'bg-error/10';
-                          textClass = 'text-error font-medium';
-                        }
-
-                        return (
-                          <div key={i} className={`p-4 rounded-lg border-2 ${borderClass} ${bgClass} flex items-center gap-3`}>
-                            <span className="font-metric-label">{String.fromCharCode(65 + i)}.</span>
-                            <span className={`font-body-md ${textClass}`}>{opt}</span>
-                            {isCorrect && <span className="material-symbols-outlined text-secondary ml-auto text-sm">check_circle</span>}
-                            {isSelected && !isCorrect && <span className="material-symbols-outlined text-error ml-auto text-sm">cancel</span>}
-                          </div>
-                        );
-                      })}
-                    </div>
-
-                    {q.explanation && <ExplanationSection explanation={q.explanation} />}
-                  </div>
-                );
-              })}
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-4">
+              <button 
+                onClick={() => router.push('/student')}
+                className="bg-surface border border-outline text-on-surface font-metric-label py-3 px-8 rounded-lg hover:bg-surface-container transition-colors w-full sm:w-auto"
+              >
+                Return to Dashboard
+              </button>
+              <button 
+                onClick={() => router.push(`/student/results/${testId}`)}
+                className="bg-primary text-on-primary font-metric-label py-3 px-8 rounded-lg hover:bg-primary/90 transition-colors shadow-sm w-full sm:w-auto flex items-center justify-center gap-2"
+              >
+                View Detailed Results
+                <span className="material-symbols-outlined text-sm">arrow_forward</span>
+              </button>
             </div>
-          )}
+          </div>
         </div>
       </div>
     );
