@@ -28,6 +28,10 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group</span>
             <span>Cohorts</span>
           </Link>
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/assessments">
+            <span className="material-symbols-outlined">calendar_month</span>
+            <span>Scheduling</span>
+          </Link>
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/enrollment">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group_add</span>
             <span>Enrollment</span>
@@ -40,7 +44,7 @@ export default function AdminLayout({ children }: { children: React.ReactNode })
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>meeting_room</span>
             <span>Classes</span>
           </Link>
-          <a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="#">
+          <a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg opacity-50 cursor-not-allowed" href="#">
             <span className="material-symbols-outlined">trending_up</span>
             <span>Analytics</span>
           </a>
