@@ -9,25 +9,21 @@ export default function MentorLayout({ children }: { children: React.ReactNode }
 <span className="text-headline-md font-headline-md text-primary">AptitudePro</span>
 </div>
 <div className="flex flex-col space-y-1 flex-1">
-<a className="flex items-center space-x-3 px-4 py-3 bg-primary-container dark:bg-primary text-on-primary-container dark:text-on-primary rounded-lg font-bold transition-all hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10" href="#">
+<a className="flex items-center space-x-3 px-4 py-3 bg-primary-container text-on-primary-container rounded-lg font-bold transition-all hover:bg-surface-container-highest" href="/mentor">
 <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>dashboard</span>
 <span>Dashboard</span>
 </a>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high rounded-lg transition-all hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10" href="#">
+<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/mentor/students">
 <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group</span>
 <span>My Students</span>
 </a>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high rounded-lg transition-all hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10" href="#">
-<span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>videocam</span>
-<span>Live Sessions</span>
+<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/mentor/proctor">
+<span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>security</span>
+<span>Proctoring</span>
 </a>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high rounded-lg transition-all hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10" href="#">
-<span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>trending_up</span>
-<span>Analytics</span>
-</a>
-<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant dark:text-outline-variant hover:bg-surface-container-high rounded-lg transition-all hover:bg-surface-container-highest dark:hover:bg-primary-fixed-dim/10" href="#">
-<span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>settings</span>
-<span>Settings</span>
+<a className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/mentor/assessments">
+<span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>quiz</span>
+<span>Assessments</span>
 </a>
 </div>
 <div className="mt-auto pt-4 border-t border-outline-variant dark:border-outline">

@@ -14,25 +14,29 @@ export default function StudentLayout({ children }: { children: React.ReactNode 
 </div>
 </div>
 <nav className="flex-1 p-4 flex flex-col gap-2 overflow-y-auto">
-<a className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface font-metric-label transition-colors" href="#">
+<a className="flex items-center gap-3 px-3 py-2 rounded-lg bg-surface-container-high text-on-surface font-metric-label transition-colors" href="/student">
 <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>dashboard</span>
                 Dashboard
             </a>
-<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="#">
-<span className="material-symbols-outlined">description</span>
-                My Tests
+<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="/assessment">
+<span className="material-symbols-outlined">quiz</span>
+                Take Test
             </a>
-<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="#">
+<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="/student/progress">
 <span className="material-symbols-outlined">analytics</span>
-                Reports
+                My Progress
             </a>
-<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="#">
+<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="/student/leaderboard">
+<span className="material-symbols-outlined">leaderboard</span>
+                Leaderboard
+            </a>
+<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="/student/certificates">
 <span className="material-symbols-outlined">workspace_premium</span>
                 Certificates
             </a>
-<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="#">
-<span className="material-symbols-outlined">settings</span>
-                Settings
+<a className="flex items-center gap-3 px-3 py-2 rounded-lg hover:bg-surface-container text-on-surface-variant font-metric-label transition-colors" href="/student/profile">
+<span className="material-symbols-outlined">person</span>
+                Profile
             </a>
 </nav>
 <div className="p-4 border-t border-outline-variant">

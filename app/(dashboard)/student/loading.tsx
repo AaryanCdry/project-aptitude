@@ -43,6 +43,24 @@ export default function StudentDashboardLoading() {
           </div>
         </section>
         
+        {/* Domain Mastery Skeleton */}
+        <section>
+          <div className="h-6 bg-surface-container-high rounded-md w-40 mb-4 animate-pulse"></div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 flex flex-col gap-3">
+                <div className="flex justify-between items-start">
+                  <div className="w-10 h-10 rounded-lg bg-surface-container-high animate-pulse"></div>
+                  <div className="w-20 h-5 rounded bg-surface-container-high animate-pulse"></div>
+                </div>
+                <div className="h-4 bg-surface-container-high rounded-md w-3/4 animate-pulse"></div>
+                <div className="h-3 bg-surface-container-high rounded-md w-1/2 animate-pulse"></div>
+                <div className="h-9 w-full rounded-lg bg-surface-container-high animate-pulse mt-auto"></div>
+              </div>
+            ))}
+          </div>
+        </section>
+
         {/* Recent Activity Skeleton */}
         <section>
           <div className="h-6 bg-surface-container-high rounded-md w-48 mb-4 animate-pulse"></div>
