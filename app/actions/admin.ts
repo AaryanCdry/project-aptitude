@@ -98,3 +98,63 @@ Write the explanation directly without any preamble. Focus on the logical steps 
     throw new Error(`Failed to generate explanation: ${error.message}`);
   }
 }
+
+export async function getScheduledAssessments() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const now = new Date();
+  const weekStart = new Date(now);
+  weekStart.setDate(now.getDate() - now.getDay());
+
+  const { data: tests } = await supabase
+    .from('tests')
+    .select('id, type, status, scheduled_at, created_at, completed_at, student_id, users!student_id(name, email), classes!class_id(name)')
+    .order('scheduled_at', { ascending: true, nullsFirst: false });
+
+  const allTests = tests ?? [];
+  const completed = allTests.filter((t: any) => t.status === 'COMPLETED');
+  const thisWeek = allTests.filter((t: any) => {
+    if (!t.scheduled_at) return false;
+    const d = new Date(t.scheduled_at);
+    return d >= weekStart && d <= now;
+  });
+
+  const uniqueCandidates = new Set(allTests.map((t: any) => t.student_id)).size;
+  const completionRate = allTests.length > 0
+    ? Math.round((completed.length / allTests.length) * 100)
+    : 0;
+
+  const upcoming = allTests
+    .filter((t: any) => t.status !== 'COMPLETED')
+    .slice(0, 10)
+    .map((t: any) => ({
+      id: t.id,
+      title: t.type === 'CENTER' ? 'Center Assessment' : 'Self Assessment',
+      type: t.type,
+      status: t.status,
+      studentName: (t.users as any)?.name ?? (t.users as any)?.email ?? 'Unknown',
+      className: (t.classes as any)?.name ?? null,
+      scheduledAt: t.scheduled_at,
+    }));
+
+  const recentCompleted = completed.slice(0, 5).map((t: any) => ({
+    id: t.id,
+    title: t.type === 'CENTER' ? 'Center Assessment' : 'Self Assessment',
+    type: t.type,
+    studentName: (t.users as any)?.name ?? (t.users as any)?.email ?? 'Unknown',
+    completedAt: t.completed_at,
+  }));
+
+  return {
+    totalThisWeek: thisWeek.length,
+    totalCandidates: uniqueCandidates,
+    completionRate,
+    upcoming,
+    recentCompleted,
+    totalScheduled: allTests.filter((t: any) => t.status !== 'COMPLETED').length,
+    totalCompleted: completed.length,
+    totalTests: allTests.length,
+  };
+}

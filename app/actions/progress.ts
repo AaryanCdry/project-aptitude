@@ -135,3 +135,81 @@ export async function getLeaderboard(period: 'weekly' | 'monthly' | 'all' = 'all
 
   return { ranked, currentUserRank };
 }
+
+export async function getStudentGrowthAndCertificates() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
+
+  const { data: user_data } = await supabase
+    .from('users')
+    .select('name')
+    .eq('id', user.id)
+    .single();
+
+  const { data: scores } = await supabase
+    .from('scores')
+    .select('domain, score, percentile, created_at')
+    .eq('student_id', user.id)
+    .order('created_at', { ascending: true });
+
+  const { data: domainLevels } = await supabase
+    .from('domain_progress')
+    .select('domain, level, updated_at')
+    .eq('student_id', user.id)
+    .order('updated_at', { ascending: false });
+
+  // Build monthly growth timeline per domain
+  const domainTimeline: Record<string, { month: string; score: number }[]> = {};
+  (scores ?? []).forEach((s: any) => {
+    const d = new Date(s.created_at);
+    const month = d.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    if (!domainTimeline[s.domain]) domainTimeline[s.domain] = [];
+    const existing = domainTimeline[s.domain].find(e => e.month === month);
+    if (existing) {
+      existing.score = Math.round((existing.score + s.score) / 2);
+    } else {
+      domainTimeline[s.domain].push({ month, score: s.score });
+    }
+  });
+
+  // Best score per domain
+  const domainBest: Record<string, { score: number; percentile: number }> = {};
+  (scores ?? []).forEach((s: any) => {
+    if (!domainBest[s.domain] || s.score > domainBest[s.domain].score) {
+      domainBest[s.domain] = { score: s.score, percentile: s.percentile ?? 50 };
+    }
+  });
+
+  // Build certified skills from domain progress where level >= 3
+  const certifiedDomains = (domainLevels ?? []).filter((d: any) => d.level >= 3);
+
+  const DOMAIN_ICONS: Record<string, string> = {
+    QUANTITATIVE: 'functions',
+    LOGICAL: 'psychology',
+    VERBAL: 'translate',
+    REASONING: 'memory',
+  };
+
+  const certifiedSkills = certifiedDomains.map((d: any) => ({
+    domain: d.domain,
+    level: d.level,
+    icon: DOMAIN_ICONS[d.domain] ?? 'verified',
+    achievedAt: new Date(d.updated_at).toLocaleDateString('en-US', { month: 'short', year: 'numeric' }),
+    label: `${d.domain.charAt(0) + d.domain.slice(1).toLowerCase()} ${d.level >= 5 ? 'Mastery' : d.level >= 4 ? 'Advanced' : 'Proficiency'}`,
+  }));
+
+  // Find best overall domain for certificate
+  const topDomain = Object.entries(domainBest).sort((a, b) => b[1].score - a[1].score)[0];
+  const topPercentile = topDomain ? topDomain[1].percentile : 0;
+
+  return {
+    studentName: user_data?.name ?? 'Student',
+    domainTimeline,
+    certifiedSkills,
+    topDomain: topDomain ? topDomain[0] : null,
+    topScore: topDomain ? topDomain[1].score : 0,
+    topPercentile,
+    hasCertificate: certifiedDomains.length > 0 || (topDomain ? topDomain[1].score >= 85 : false),
+  };
+}
