@@ -1,35 +1,36 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+
+async function getCallerCollegeId() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const { data: profile } = await supabase
+    .from('users')
+    .select('college_id')
+    .eq('id', user.id)
+    .single();
+  return profile?.college_id ?? null;
+}
 
 // ─── Get all departments for a college ──────────────────────────────────────
 export async function getDepartments() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const adminClient = createAdminClient();
+  const collegeId = await getCallerCollegeId();
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('college_id, role')
-    .eq('id', user.id)
-    .single();
-
-  let query = supabase
+  let query = adminClient
     .from('departments')
-    .select(`
-      id, name, course_type, semester_count, created_at,
-      classes(count)
-    `)
+    .select(`id, name, course_type, semester_count, created_at, classes(count)`)
     .order('created_at', { ascending: false });
 
-  if (profile?.college_id) {
-    query = query.eq('college_id', profile.college_id);
-  }
+  if (collegeId) query = query.eq('college_id', collegeId);
 
   const { data, error } = await query;
   if (error) {
-    console.error('Error fetching departments:', JSON.stringify(error));
+    console.error('Error fetching departments:', error.message);
     return [];
   }
 
@@ -41,15 +42,8 @@ export async function getDepartments() {
 
 // ─── Create department ────────────────────────────────────────────────────────
 export async function createDepartment(formData: FormData) {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { error: 'Not authenticated' };
-
-  const { data: profile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
+  const collegeId = await getCallerCollegeId();
+  if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
 
   const name = formData.get('name') as string;
   const course_type = formData.get('course_type') as string;
@@ -57,11 +51,12 @@ export async function createDepartment(formData: FormData) {
 
   if (!name) return { error: 'Department name is required.' };
 
-  const { error } = await supabase.from('departments').insert({
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.from('departments').insert({
     name,
     course_type,
     semester_count,
-    college_id: profile?.college_id,
+    college_id: collegeId,
   });
 
   if (error) return { error: error.message };
@@ -69,25 +64,40 @@ export async function createDepartment(formData: FormData) {
   return { success: true };
 }
 
-// ─── Get all classes for a department ────────────────────────────────────────
+// ─── Get all classes (scoped to caller's college) ─────────────────────────────
 export async function getClasses(deptId?: string) {
-  const supabase = await createClient();
+  const adminClient = createAdminClient();
+  const collegeId = await getCallerCollegeId();
 
-  let query = supabase
+  // Resolve dept IDs that belong to this college
+  let deptIds: string[] | null = null;
+  if (!deptId && collegeId) {
+    const { data: depts } = await adminClient
+      .from('departments')
+      .select('id')
+      .eq('college_id', collegeId);
+    deptIds = (depts ?? []).map((d: any) => d.id);
+    if (deptIds.length === 0) return [];
+  }
+
+  let query = adminClient
     .from('classes')
     .select(`
-      id, name, year, section, created_at,
-      dept_id,
+      id, name, year, section, created_at, dept_id,
       departments(name, course_type),
       sub_admin:users!sub_admin_id(id, name, email)
     `)
     .order('created_at', { ascending: false });
 
-  if (deptId) query = query.eq('dept_id', deptId);
+  if (deptId) {
+    query = query.eq('dept_id', deptId);
+  } else if (deptIds) {
+    query = query.in('dept_id', deptIds);
+  }
 
   const { data, error } = await query;
   if (error) {
-    console.error('Error fetching classes:', JSON.stringify(error));
+    console.error('Error fetching classes:', error.message);
     return [];
   }
 
@@ -96,7 +106,8 @@ export async function getClasses(deptId?: string) {
 
 // ─── Create class ─────────────────────────────────────────────────────────────
 export async function createClass(formData: FormData) {
-  const supabase = await createClient();
+  const collegeId = await getCallerCollegeId();
+  if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
 
   const dept_id = formData.get('dept_id') as string;
   const name = formData.get('name') as string;
@@ -105,7 +116,19 @@ export async function createClass(formData: FormData) {
 
   if (!dept_id || !name) return { error: 'Department and class name are required.' };
 
-  const { error } = await supabase.from('classes').insert({
+  // Verify the department belongs to this admin's college
+  const adminClient = createAdminClient();
+  const { data: dept } = await adminClient
+    .from('departments')
+    .select('college_id')
+    .eq('id', dept_id)
+    .single();
+
+  if (!dept || dept.college_id !== collegeId) {
+    return { error: 'Department does not belong to your college.' };
+  }
+
+  const { error } = await adminClient.from('classes').insert({
     dept_id,
     name,
     year,
@@ -120,10 +143,10 @@ export async function createClass(formData: FormData) {
 
 // ─── Get student count per class ─────────────────────────────────────────────
 export async function getClassStudentCounts(classIds: string[]) {
-  const supabase = await createClient();
   if (!classIds.length) return {};
+  const adminClient = createAdminClient();
 
-  const { data } = await supabase
+  const { data } = await adminClient
     .from('student_college')
     .select('class_id')
     .in('class_id', classIds);

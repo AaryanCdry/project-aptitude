@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { fetchNextQuestion, submitAnswer, finishTest } from '../actions/assessment';
+import { createProctorSession, applyEvent, buildLogPayload, submitProctoringLog } from '@/lib/proctor';
 import { useRouter } from 'next/navigation';
 import ReactMarkdown from 'react-markdown';
 
@@ -21,10 +22,68 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
   const [testFinished, setTestFinished] = useState(false);
   const [score, setScore] = useState<number | null>(null);
   const [attempts, setAttempts] = useState<any[]>([]);
+  const [timerSeconds, setTimerSeconds] = useState<number | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number | null>(null);
+  const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  // Ref so the interval callback always sees the latest question without stale closure
+  const questionRef = useRef<any>(null);
+  const timerSecondsRef = useRef<number | null>(null);
+  useEffect(() => { questionRef.current = question; }, [question]);
+  useEffect(() => { timerSecondsRef.current = timerSeconds; }, [timerSeconds]);
+
+  // Proctoring
+  const proctorRef = useRef(createProctorSession(testId));
+  const questionTimingsRef = useRef<number[]>([]);
 
   useEffect(() => {
     loadNextQuestion();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [testId]);
+
+  // Track tab switches and focus loss for proctoring
+  useEffect(() => {
+    const onVisChange = () => {
+      if (document.visibilityState === 'hidden') {
+        proctorRef.current = applyEvent(proctorRef.current, { type: 'VISIBILITY_HIDDEN' });
+      }
+    };
+    const onBlur = () => {
+      proctorRef.current = applyEvent(proctorRef.current, { type: 'FOCUS_LOST' });
+    };
+    document.addEventListener('visibilitychange', onVisChange);
+    window.addEventListener('blur', onBlur);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisChange);
+      window.removeEventListener('blur', onBlur);
+    };
+  }, []);
+
+  // Restart countdown whenever the question changes
+  useEffect(() => {
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+    if (timerSeconds == null) { setTimeLeft(null); return; }
+    setTimeLeft(timerSeconds);
+    intervalRef.current = setInterval(() => {
+      setTimeLeft(prev => {
+        if (prev == null || prev <= 1) {
+          clearInterval(intervalRef.current!);
+          intervalRef.current = null;
+          const q = questionRef.current;
+          const ts = timerSecondsRef.current ?? 30;
+          if (q) {
+            questionTimingsRef.current.push(ts * 1000);
+            submitAnswer(testId, q.id, '__TIMEOUT__', ts * 1000)
+              .then(() => loadNextQuestion())
+              .catch(console.error);
+          }
+          return 0;
+        }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [question?.id, timerSeconds]);
 
   const loadNextQuestion = async () => {
     setLoading(true);
@@ -36,6 +95,7 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
         setQuestion(res.question);
         setProgress(res.progress || 0);
         setTotal(res.total || 25);
+        setTimerSeconds((res as any).timerSeconds ?? null);
         setSelectedOption(null);
       }
     } catch (error) {
@@ -50,14 +110,23 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
     const res = await finishTest(testId);
     setScore(res.score);
     setAttempts(res.attempts || []);
+
+    // Submit proctoring log (fire-and-forget)
+    const timings = questionTimingsRef.current;
+    const avgTimeMs = timings.length > 0
+      ? Math.round(timings.reduce((a, b) => a + b, 0) / timings.length)
+      : 0;
+    submitProctoringLog(buildLogPayload(proctorRef.current, avgTimeMs)).catch(console.error);
   };
 
   const handleSubmit = async () => {
     if (!selectedOption || !question) return;
+    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     setIsSubmitting(true);
     try {
-      // timeTakenMs is mocked as 10000ms for now
-      await submitAnswer(testId, question.id, selectedOption, 10000);
+      const elapsed = timerSeconds != null ? (timerSeconds - (timeLeft ?? 0)) * 1000 : 10000;
+      questionTimingsRef.current.push(elapsed);
+      await submitAnswer(testId, question.id, selectedOption, elapsed);
       await loadNextQuestion();
     } catch (error) {
       console.error("Failed to submit answer:", error);
@@ -140,13 +209,19 @@ export default function AssessmentClient({ testId }: AssessmentClientProps) {
             </div>
           </div>
 
-          <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant">
-            <span className="material-symbols-outlined text-outline" data-icon="timer">timer</span>
-            <div className="flex items-baseline gap-1 font-metric-label text-on-surface">
-              <span className="text-lg">--</span><span className="text-caption text-on-surface-variant">:</span>
-              <span className="text-lg">--</span>
+          {timeLeft != null ? (
+            <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-metric-label transition-colors ${timeLeft <= 10 ? 'bg-error-container border-error text-on-error-container' : 'bg-surface-container-low border-outline-variant text-on-surface'}`}>
+              <span className="material-symbols-outlined text-sm" data-icon="timer">timer</span>
+              <span className="text-lg tabular-nums">
+                {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}
+              </span>
             </div>
-          </div>
+          ) : (
+            <div className="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-lg border border-outline-variant">
+              <span className="material-symbols-outlined text-outline" data-icon="timer">timer</span>
+              <span className="font-metric-label text-on-surface-variant text-sm">No limit</span>
+            </div>
+          )}
         </div>
       </header>
 

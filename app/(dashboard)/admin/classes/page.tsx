@@ -141,9 +141,13 @@ export default async function ClassesPage({
                           {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                         </td>
                         <td className="py-3 px-5 text-right">
-                          <button className="p-1.5 text-outline hover:text-primary transition-colors rounded-full hover:bg-surface-container-high">
-                            <span className="material-symbols-outlined text-[18px]">more_vert</span>
-                          </button>
+                          <Link
+                            href={`/admin/classes/${c.id}`}
+                            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-sm font-metric-label text-primary border border-primary/30 rounded-lg hover:bg-primary/5 transition-colors"
+                          >
+                            <span className="material-symbols-outlined text-[16px]">people</span>
+                            View Roster
+                          </Link>
                         </td>
                       </tr>
                     ))}

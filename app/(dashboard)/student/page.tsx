@@ -1,6 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { getStudentDashboardData } from '@/app/actions/dashboard';
+import { getStudentCohortData, getStudentAssignedAssessments } from '@/app/actions/cohorts';
+import PublicLearningPath from './PublicLearningPath';
+import CollegeCurriculumCard from './CollegeCurriculumCard';
+import AssignedAssessments from './AssignedAssessments';
 
 // Helper: map domain name → icon & color scheme
 const DOMAIN_CONFIG: Record<string, { icon: string; bg: string; textColor: string }> = {
@@ -36,8 +40,12 @@ function getPercentileLabel(avg: number): string {
 }
 
 export default async function StudentDashboard() {
-  const { tests, domainScores, averageScore, totalTests, scoreTrend } = await getStudentDashboardData();
+  const { tests, domainScores, averageScore, totalTests, scoreTrend, collegeId } = await getStudentDashboardData();
   const recentTests = tests.slice(0, 5);
+  const [cohortData, assignedAssessments] = await Promise.all([
+    collegeId ? getStudentCohortData() : Promise.resolve(null),
+    collegeId ? getStudentAssignedAssessments() : Promise.resolve([]),
+  ]);
 
   // ── Score Trend SVG helpers ──────────────────────────────────────────────
   // We build an SVG polyline in a 100×100 viewBox. Y is inverted (0 = top).
@@ -248,6 +256,15 @@ export default async function StudentDashboard() {
             </div>
           </section>
 
+          {/* ── Learning Path (public) or College Curriculum ─────────────── */}
+          {collegeId
+            ? <CollegeCurriculumCard cohort={cohortData} />
+            : <PublicLearningPath averageScore={averageScore} />
+          }
+
+          {/* ── Assigned Assessments (college students only) ─────────────── */}
+          {collegeId && <AssignedAssessments assignments={assignedAssessments as any} />}
+
           {/* ── Recent Activity ───────────────────────────────────────────── */}
           <section>
             <div className="flex items-center justify-between mb-4">
@@ -265,7 +282,7 @@ export default async function StudentDashboard() {
                 </div>
               ) : (
                 recentTests.map((test: any, index: number) => {
-                  const score = test.scores?.[0]?.score ?? 0;
+                  const score = test.overallScore ?? 0;
                   const isPass = score >= 70;
                   const passLabel = score >= 85 ? 'High Pass' : isPass ? 'Pass' : 'Needs Work';
 

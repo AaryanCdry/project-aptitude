@@ -1,6 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { getEnrolledStudents, getEnrollmentStats } from '@/app/actions/enrollment';
+import StudentActions from './StudentActions';
+
+const AVATAR_COLORS = [
+  'bg-primary-fixed-dim text-on-primary-fixed',
+  'bg-tertiary-fixed text-on-tertiary-fixed-variant',
+  'bg-secondary-fixed text-on-secondary-fixed',
+];
 
 export default async function EnrollmentPage() {
   const [students, stats] = await Promise.all([
@@ -13,69 +20,98 @@ export default async function EnrollmentPage() {
       {/* Header */}
       <div className="flex flex-col md:flex-row md:items-end justify-between mb-8 gap-4">
         <div>
-          <h1 className="font-display-sm text-display-sm text-on-background mb-2">Student Enrollment</h1>
-          <p className="font-body-md text-body-md text-on-surface-variant">Manage new admissions and track enrollment status.</p>
+          <h1 className="font-display-sm text-display-sm text-on-background mb-1">Student Enrollment</h1>
+          <p className="font-body-md text-on-surface-variant">Manage new admissions and track enrollment status.</p>
         </div>
         <div className="flex gap-3">
-          <Link href="/admin/enrollment/bulk" className="px-6 py-3 bg-surface-container-lowest text-on-background border border-outline-variant rounded-lg font-metric-label hover:bg-surface-container-low transition-colors shadow-sm flex items-center gap-2">
-            <span className="material-symbols-outlined text-xl">upload_file</span>
+          <Link
+            href="/admin/enrollment/bulk"
+            className="px-5 py-2.5 bg-surface border border-outline-variant text-on-surface rounded-lg font-metric-label hover:bg-surface-container-low transition-colors shadow-sm flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">upload_file</span>
             Bulk Upload
           </Link>
-          <Link href="/admin/enrollment/new" className="px-6 py-3 bg-primary text-on-primary rounded-lg font-metric-label hover:bg-on-primary-fixed-variant transition-colors shadow-sm flex items-center gap-2">
-            <span className="material-symbols-outlined text-xl">add</span>
-            Enroll New Student
+          <Link
+            href="/admin/enrollment/new"
+            className="px-5 py-2.5 bg-primary text-on-primary rounded-lg font-metric-label hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2"
+          >
+            <span className="material-symbols-outlined text-[18px]">person_add</span>
+            Enroll Student
           </Link>
         </div>
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-primary/5 rounded-bl-full translate-x-4 -translate-y-4" />
-          <h3 className="font-metric-label text-on-surface-variant mb-2">Total Enrolled</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display-lg text-display-lg text-on-background">{stats.totalStudents}</span>
-            <span className="font-caption text-secondary flex items-center"><span className="material-symbols-outlined text-sm">arrow_upward</span>active</span>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
+        {/* Total Enrolled */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>group</span>
           </div>
-        </div>
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-tertiary/5 rounded-bl-full translate-x-4 -translate-y-4" />
-          <h3 className="font-metric-label text-on-surface-variant mb-2">Active Cohorts</h3>
-          <div className="flex items-baseline gap-2">
-            <span className="font-display-lg text-display-lg text-on-background">{stats.cohorts.length}</span>
-            <span className="font-caption text-on-surface-variant">cohorts running</span>
-          </div>
-        </div>
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm relative overflow-hidden">
-          <div className="absolute right-0 top-0 w-24 h-24 bg-secondary/5 rounded-bl-full translate-x-4 -translate-y-4" />
-          <h3 className="font-metric-label text-on-surface-variant mb-2">Latest Cohort</h3>
-          {stats.cohorts[0] ? (
-            <div className="flex flex-col gap-1 mt-1">
-              <span className="font-body-md font-semibold text-on-surface">{stats.cohorts[0].name}</span>
-              <div className="w-full bg-surface-container-high rounded-full h-2">
-                <div className="bg-secondary h-2 rounded-full w-full" />
-              </div>
+          <div>
+            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Total Enrolled</p>
+            <div className="flex items-baseline gap-2">
+              <span className="font-bold text-on-background text-[32px] leading-none">{stats.totalStudents}</span>
+              <span className="font-caption text-secondary text-[11px] flex items-center gap-0.5">
+                <span className="material-symbols-outlined text-[13px]">arrow_upward</span>
+                active
+              </span>
             </div>
-          ) : (
-            <p className="text-on-surface-variant font-body-md mt-1">No cohorts yet</p>
-          )}
+          </div>
+        </div>
+
+        {/* Active Cohorts */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>groups</span>
+          </div>
+          <div>
+            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Active Cohorts</p>
+            <span className="font-bold text-on-background text-[32px] leading-none">{stats.cohorts.length}</span>
+          </div>
+        </div>
+
+        {/* Latest Cohort */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>recent_actors</span>
+          </div>
+          <div className="min-w-0 flex-1">
+            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Latest Cohort</p>
+            {stats.cohorts[0] ? (
+              <p className="font-semibold text-on-surface text-[15px] truncate">{stats.cohorts[0].name}</p>
+            ) : (
+              <p className="font-body-md text-on-surface-variant/60 italic text-sm">No cohorts yet</p>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Student Table */}
+      {/* Table card */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
         {/* Toolbar */}
-        <div className="p-6 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-surface-bright">
+        <div className="px-5 py-4 border-b border-outline-variant flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3 bg-surface-bright">
           <div className="flex space-x-1 border border-outline-variant rounded-lg p-1 bg-surface-container-low">
             {['All Students', 'Active', 'Invited'].map((label, i) => (
-              <button key={label} className={`px-4 py-1.5 font-metric-label text-metric-label rounded-md transition-colors ${i === 0 ? 'bg-surface-container-lowest text-primary shadow-sm border border-outline-variant/50' : 'text-on-surface-variant hover:bg-surface-container-highest'}`}>
+              <button
+                key={label}
+                className={`px-4 py-1.5 font-metric-label text-[13px] rounded-md transition-colors ${
+                  i === 0
+                    ? 'bg-surface-container-lowest text-primary shadow-sm border border-outline-variant/50'
+                    : 'text-on-surface-variant hover:bg-surface-container-highest'
+                }`}
+              >
                 {label}
               </button>
             ))}
           </div>
           <div className="relative w-full sm:w-64">
-            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline">search</span>
-            <input className="w-full pl-10 pr-4 py-2 bg-surface border border-outline-variant rounded-lg font-body-md focus:outline-none focus:ring-2 focus:ring-primary/30 focus:border-primary text-on-background placeholder:text-outline-variant transition-colors" placeholder="Search by name or ID..." type="text" />
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+            <input
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-outline-variant rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-on-background placeholder:text-outline-variant transition-colors"
+              placeholder="Search by name, email or ID…"
+              type="text"
+            />
           </div>
         </div>
 
@@ -84,46 +120,107 @@ export default async function EnrollmentPage() {
           <table className="w-full text-left border-collapse">
             <thead>
               <tr className="bg-surface-container-lowest border-b border-outline-variant">
-                {['Student Details', 'Student ID', 'Date Enrolled', 'Status', 'Actions'].map((h, i) => (
-                  <th key={h} className={`py-4 px-6 font-metric-label text-metric-label text-on-surface-variant font-semibold ${i === 4 ? 'text-right' : ''}`}>{h}</th>
+                {['Student', 'Reg. ID', 'Department & Class', 'Section', 'Enrolled', 'Status', ''].map((h, i) => (
+                  <th
+                    key={i}
+                    className={`py-3 px-4 font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider whitespace-nowrap ${i === 6 ? 'w-12' : ''}`}
+                  >
+                    {h}
+                  </th>
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-outline-variant">
+            <tbody className="divide-y divide-outline-variant/60">
               {students.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="py-16 text-center text-on-surface-variant font-body-md">
-                    <span className="material-symbols-outlined text-4xl block mb-2 text-outline">person_off</span>
-                    No students enrolled yet. Use the buttons above to get started.
+                  <td colSpan={7} className="py-20 text-center text-on-surface-variant">
+                    <span className="material-symbols-outlined text-5xl block mb-3 text-outline">person_off</span>
+                    <p className="font-body-md">No students enrolled yet.</p>
+                    <p className="font-caption text-on-surface-variant/60 mt-1">Use the buttons above to get started.</p>
                   </td>
                 </tr>
-              ) : students.map((student: any) => {
-                const initials = (student.name || student.email || 'U').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
-                const colors = ['bg-primary-fixed-dim text-on-primary-fixed', 'bg-tertiary-fixed text-on-tertiary-fixed-variant', 'bg-secondary-fixed text-on-secondary-fixed'];
-                const ci = (student.name?.charCodeAt(0) ?? 0) % 3;
+              ) : students.map((student: any, idx: number) => {
+                const initials = (student.name || student.email || 'U')
+                  .split(' ')
+                  .map((w: string) => w[0])
+                  .join('')
+                  .substring(0, 2)
+                  .toUpperCase();
+                const ci = (student.name?.charCodeAt(0) ?? idx) % 3;
+
                 return (
-                  <tr key={student.id} className="hover:bg-surface-container-lowest/50 transition-colors group cursor-pointer">
-                    <td className="py-4 px-6">
+                  <tr key={student.id} className="hover:bg-surface-container/40 transition-colors group">
+                    {/* Student */}
+                    <td className="py-3 px-4">
                       <div className="flex items-center gap-3">
-                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm ${colors[ci]}`}>{initials}</div>
-                        <div>
-                          <p className="font-body-md font-semibold text-on-background group-hover:text-primary transition-colors">{student.name || '—'}</p>
-                          <p className="font-caption text-on-surface-variant">{student.email}</p>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center font-bold text-sm shrink-0 ${AVATAR_COLORS[ci]}`}>
+                          {initials}
+                        </div>
+                        <div className="min-w-0">
+                          <p className="font-semibold text-[13px] text-on-background group-hover:text-primary transition-colors truncate">
+                            {student.name || '—'}
+                          </p>
+                          <p className="text-[11px] text-on-surface-variant truncate">{student.email}</p>
+                          <p className="text-[10px] text-on-surface-variant/50 font-mono">{student.platformId}</p>
                         </div>
                       </div>
                     </td>
-                    <td className="py-4 px-6 text-on-surface-variant text-sm font-mono">{student.studentId}</td>
-                    <td className="py-4 px-6 text-on-surface-variant font-body-md">{student.dateEnrolled}</td>
-                    <td className="py-4 px-6">
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-caption bg-secondary-fixed text-on-secondary-fixed-variant border border-secondary-fixed-dim">
+
+                    {/* Reg ID */}
+                    <td className="py-3 px-4">
+                      {student.registration_id ? (
+                        <span className="font-mono text-[12px] text-on-surface bg-surface-container px-2 py-1 rounded-md border border-outline-variant">
+                          {student.registration_id}
+                        </span>
+                      ) : (
+                        <span className="text-outline/50 text-sm">—</span>
+                      )}
+                    </td>
+
+                    {/* Department & Class */}
+                    <td className="py-3 px-4">
+                      {student.departmentName ? (
+                        <div className="flex flex-col gap-0.5">
+                          <span className="text-[13px] text-on-surface font-medium">{student.departmentName}</span>
+                          {student.className && (
+                            <span className="text-[11px] text-on-surface-variant">{student.className}</span>
+                          )}
+                        </div>
+                      ) : (
+                        <span className="text-outline/50 text-sm">—</span>
+                      )}
+                    </td>
+
+                    {/* Section */}
+                    <td className="py-3 px-4">
+                      {student.section ? (
+                        <span className="text-[12px] font-medium text-on-surface bg-surface-container px-2.5 py-0.5 rounded-full border border-outline-variant">
+                          {student.section}
+                        </span>
+                      ) : (
+                        <span className="text-outline/50 text-sm">—</span>
+                      )}
+                    </td>
+
+                    {/* Date Enrolled */}
+                    <td className="py-3 px-4 text-[12px] text-on-surface-variant whitespace-nowrap">
+                      {student.dateEnrolled}
+                    </td>
+
+                    {/* Status */}
+                    <td className="py-3 px-4">
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-secondary-fixed/60 text-on-secondary-fixed-variant border border-secondary-fixed-dim">
                         <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
                         {student.status}
                       </span>
                     </td>
-                    <td className="py-4 px-6 text-right">
-                      <button className="p-2 text-outline hover:text-primary transition-colors rounded-full hover:bg-surface-container-high">
-                        <span className="material-symbols-outlined">more_vert</span>
-                      </button>
+
+                    {/* Actions */}
+                    <td className="py-3 px-4">
+                      <StudentActions
+                        studentId={student.id}
+                        tempPassword={student.temp_password ?? null}
+                      />
                     </td>
                   </tr>
                 );
@@ -132,12 +229,22 @@ export default async function EnrollmentPage() {
           </table>
         </div>
 
-        {/* Pagination */}
-        <div className="p-4 border-t border-outline-variant bg-surface-bright flex items-center justify-between">
-          <span className="font-body-md text-body-md text-on-surface-variant">Showing {students.length} of {stats.totalStudents} entries</span>
-          <div className="flex space-x-2">
-            <button className="p-2 rounded-lg border border-outline-variant text-outline-variant hover:bg-surface-container-low transition-colors disabled:opacity-40" disabled><span className="material-symbols-outlined">chevron_left</span></button>
-            <button className="p-2 rounded-lg border border-outline-variant text-on-background hover:bg-surface-container-low transition-colors"><span className="material-symbols-outlined">chevron_right</span></button>
+        {/* Footer / Pagination */}
+        <div className="px-5 py-3.5 border-t border-outline-variant bg-surface-bright flex items-center justify-between">
+          <span className="text-[12px] text-on-surface-variant">
+            Showing <span className="font-semibold text-on-surface">{students.length}</span> of <span className="font-semibold text-on-surface">{stats.totalStudents}</span> students
+          </span>
+          <div className="flex items-center gap-1">
+            <button
+              disabled
+              className="p-1.5 rounded-lg border border-outline-variant text-outline disabled:opacity-30 hover:bg-surface-container-low transition-colors"
+            >
+              <span className="material-symbols-outlined text-[18px]">chevron_left</span>
+            </button>
+            <span className="px-3 py-1 text-[12px] font-medium text-primary bg-primary/8 rounded-lg border border-primary/20">1</span>
+            <button className="p-1.5 rounded-lg border border-outline-variant text-on-surface hover:bg-surface-container-low transition-colors disabled:opacity-30" disabled>
+              <span className="material-symbols-outlined text-[18px]">chevron_right</span>
+            </button>
           </div>
         </div>
       </div>

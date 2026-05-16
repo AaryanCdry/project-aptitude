@@ -1,0 +1,123 @@
+'use client';
+
+import { useState } from 'react';
+
+type Row = {
+  id: string;
+  name: string;
+  email: string;
+  joined: string;
+  testsCompleted: number;
+  avgScore: number;
+  grade: string;
+};
+
+const GRADE_STYLES: Record<string, string> = {
+  'Excellent':      'bg-secondary-fixed text-on-secondary-fixed-variant',
+  'Above Average':  'bg-primary-fixed-dim text-on-primary-fixed',
+  'Average':        'bg-surface-container-high text-on-surface',
+  'Below Average':  'bg-error-container text-on-error-container',
+};
+
+export default function ReportsClient({ rows }: { rows: Row[] }) {
+  const [search, setSearch] = useState('');
+  const [gradeFilter, setGradeFilter] = useState('All');
+
+  const grades = ['All', 'Excellent', 'Above Average', 'Average', 'Below Average'];
+
+  const filtered = rows.filter(r => {
+    const matchSearch = search === '' || r.name.toLowerCase().includes(search.toLowerCase()) || r.email.toLowerCase().includes(search.toLowerCase());
+    const matchGrade = gradeFilter === 'All' || r.grade === gradeFilter;
+    return matchSearch && matchGrade;
+  });
+
+  function downloadCSV() {
+    const header = 'Name,Email,Joined,Tests Completed,Avg Score,Grade';
+    const body = rows.map(r =>
+      `"${r.name}","${r.email}","${r.joined}",${r.testsCompleted},${r.avgScore},"${r.grade}"`
+    ).join('\n');
+    const blob = new Blob([header + '\n' + body], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `student-report-${new Date().toISOString().slice(0, 10)}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+  }
+
+  return (
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
+      {/* Toolbar */}
+      <div className="p-4 border-b border-outline-variant flex items-center gap-3 flex-wrap bg-surface-bright">
+        <div className="relative flex-1 min-w-48">
+          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant text-sm">search</span>
+          <input
+            type="text"
+            placeholder="Search students…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+            className="w-full pl-9 pr-4 py-2 bg-surface-container-low border border-outline-variant rounded-lg text-sm text-on-surface font-body-md focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+        <select
+          value={gradeFilter}
+          onChange={e => setGradeFilter(e.target.value)}
+          className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-sm text-on-surface font-body-md focus:outline-none focus:ring-2 focus:ring-primary"
+        >
+          {grades.map(g => <option key={g}>{g}</option>)}
+        </select>
+        <button
+          onClick={downloadCSV}
+          className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg font-metric-label text-sm hover:opacity-90 transition-opacity"
+        >
+          <span className="material-symbols-outlined text-sm">download</span>
+          Export CSV
+        </button>
+      </div>
+
+      {/* Table */}
+      <div className="overflow-x-auto">
+        <table className="w-full text-left">
+          <thead>
+            <tr className="border-b border-outline-variant">
+              {['Student', 'Email', 'Joined', 'Tests', 'Avg Score', 'Grade'].map(h => (
+                <th key={h} className="py-3 px-5 font-metric-label text-on-surface-variant text-sm">{h}</th>
+              ))}
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-outline-variant">
+            {filtered.length === 0 ? (
+              <tr>
+                <td colSpan={6} className="py-12 text-center text-on-surface-variant font-body-md">
+                  No students match your filters.
+                </td>
+              </tr>
+            ) : (
+              filtered.map(r => (
+                <tr key={r.id} className="hover:bg-surface-container transition-colors">
+                  <td className="py-3 px-5 font-body-md text-on-surface">{r.name}</td>
+                  <td className="py-3 px-5 font-body-md text-on-surface-variant">{r.email}</td>
+                  <td className="py-3 px-5 font-caption text-on-surface-variant">{r.joined}</td>
+                  <td className="py-3 px-5 font-body-md text-on-surface">{r.testsCompleted}</td>
+                  <td className="py-3 px-5">
+                    <span className={`font-bold ${r.avgScore >= 75 ? 'text-secondary' : r.avgScore >= 50 ? 'text-primary' : 'text-error'}`}>
+                      {r.avgScore > 0 ? `${r.avgScore}%` : '—'}
+                    </span>
+                  </td>
+                  <td className="py-3 px-5">
+                    <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${GRADE_STYLES[r.grade] ?? 'bg-surface-container-high text-on-surface'}`}>
+                      {r.grade}
+                    </span>
+                  </td>
+                </tr>
+              ))
+            )}
+          </tbody>
+        </table>
+      </div>
+      <div className="px-5 py-3 border-t border-outline-variant bg-surface-bright">
+        <p className="font-caption text-on-surface-variant">Showing {filtered.length} of {rows.length} students</p>
+      </div>
+    </div>
+  );
+}

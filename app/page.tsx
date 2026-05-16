@@ -9,15 +9,14 @@ export default async function Home() {
     redirect('/login');
   }
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('role')
-    .eq('id', user.id)
-    .single();
+  const role = user.user_metadata?.role ?? 'STUDENT';
 
-  const role = profile?.role;
-  if (role === 'ADMIN') {
+  if (role === 'SUPER_ADMIN') {
+    redirect('/super');
+  } else if (role === 'ADMIN') {
     redirect('/admin');
+  } else if (role === 'SUB_ADMIN') {
+    redirect('/subadmin');
   } else if (role === 'MENTOR') {
     redirect('/mentor');
   } else {

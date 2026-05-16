@@ -8,19 +8,28 @@ export async function getMentorDashboard() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // All students (flat — until class scoping is complete)
-  const { data: students } = await supabase
+  const { data: mentorProfile } = await supabase
+    .from('users')
+    .select('college_id')
+    .eq('id', user.id)
+    .single();
+  const collegeId = mentorProfile?.college_id;
+
+  let studentsQ = supabase
     .from('users')
     .select('id, name, email, created_at')
     .eq('role', 'STUDENT');
+  if (collegeId) studentsQ = (studentsQ as any).eq('college_id', collegeId);
+  const { data: students } = await studentsQ;
 
   const studentIds = (students ?? []).map((s: any) => s.id);
 
-  // Latest scores per student
+  // Latest scores per student — exclude synthetic OVERALL rows
   const { data: scores } = await supabase
     .from('scores')
     .select('student_id, score, domain, created_at')
     .in('student_id', studentIds)
+    .neq('domain', 'OVERALL')
     .order('created_at', { ascending: false });
 
   // Tests completed count per student
@@ -117,8 +126,29 @@ export async function getStudentDetail(studentId: string) {
 // ─── Proctoring flags ─────────────────────────────────────────────────────────
 export async function getProctoringFlags() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
 
-  const { data: logs } = await supabase
+  const { data: mentorProfile } = await supabase
+    .from('users')
+    .select('college_id')
+    .eq('id', user.id)
+    .single();
+  const collegeId = mentorProfile?.college_id;
+
+  // Scope to this college's students
+  let studentIdsQ = supabase.from('users').select('id').eq('role', 'STUDENT');
+  if (collegeId) studentIdsQ = (studentIdsQ as any).eq('college_id', collegeId);
+  const { data: collegeStudents } = await studentIdsQ;
+  const collegeStudentIds = (collegeStudents ?? []).map((s: any) => s.id);
+
+  // Get test IDs for those students
+  let testIdsQ = supabase.from('tests').select('id');
+  if (collegeStudentIds.length) testIdsQ = (testIdsQ as any).in('student_id', collegeStudentIds);
+  const { data: collegTests } = await testIdsQ;
+  const collegeTestIds = (collegTests ?? []).map((t: any) => t.id);
+
+  let logsQ = supabase
     .from('proctoring_logs')
     .select(`
       id, tab_switches, face_detected, audio_flag, avg_time_ms, flagged, created_at,
@@ -128,6 +158,8 @@ export async function getProctoringFlags() {
     `)
     .order('created_at', { ascending: false })
     .limit(50);
+  if (collegeTestIds.length) logsQ = (logsQ as any).in('test_id', collegeTestIds);
+  const { data: logs } = await logsQ;
 
   return (logs ?? []).map((l: any) => ({
     id: l.id,
@@ -146,8 +178,22 @@ export async function getProctoringFlags() {
 // ─── Assessments (scheduled tests) ────────────────────────────────────────────
 export async function getAssessments() {
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) throw new Error('Not authenticated');
 
-  const { data: tests } = await supabase
+  const { data: mentorProfile } = await supabase
+    .from('users')
+    .select('college_id')
+    .eq('id', user.id)
+    .single();
+  const collegeId = mentorProfile?.college_id;
+
+  let studentIdsQ = supabase.from('users').select('id').eq('role', 'STUDENT');
+  if (collegeId) studentIdsQ = (studentIdsQ as any).eq('college_id', collegeId);
+  const { data: collegeStudents } = await studentIdsQ;
+  const collegeStudentIds = (collegeStudents ?? []).map((s: any) => s.id);
+
+  let testsQ = supabase
     .from('tests')
     .select(`
       id, type, status, scheduled_at, created_at, completed_at,
@@ -156,6 +202,8 @@ export async function getAssessments() {
     `)
     .order('scheduled_at', { ascending: false })
     .limit(40);
+  if (collegeStudentIds.length) testsQ = (testsQ as any).in('student_id', collegeStudentIds);
+  const { data: tests } = await testsQ;
 
   return tests ?? [];
 }

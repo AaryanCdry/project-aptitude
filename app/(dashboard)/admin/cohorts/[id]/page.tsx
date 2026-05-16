@@ -1,7 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { getCohortById } from '@/app/actions/cohorts';
+import { getCohortById, getCohortAssessments } from '@/app/actions/cohorts';
+import ScheduleAssessmentModal from './ScheduleAssessmentModal';
+import DeleteAssessmentButton from './DeleteAssessmentButton';
+import SyncFromClassButton from './SyncFromClassButton';
 
 const STATUS_CHIP: Record<string, string> = {
   ACTIVE: 'bg-secondary-fixed text-on-secondary-fixed-variant border border-secondary-fixed-dim',
@@ -11,10 +14,13 @@ const STATUS_CHIP: Record<string, string> = {
 
 export default async function CohortDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
-  const cohort = await getCohortById(id);
+  const [cohort, assessments] = await Promise.all([
+    getCohortById(id),
+    getCohortAssessments(id),
+  ]);
   if (!cohort) notFound();
 
-  const { name, description, status, start_date, end_date, admin, members, studentCount, avgPercentile, completionRate } = cohort as any;
+  const { name, description, status, start_date, end_date, admin, members, studentCount, avgPercentile, completionRate, class: linkedClass, dept: linkedDept } = cohort as any;
 
   const formatDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '—';
@@ -39,15 +45,16 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
           </div>
           <p className="font-body-md text-on-surface-variant">{description}</p>
         </div>
-        <div className="flex gap-3">
-          <Link href="/admin/enrollment/new" className="px-5 py-2.5 bg-surface text-primary border border-outline-variant rounded-lg font-metric-label hover:bg-surface-container-low transition-colors flex items-center gap-2">
+        <div className="flex gap-3 flex-wrap">
+          <Link href={`/admin/enrollment/new?cohort=${id}`} className="px-5 py-2.5 bg-surface text-primary border border-outline-variant rounded-lg font-metric-label hover:bg-surface-container-low transition-colors flex items-center gap-2">
             <span className="material-symbols-outlined">person_add</span>
             Add Student
           </Link>
-          <Link href="/admin/enrollment/bulk" className="px-5 py-2.5 bg-primary text-on-primary rounded-lg font-metric-label hover:bg-on-primary-fixed-variant transition-colors flex items-center gap-2">
+          <Link href="/admin/enrollment/bulk" className="px-5 py-2.5 bg-surface text-primary border border-outline-variant rounded-lg font-metric-label hover:bg-surface-container-low transition-colors flex items-center gap-2">
             <span className="material-symbols-outlined">upload_file</span>
             Bulk Upload
           </Link>
+          <ScheduleAssessmentModal cohortId={id} />
         </div>
       </div>
 
@@ -68,6 +75,13 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
           </div>
         ))}
       </div>
+
+      {/* Sync from class/dept */}
+      <SyncFromClassButton
+        cohortId={id}
+        linkedClassName={linkedClass?.name ?? null}
+        linkedDeptName={!linkedClass && linkedDept ? linkedDept.name : null}
+      />
 
       {/* Instructor + Dates info row */}
       <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 mb-8 shadow-sm flex flex-col sm:flex-row sm:items-center gap-6">
@@ -104,6 +118,63 @@ export default async function CohortDetailPage({ params }: { params: Promise<{ i
         <p className="font-caption text-on-surface-variant mt-2">
           {members.filter((m: any) => m.testsCompleted > 0).length} of {studentCount} students have completed at least one assessment.
         </p>
+      </div>
+
+      {/* Scheduled Assessments */}
+      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden mb-8">
+        <div className="p-6 border-b border-outline-variant flex justify-between items-center">
+          <div>
+            <h2 className="font-headline-md text-on-surface">Scheduled Assessments</h2>
+            <p className="font-caption text-on-surface-variant mt-0.5">Tasks assigned to all students in this cohort.</p>
+          </div>
+          <span className="font-caption text-on-surface-variant bg-surface-container px-3 py-1 rounded-full">
+            {assessments.length} scheduled
+          </span>
+        </div>
+
+        {assessments.length === 0 ? (
+          <div className="p-10 text-center">
+            <span className="material-symbols-outlined text-4xl text-outline block mb-2">assignment</span>
+            <p className="font-body-md text-on-surface-variant">No assessments scheduled yet.</p>
+            <p className="font-caption text-on-surface-variant mt-1">Use "Schedule Assessment" above to assign a test to this cohort.</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-outline-variant">
+            {(assessments as any[]).map((a: any) => {
+              const due = a.due_date ? new Date(a.due_date) : null;
+              const isOverdue = due ? due < new Date() : false;
+              const domainLabel = a.domain
+                ? a.domain.charAt(0) + a.domain.slice(1).toLowerCase()
+                : 'Mixed';
+              return (
+                <div key={a.id} className="flex items-center gap-4 px-6 py-4 hover:bg-surface-container transition-colors">
+                  <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${a.domain ? 'bg-primary-fixed text-on-primary-fixed' : 'bg-secondary-fixed text-on-secondary-fixed'}`}>
+                    <span className="material-symbols-outlined text-[18px]">assignment</span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="font-metric-label text-on-surface truncate">{a.title}</p>
+                    <div className="flex items-center gap-3 mt-0.5 flex-wrap">
+                      <span className="font-caption text-on-surface-variant text-xs">
+                        Domain: <span className="text-primary font-medium">{domainLabel}</span>
+                      </span>
+                      {due && (
+                        <span className={`font-caption text-xs ${isOverdue ? 'text-error' : 'text-on-surface-variant'}`}>
+                          Due: {due.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}
+                          {isOverdue && ' · Overdue'}
+                        </span>
+                      )}
+                      {!due && <span className="font-caption text-on-surface-variant text-xs">No deadline</span>}
+                    </div>
+                    {a.instructions && (
+                      <p className="font-caption text-on-surface-variant text-xs mt-1 line-clamp-1 italic">"{a.instructions}"</p>
+                    )}
+                  </div>
+                  <DeleteAssessmentButton assessmentId={a.id} cohortId={id} />
+                </div>
+              );
+            })}
+          </div>
+        )}
       </div>
 
       {/* Member Roster */}

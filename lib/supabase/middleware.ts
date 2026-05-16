@@ -34,32 +34,56 @@ export async function updateSession(request: NextRequest) {
   // Routes configuration
   const pathname = request.nextUrl.pathname;
   
-  if (!user && !pathname.startsWith('/login')) {
-    const url = request.nextUrl.clone()
-    url.pathname = '/login'
-    return NextResponse.redirect(url)
+  const publicPaths = ['/login', '/signup', '/verify'];
+  const isPublic = publicPaths.some(p => pathname.startsWith(p));
+
+  if (!user && !isPublic) {
+    const url = request.nextUrl.clone();
+    url.pathname = '/login';
+    return NextResponse.redirect(url);
   }
 
   if (user) {
-    const role = user.user_metadata?.role;
-    
-    // Example role-based protection
-    if (pathname.startsWith('/admin') && role !== 'ADMIN') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/student' // fallback
-      return NextResponse.redirect(url)
-    }
-    
-    if (pathname.startsWith('/mentor') && role !== 'MENTOR' && role !== 'ADMIN') {
-      const url = request.nextUrl.clone()
-      url.pathname = '/student'
-      return NextResponse.redirect(url)
+    const role = user.user_metadata?.role ?? 'STUDENT';
+
+    const roleHomeMap: Record<string, string> = {
+      SUPER_ADMIN: '/super',
+      ADMIN:       '/admin',
+      SUB_ADMIN:   '/subadmin',
+      MENTOR:      '/mentor',
+      STUDENT:     '/student',
+    };
+
+    // Redirect away from login/signup once authenticated
+    if (pathname === '/login' || pathname === '/signup') {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomeMap[role] ?? '/student';
+      return NextResponse.redirect(url);
     }
 
-    if (pathname === '/login') {
-      const url = request.nextUrl.clone()
-      url.pathname = role ? `/${role.toLowerCase()}` : '/student'
-      return NextResponse.redirect(url)
+    // Route guards — redirect to role home if accessing wrong dashboard
+    if (pathname.startsWith('/super') && role !== 'SUPER_ADMIN') {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomeMap[role] ?? '/student';
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith('/admin') && role !== 'ADMIN') {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomeMap[role] ?? '/student';
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith('/subadmin') && role !== 'SUB_ADMIN' && role !== 'ADMIN') {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomeMap[role] ?? '/student';
+      return NextResponse.redirect(url);
+    }
+
+    if (pathname.startsWith('/mentor') && !['MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomeMap[role] ?? '/student';
+      return NextResponse.redirect(url);
     }
   }
 

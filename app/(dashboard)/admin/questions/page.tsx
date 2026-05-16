@@ -9,5 +9,9 @@ export const metadata = {
 export default async function AdminQuestionsPage() {
   const questions = await fetchAllQuestions();
 
-  return <QuestionsClient initialQuestions={questions} />;
+  return (
+    <div className="p-8 max-w-6xl mx-auto">
+      <QuestionsClient initialQuestions={questions} />
+    </div>
+  );
 }

@@ -95,6 +95,10 @@ export default function LoginPage() {
             {loading ? 'Signing in...' : 'Sign In'}
             {!loading && <span className="material-symbols-outlined text-[18px]">login</span>}
           </button>
+          <p className="text-center font-body-md text-on-surface-variant">
+            Don&apos;t have an account?{' '}
+            <a href="/signup" className="text-primary font-metric-label hover:underline">Sign up</a>
+          </p>
         </form>
       </main>
     </div>

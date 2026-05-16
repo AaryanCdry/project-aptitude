@@ -5,9 +5,15 @@ import { getDepartments } from '@/app/actions/departments';
 import CreateCohortModal from './CreateCohortModal';
 
 const STATUS_CHIP: Record<string, string> = {
-  ACTIVE: 'bg-secondary-fixed text-on-secondary-fixed-variant',
-  SCHEDULED: 'bg-surface-container-high text-on-surface-variant',
-  COMPLETED: 'bg-surface-container text-outline',
+  ACTIVE: 'bg-secondary-fixed/60 text-on-secondary-fixed-variant border border-secondary-fixed-dim',
+  SCHEDULED: 'bg-surface-container text-on-surface-variant border border-outline-variant',
+  COMPLETED: 'bg-surface-container-high text-on-surface border border-outline-variant',
+};
+
+const STATUS_BAR: Record<string, string> = {
+  ACTIVE: 'bg-secondary',
+  SCHEDULED: 'bg-outline-variant',
+  COMPLETED: 'bg-primary',
 };
 
 export default async function CohortsPage() {
@@ -34,9 +40,11 @@ export default async function CohortsPage() {
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/admin/enrollment/bulk"
-            className="px-5 py-2.5 bg-surface text-primary border border-outline-variant rounded-lg font-bold font-body-md hover:bg-surface-container-low transition-colors flex items-center gap-2 shadow-sm">
-            <span className="material-symbols-outlined">upload</span>
+          <Link
+            href="/admin/enrollment/bulk"
+            className="px-5 py-2.5 bg-surface text-primary border border-outline-variant rounded-lg font-metric-label hover:bg-surface-container-low transition-colors flex items-center gap-2 shadow-sm"
+          >
+            <span className="material-symbols-outlined text-[18px]">upload</span>
             Bulk Upload
           </Link>
           <CreateCohortModal departments={deptList} />
@@ -44,30 +52,49 @@ export default async function CohortsPage() {
       </div>
 
       {/* Stats Bento Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        {[
-          { label: 'Active Cohorts', value: stats.activeCohorts, sub: '3 new this month', icon: 'groups', color: 'text-primary' },
-          { label: 'Students Managed', value: stats.totalStudents, icon: 'school', color: 'text-secondary' },
-          { label: 'Avg Completion', value: `${stats.avgCompletionRate}%`, icon: 'donut_large', color: 'text-primary', progress: stats.avgCompletionRate },
-        ].map(({ label, value, sub, icon, color, progress }) => (
-          <div key={label} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm">
-            <div className="flex items-center gap-3 mb-4">
-              <div className={`w-10 h-10 rounded-full bg-surface-container flex items-center justify-center ${color}`}>
-                <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>{icon}</span>
-              </div>
-              <h3 className="font-metric-label text-on-surface-variant uppercase tracking-wider text-[11px]">{label}</h3>
-            </div>
-            <div className="flex items-baseline gap-2">
-              <span className="font-display-lg text-display-lg text-on-background">{value}</span>
-              {sub && <span className="text-secondary font-body-md flex items-center gap-0.5"><span className="material-symbols-outlined text-sm">arrow_upward</span>{sub}</span>}
-            </div>
-            {progress != null && (
-              <div className="mt-3 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
-                <div className="h-full bg-secondary rounded-full" style={{ width: `${progress}%` }} />
-              </div>
-            )}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-10">
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>groups</span>
           </div>
-        ))}
+          <div className="min-w-0">
+            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Active Cohorts</p>
+            <div className="flex items-baseline gap-2">
+              <span className="font-bold text-on-background text-[32px] leading-none">{stats.activeCohorts}</span>
+              {stats.newThisMonth > 0 && (
+                <span className="text-secondary font-caption flex items-center gap-0.5 text-[11px]">
+                  <span className="material-symbols-outlined text-[13px]">arrow_upward</span>
+                  {stats.newThisMonth} new
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>school</span>
+          </div>
+          <div className="min-w-0">
+            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Students Managed</p>
+            <span className="font-bold text-on-background text-[32px] leading-none">{stats.totalStudents}</span>
+          </div>
+        </div>
+
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
+          <div className="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>donut_large</span>
+          </div>
+          <div className="flex-1 min-w-0">
+            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Avg Completion</p>
+            <div className="flex items-baseline gap-3">
+              <span className="font-bold text-on-background text-[32px] leading-none">{stats.avgCompletionRate}%</span>
+            </div>
+            <div className="mt-2 h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+              <div className="h-full bg-tertiary rounded-full transition-all" style={{ width: `${stats.avgCompletionRate}%` }} />
+            </div>
+          </div>
+        </div>
       </div>
 
       {/* Cohort Grid */}
@@ -81,114 +108,131 @@ export default async function CohortsPage() {
           <CreateCohortModal departments={deptList} />
         </div>
       ) : (
-        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-6">
-          {(cohorts as any[]).map((cohort: any) => (
-            <div
-              key={cohort.id}
-              className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.06)] transition-all flex flex-col group relative overflow-hidden"
-            >
-              <div className="absolute top-0 right-0 w-24 h-24 bg-surface-container rounded-bl-full -z-10 group-hover:bg-primary-container/10 transition-colors" />
+        <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-5">
+          {(cohorts as any[]).map((cohort: any) => {
+            const hasStudents = cohort.studentCount > 0;
+            const isScheduled = cohort.status === 'SCHEDULED';
+            const completionWidth = !hasStudents || isScheduled ? 0 : cohort.completionRate;
 
-              {/* Header */}
-              <div className="flex justify-between items-start mb-3">
-                <div className="flex-1 min-w-0">
-                  <span className={`inline-flex items-center gap-1 px-2.5 py-1 rounded-md font-metric-label text-[10px] uppercase tracking-wider mb-2 ${STATUS_CHIP[cohort.status] ?? STATUS_CHIP.SCHEDULED}`}>
-                    {cohort.status === 'ACTIVE' && <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />}
-                    {cohort.status === 'SCHEDULED' && <span className="material-symbols-outlined text-[12px]">schedule</span>}
-                    {cohort.status === 'COMPLETED' && <span className="material-symbols-outlined text-[12px]">check_circle</span>}
-                    {cohort.status}
-                  </span>
-                  <h3 className="font-headline-md text-on-background leading-tight truncate">{cohort.name}</h3>
-                  {cohort.description && (
-                    <p className="text-on-surface-variant font-caption mt-1 line-clamp-1">{cohort.description}</p>
-                  )}
-                </div>
-                <button className="text-outline-variant hover:text-primary transition-colors p-1 ml-2">
-                  <span className="material-symbols-outlined">more_vert</span>
-                </button>
-              </div>
+            return (
+              <div
+                key={cohort.id}
+                className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm hover:shadow-md hover:border-outline transition-all flex flex-col group overflow-hidden"
+              >
+                {/* Status accent strip */}
+                <div className={`h-[3px] w-full ${STATUS_BAR[cohort.status] ?? 'bg-outline-variant'}`} />
 
-              {/* Dept / Class breadcrumb */}
-              {(cohort.dept || cohort.class) && (
-                <div className="flex items-center gap-1.5 mb-3 flex-wrap">
-                  {cohort.dept && (
-                    <span className="inline-flex items-center gap-1 text-[11px] bg-primary/8 text-primary px-2 py-0.5 rounded-full border border-primary/15">
-                      <span className="material-symbols-outlined text-[12px]">account_tree</span>
-                      {cohort.dept.name}
-                      {cohort.dept.course_type && <span className="opacity-70">· {cohort.dept.course_type}</span>}
-                    </span>
-                  )}
-                  {cohort.class && (
-                    <span className="inline-flex items-center gap-1 text-[11px] bg-secondary/8 text-secondary px-2 py-0.5 rounded-full border border-secondary/15">
-                      <span className="material-symbols-outlined text-[12px]">meeting_room</span>
-                      {cohort.class.name}
-                      {cohort.class.year && <span className="opacity-70">· Yr {cohort.class.year}</span>}
-                    </span>
-                  )}
-                </div>
-              )}
+                <div className="p-5 flex flex-col flex-1 gap-4">
+                  {/* Header */}
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2 mb-2">
+                        <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-full font-metric-label text-[10px] uppercase tracking-wider ${STATUS_CHIP[cohort.status] ?? STATUS_CHIP.SCHEDULED}`}>
+                          {cohort.status === 'ACTIVE' && <span className="w-1.5 h-1.5 rounded-full bg-secondary animate-pulse" />}
+                          {cohort.status === 'SCHEDULED' && <span className="material-symbols-outlined text-[10px]">schedule</span>}
+                          {cohort.status === 'COMPLETED' && <span className="material-symbols-outlined text-[10px]">check_circle</span>}
+                          {cohort.status}
+                        </span>
+                      </div>
+                      <h3 className="font-semibold text-on-background text-[16px] leading-snug truncate">{cohort.name}</h3>
+                      {cohort.description && (
+                        <p className="text-on-surface-variant text-[12px] mt-0.5 line-clamp-1">{cohort.description}</p>
+                      )}
+                    </div>
+                    <Link
+                      href={`/admin/cohorts/${cohort.id}`}
+                      className="p-1.5 rounded-lg text-outline hover:text-primary hover:bg-surface-container transition-colors shrink-0 mt-0.5"
+                      title="Open detail"
+                    >
+                      <span className="material-symbols-outlined text-[18px]">open_in_new</span>
+                    </Link>
+                  </div>
 
-              {/* Stats row */}
-              <div className="grid grid-cols-2 gap-4 my-4">
-                <div>
-                  <p className="font-metric-label text-outline uppercase text-[10px]">Lead Admin</p>
-                  <div className="flex items-center gap-2 mt-1">
-                    {cohort.admin ? (
-                      <>
-                        <div className="w-6 h-6 rounded-full bg-surface-container flex items-center justify-center text-[10px] font-bold text-primary">
-                          {cohort.admin.name?.[0] || 'U'}
+                  {/* Dept / Class tags */}
+                  {(cohort.dept || cohort.class) && (
+                    <div className="flex items-center gap-1.5 flex-wrap -mt-1">
+                      {cohort.dept && (
+                        <span className="inline-flex items-center gap-1 text-[11px] bg-primary/8 text-primary px-2 py-0.5 rounded-full border border-primary/15 font-medium">
+                          <span className="material-symbols-outlined text-[11px]">account_tree</span>
+                          {cohort.dept.name}
+                          {cohort.dept.course_type && <span className="opacity-60">· {cohort.dept.course_type}</span>}
+                        </span>
+                      )}
+                      {cohort.class && (
+                        <span className="inline-flex items-center gap-1 text-[11px] bg-secondary/8 text-secondary px-2 py-0.5 rounded-full border border-secondary/15 font-medium">
+                          <span className="material-symbols-outlined text-[11px]">meeting_room</span>
+                          {cohort.class.name}{cohort.class.year ? ` · Yr ${cohort.class.year}` : ''}
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {/* 3-stat strip */}
+                  <div className="grid grid-cols-3 divide-x divide-outline-variant bg-surface-container rounded-xl overflow-hidden">
+                    <div className="flex flex-col items-center py-3 px-2">
+                      <span className="text-[11px] font-metric-label text-on-surface-variant mb-1">Students</span>
+                      <span className="font-bold text-on-surface text-[20px] leading-none">{cohort.studentCount}</span>
+                    </div>
+                    <div className="flex flex-col items-center py-3 px-2">
+                      <span className="text-[11px] font-metric-label text-on-surface-variant mb-1">Avg Score</span>
+                      <span className={`font-bold text-[20px] leading-none ${cohort.avgPercentile > 0 ? 'text-secondary' : 'text-outline'}`}>
+                        {cohort.avgPercentile > 0 ? `${cohort.avgPercentile}%` : '—'}
+                      </span>
+                    </div>
+                    <div className="flex flex-col items-center py-3 px-2">
+                      <span className="text-[11px] font-metric-label text-on-surface-variant mb-1">Done</span>
+                      <span className={`font-bold text-[20px] leading-none ${cohort.completionRate > 0 && hasStudents ? 'text-primary' : 'text-outline'}`}>
+                        {!hasStudents || isScheduled ? '—' : `${cohort.completionRate}%`}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Progress + admin row */}
+                  <div className="mt-auto">
+                    <div className="w-full h-2 bg-surface-container rounded-full overflow-hidden">
+                      <div
+                        className={`h-full rounded-full transition-all duration-500 ${STATUS_BAR[cohort.status] ?? 'bg-outline-variant'}`}
+                        style={{ width: `${completionWidth}%` }}
+                      />
+                    </div>
+                    <div className="flex justify-between items-center mt-2">
+                      {cohort.admin ? (
+                        <div className="flex items-center gap-1.5">
+                          <div className="w-5 h-5 rounded-full bg-primary/15 flex items-center justify-center text-[9px] font-bold text-primary shrink-0">
+                            {cohort.admin.name?.[0]?.toUpperCase() ?? 'U'}
+                          </div>
+                          <span className="text-[11px] text-on-surface-variant truncate max-w-[120px]">
+                            {cohort.admin.name ?? cohort.admin.email?.split('@')[0]}
+                          </span>
                         </div>
-                        <span className="font-body-md font-medium text-on-surface truncate">{cohort.admin.name ?? cohort.admin.email?.split('@')[0]}</span>
-                      </>
-                    ) : (
-                      <span className="font-caption text-outline italic">Unassigned</span>
-                    )}
+                      ) : (
+                        <span className="text-[11px] text-outline italic">No admin</span>
+                      )}
+                      <span className="text-[11px] text-on-surface-variant">
+                        {!hasStudents ? 'No students yet' : isScheduled ? 'Not started' : cohort.completionRate > 0 ? `${cohort.completionRate}% done` : 'No tests yet'}
+                      </span>
+                    </div>
+                  </div>
+
+                  {/* Actions */}
+                  <div className="flex gap-2 pt-4 border-t border-outline-variant/50">
+                    <Link
+                      href={`/admin/cohorts/${cohort.id}`}
+                      className="flex-1 py-2 text-center bg-surface-container text-on-surface border border-outline-variant rounded-lg font-metric-label text-[13px] hover:bg-surface-container-high transition-colors"
+                    >
+                      Manage
+                    </Link>
+                    <Link
+                      href={`/admin/enrollment/new?cohort=${cohort.id}`}
+                      className="flex-1 py-2 text-center bg-primary text-on-primary rounded-lg font-metric-label text-[13px] hover:bg-primary/90 transition-colors"
+                    >
+                      + Enroll
+                    </Link>
                   </div>
                 </div>
-                <div>
-                  <p className="font-metric-label text-outline uppercase text-[10px]">Avg Score</p>
-                  <p className="font-display-sm text-[22px] text-on-surface mt-0.5 font-bold">
-                    {cohort.status === 'SCHEDULED' ? '—' : `${cohort.avgPercentile}th`}
-                  </p>
-                </div>
               </div>
-
-              {/* Progress bar */}
-              <div className="mt-auto">
-                <div className="flex justify-between items-center mb-1.5">
-                  <span className="font-body-md text-[13px] text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-[15px]">group</span>
-                    {cohort.studentCount} Students
-                  </span>
-                  <span className="font-caption text-outline">
-                    {cohort.status === 'SCHEDULED' ? 'Prep Phase' : `${cohort.completionRate}% done`}
-                  </span>
-                </div>
-                <div className="w-full h-1.5 bg-surface-container rounded-full overflow-hidden mb-4">
-                  <div
-                    className={`h-full rounded-full ${cohort.status === 'SCHEDULED' ? 'bg-outline-variant' : 'bg-primary'}`}
-                    style={{ width: cohort.status === 'SCHEDULED' ? '5%' : `${cohort.completionRate}%` }}
-                  />
-                </div>
-
-                {/* Actions */}
-                <div className="flex gap-2 pt-4 border-t border-outline-variant/50">
-                  <Link
-                    href={`/admin/cohorts/${cohort.id}`}
-                    className="flex-1 py-2 bg-surface text-primary border border-outline-variant rounded-md font-body-md text-[14px] font-medium hover:bg-surface-container-low transition-colors text-center"
-                  >
-                    Manage
-                  </Link>
-                  <Link
-                    href={`/admin/enrollment/new?cohort=${cohort.id}`}
-                    className="flex-1 py-2 bg-primary text-on-primary rounded-md font-body-md text-[14px] font-medium hover:bg-on-primary-fixed-variant transition-colors text-center"
-                  >
-                    + Enroll
-                  </Link>
-                </div>
-              </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       )}
     </div>
