@@ -1,0 +1,9 @@
+{
+  "permissions": {
+    "allow": [
+      "WebFetch(domain:api.anthropic.com)",
+      "Bash(Get-ChildItem -Path \"C:\\\\Aaryan Core\\\\Work_Stuffs\\\\project-aptitude\\\\.claude\\\\worktrees\\\\wonderful-pare-59dc6e\" -Force)",
+      "Bash(Select-Object Name, Mode)"
+    ]
+  }
+}
