@@ -23,7 +23,7 @@ export default function AssignToCohortPanel({ classId, cohorts }: Props) {
     startTransition(async () => {
       const res = await assignClassToCohort(classId, selectedCohortId);
       if ('error' in res) {
-        setFeedback({ error: res.error });
+        setFeedback({ error: res.error ?? 'Unknown error' });
       } else {
         setFeedback({ added: res.added });
         router.refresh();

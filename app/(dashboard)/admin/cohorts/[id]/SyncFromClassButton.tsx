@@ -23,7 +23,7 @@ export default function SyncFromClassButton({ cohortId, linkedClassName, linkedD
     startTransition(async () => {
       const res = await syncCohortMembers(cohortId);
       if ('error' in res) {
-        setFeedback({ error: res.error });
+        setFeedback({ error: res.error ?? 'Unknown error' });
       } else {
         setFeedback({ added: res.added });
         router.refresh();
