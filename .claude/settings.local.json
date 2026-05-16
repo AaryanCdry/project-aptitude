@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc *)",
+      "Bash(npm install *)",
+      "Bash(Get-ChildItem -Path \"c:\\\\Aaryan Core\\\\Work_Stuffs\\\\project-aptitude\" -Filter \"*.sql\" -Recurse)",
+      "Bash(Select-Object -First 20 FullName)",
+      "Bash(grep -A 10 \"\\\\.select\\(\\\\`\" \"c:\\\\Aaryan Core\\\\Work_Stuffs\\\\project-aptitude\\\\app\\\\actions\\\\cohorts.ts\")",
+      "Bash(grep -A 5 \"\\\\.select\\(\\\\`\" \"c:\\\\Aaryan Core\\\\Work_Stuffs\\\\project-aptitude\\\\app\\\\actions\\\\departments.ts\")"
+    ]
+  }
+}
