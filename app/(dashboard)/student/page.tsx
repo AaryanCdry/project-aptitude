@@ -2,6 +2,8 @@ import React from 'react';
 import Link from 'next/link';
 import { getStudentDashboardData } from '@/app/actions/dashboard';
 import { getStudentCohortData, getStudentAssignedAssessments } from '@/app/actions/cohorts';
+import { getStudentFinalExams } from '@/app/actions/finals';
+import { createClient } from '@/lib/supabase/server';
 import PublicLearningPath from './PublicLearningPath';
 import CollegeCurriculumCard from './CollegeCurriculumCard';
 import AssignedAssessments from './AssignedAssessments';
@@ -12,6 +14,7 @@ const DOMAIN_CONFIG: Record<string, { icon: string; bg: string; textColor: strin
   LOGICAL:      { icon: 'psychology',    bg: 'bg-secondary-fixed',  textColor: 'text-on-secondary-fixed' },
   VERBAL:       { icon: 'format_quote',  bg: 'bg-surface-container-high', textColor: 'text-on-surface' },
   REASONING:    { icon: 'visibility',    bg: 'bg-tertiary-fixed',   textColor: 'text-on-tertiary-fixed' },
+  SPATIAL:      { icon: 'view_in_ar',    bg: 'bg-tertiary-fixed',   textColor: 'text-on-tertiary-fixed' },
 };
 
 const RING_COLORS = [
@@ -42,10 +45,20 @@ function getPercentileLabel(avg: number): string {
 export default async function StudentDashboard() {
   const { tests, domainScores, averageScore, totalTests, scoreTrend, collegeId } = await getStudentDashboardData();
   const recentTests = tests.slice(0, 5);
-  const [cohortData, assignedAssessments] = await Promise.all([
+  const [cohortData, assignedAssessments, finalExams] = await Promise.all([
     collegeId ? getStudentCohortData() : Promise.resolve(null),
     collegeId ? getStudentAssignedAssessments() : Promise.resolve([]),
+    getStudentFinalExams(),
   ]);
+  const pendingFinal = (finalExams as any[])[0] ?? null;
+
+  // Fetch student_level for the hero badge
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  const { data: levelProfile } = user
+    ? await supabase.from('users').select('student_level').eq('id', user.id).single()
+    : { data: null };
+  const studentLevel: number = levelProfile?.student_level ?? 0;
 
   // ── Score Trend SVG helpers ──────────────────────────────────────────────
   // We build an SVG polyline in a 100×100 viewBox. Y is inverted (0 = top).
@@ -72,6 +85,12 @@ export default async function StudentDashboard() {
           <section className="relative bg-surface-container-lowest rounded-xl border border-outline-variant p-8 flex items-center justify-between overflow-hidden shadow-sm hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
             <div className="relative z-10 flex flex-col gap-4 max-w-lg">
               <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-primary-fixed-dim text-on-primary-fixed text-xs font-metric-label">
+                    <span className="material-symbols-outlined text-sm">military_tech</span>
+                    Lvl {studentLevel}
+                  </span>
+                </div>
                 <h3 className="font-display-sm text-on-surface mb-2">Ready for your next challenge?</h3>
                 <p className="font-body-lg text-on-surface-variant">
                   Take an Adaptive Practice Test to recalibrate your baseline and improve your cognitive agility.
@@ -86,6 +105,35 @@ export default async function StudentDashboard() {
               <span className="material-symbols-outlined text-[120px] text-primary-fixed-dim opacity-20">model_training</span>
             </div>
           </section>
+
+          {/* ── Final Exam (when one is scheduled / in progress) ──────────── */}
+          {pendingFinal && (
+            <section className="bg-tertiary-fixed/30 border border-tertiary rounded-xl p-6 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+              <div className="flex items-start gap-4">
+                <div className="w-12 h-12 rounded-xl bg-tertiary text-on-tertiary flex items-center justify-center shrink-0">
+                  <span className="material-symbols-outlined">workspace_premium</span>
+                </div>
+                <div>
+                  <h3 className="font-headline-md text-on-surface">
+                    {pendingFinal.status === 'IN_PROGRESS' ? 'Resume your Final Exam' : 'Final Exam scheduled'}
+                  </h3>
+                  <p className="font-body-md text-on-surface-variant">
+                    {pendingFinal.scheduled_at
+                      ? `Scheduled for ${new Date(pendingFinal.scheduled_at).toLocaleString()}. `
+                      : ''}
+                    Passing this exam (≥70%) earns a tiered certificate.
+                  </p>
+                </div>
+              </div>
+              <Link
+                href={`/assessment?test=${pendingFinal.id}`}
+                className="bg-tertiary text-on-tertiary font-metric-label px-6 py-3 rounded-lg flex items-center gap-2 hover:bg-tertiary/90 transition-colors shrink-0"
+              >
+                <span className="material-symbols-outlined">play_arrow</span>
+                {pendingFinal.status === 'IN_PROGRESS' ? 'Resume Final Exam' : 'Start Final Exam'}
+              </Link>
+            </section>
+          )}
 
           {/* ── Analytics Grid ────────────────────────────────────────────── */}
           <section className="grid grid-cols-1 lg:grid-cols-2 gap-gutter">
@@ -245,9 +293,12 @@ export default async function StudentDashboard() {
                       </h5>
                       <p className="font-caption text-on-surface-variant mb-4">{percentileLabel}</p>
                       <div className="mt-auto">
-                        <button className="w-full py-2 border border-outline text-on-surface font-metric-label text-sm rounded-lg group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary transition-all">
+                        <Link
+                          href={`/assessment?domain=${ds.domain}`}
+                          className="block w-full py-2 border border-outline text-on-surface font-metric-label text-sm rounded-lg text-center group-hover:bg-primary group-hover:text-on-primary group-hover:border-primary transition-all"
+                        >
                           {isWeak ? 'Start Drill' : ds.average >= 90 ? 'Maintain Level' : 'Strengthen This'}
-                        </button>
+                        </Link>
                       </div>
                     </div>
                   );

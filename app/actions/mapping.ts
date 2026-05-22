@@ -1,19 +1,12 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { getCallerScope } from './scope';
 
 async function getCallerCollegeId(): Promise<string | null> {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  return profile?.college_id ?? null;
+  const scope = await getCallerScope();
+  return scope.collegeId;
 }
 
 // ─── Class detail + student roster ────────────────────────────────────────────
@@ -103,15 +96,25 @@ export async function assignClassToCohort(classId: string, cohortId: string) {
 
   if (!students || students.length === 0) return { success: true as const, added: 0 };
 
-  const rows = students.map((s: any) => ({ student_id: s.id, cohort_id: cohortId }));
+  const allStudentIds = students.map((s: any) => s.id);
 
-  // Chunk into 500 to stay under PostgREST limits
+  // Fetch already-existing members so we only insert new ones (no unique constraint needed)
+  const { data: existing } = await adminClient
+    .from('cohort_members')
+    .select('student_id')
+    .eq('cohort_id', cohortId)
+    .in('student_id', allStudentIds);
+  const existingSet = new Set((existing ?? []).map((r: any) => r.student_id));
+  const newRows = allStudentIds
+    .filter((id) => !existingSet.has(id))
+    .map((id) => ({ student_id: id, cohort_id: cohortId }));
+
+  if (newRows.length === 0) return { success: true as const, added: 0 };
+
   let added = 0;
-  for (let i = 0; i < rows.length; i += 500) {
-    const chunk = rows.slice(i, i + 500);
-    const { error } = await adminClient
-      .from('cohort_members')
-      .upsert(chunk, { onConflict: 'student_id,cohort_id', ignoreDuplicates: true });
+  for (let i = 0; i < newRows.length; i += 500) {
+    const chunk = newRows.slice(i, i + 500);
+    const { error } = await adminClient.from('cohort_members').insert(chunk);
     if (error) return { error: error.message };
     added += chunk.length;
   }
@@ -157,14 +160,25 @@ export async function syncCohortMembers(cohortId: string) {
   const { data: students } = await studentQuery;
   if (!students || students.length === 0) return { success: true as const, added: 0, source };
 
-  const rows = students.map((s: any) => ({ student_id: s.id, cohort_id: cohortId }));
+  const allStudentIds = students.map((s: any) => s.id);
+
+  // Fetch already-existing members to avoid duplicates (no unique constraint needed)
+  const { data: existing } = await adminClient
+    .from('cohort_members')
+    .select('student_id')
+    .eq('cohort_id', cohortId)
+    .in('student_id', allStudentIds);
+  const existingSet = new Set((existing ?? []).map((r: any) => r.student_id));
+  const newRows = allStudentIds
+    .filter((id) => !existingSet.has(id))
+    .map((id) => ({ student_id: id, cohort_id: cohortId }));
+
+  if (newRows.length === 0) return { success: true as const, added: 0, source };
 
   let added = 0;
-  for (let i = 0; i < rows.length; i += 500) {
-    const chunk = rows.slice(i, i + 500);
-    const { error } = await adminClient
-      .from('cohort_members')
-      .upsert(chunk, { onConflict: 'student_id,cohort_id', ignoreDuplicates: true });
+  for (let i = 0; i < newRows.length; i += 500) {
+    const chunk = newRows.slice(i, i + 500);
+    const { error } = await adminClient.from('cohort_members').insert(chunk);
     if (error) return { error: error.message };
     added += chunk.length;
   }
@@ -177,12 +191,17 @@ export async function syncCohortMembers(cohortId: string) {
 
 export async function getMappingOverview() {
   const adminClient = createAdminClient();
-  const collegeId = await getCallerCollegeId();
-  if (!collegeId) return [];
+  const scope = await getCallerScope();
+  if (!scope.collegeId) return [];
+
+  let deptsQ = adminClient.from('departments').select('id, name, course_type').eq('college_id', scope.collegeId);
+  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    deptsQ = deptsQ.eq('id', scope.departmentId);
+  }
 
   const [{ data: departments }, { data: classes }, { data: cohorts }, { data: studentRows }] =
     await Promise.all([
-      adminClient.from('departments').select('id, name, course_type').eq('college_id', collegeId),
+      deptsQ,
       adminClient
         .from('classes')
         .select('id, name, year, section, dept_id')
@@ -190,12 +209,18 @@ export async function getMappingOverview() {
       adminClient
         .from('cohorts')
         .select('id, name, status, class_id')
-        .eq('college_id', collegeId),
-      adminClient
-        .from('users')
-        .select('class_id')
-        .eq('role', 'STUDENT')
-        .eq('college_id', collegeId),
+        .eq('college_id', scope.collegeId),
+      (() => {
+        let q = adminClient
+          .from('users')
+          .select('class_id')
+          .eq('role', 'STUDENT')
+          .eq('college_id', scope.collegeId!);
+        if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+          q = q.eq('department_id', scope.departmentId);
+        }
+        return q;
+      })(),
     ]);
 
   // Build class→studentCount map

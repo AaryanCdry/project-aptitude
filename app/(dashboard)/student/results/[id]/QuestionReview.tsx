@@ -2,10 +2,13 @@
 
 import React, { useState } from 'react';
 import ReactMarkdown from 'react-markdown';
+import { questionPoints } from '@/lib/adaptive';
+
 export default function QuestionReview({ attempt, index }: { attempt: any, index: number }) {
   const [showExplanation, setShowExplanation] = useState(false);
   const q = Array.isArray(attempt.questions) ? attempt.questions[0] : attempt.questions;
   const isCorrect = attempt.is_correct;
+  const points = questionPoints(q?.difficulty ?? 1, isCorrect, attempt.time_taken_ms ?? 0);
   
   const formatTime = (ms: number) => {
     if (!ms) return 'N/A';
@@ -27,7 +30,13 @@ export default function QuestionReview({ attempt, index }: { attempt: any, index
             <span className="font-metric-label text-on-surface-variant">
               Q{index + 1} &bull; {q?.domain || 'General'} &bull; L{q?.difficulty || 1}
             </span>
-            <span className="font-caption text-on-surface-variant">{formatTime(attempt.time_taken_ms)}</span>
+            <div className="flex items-center gap-3">
+              <span className={`inline-flex items-center gap-1 font-metric-label text-xs px-2 py-0.5 rounded-full ${isCorrect ? 'bg-secondary-fixed text-on-secondary-fixed-variant' : 'bg-surface-container-high text-on-surface-variant'}`}>
+                <span className="material-symbols-outlined text-[14px]">monetization_on</span>
+                {points} pts
+              </span>
+              <span className="font-caption text-on-surface-variant">{formatTime(attempt.time_taken_ms)}</span>
+            </div>
           </div>
           <p className="font-body-lg text-on-surface">{q?.text}</p>
           
@@ -44,9 +53,9 @@ export default function QuestionReview({ attempt, index }: { attempt: any, index
             </div>
           )}
 
-          {!isCorrect && q?.explanation && (
+          {q?.explanation && (
             <div className="mt-2">
-              <button 
+              <button
                 onClick={() => setShowExplanation(!showExplanation)}
                 className="text-primary font-metric-label text-sm hover:underline flex items-center gap-1"
               >

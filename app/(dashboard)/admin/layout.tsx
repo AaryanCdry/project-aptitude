@@ -9,11 +9,15 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   const { data: profile } = await supabase
     .from('users')
-    .select('name')
+    .select('name, role')
     .eq('id', user?.id ?? '')
     .single();
 
-  const name = profile?.name ?? user?.email ?? 'Admin';
+  const role = profile?.role ?? 'ADMIN';
+  const isHOD = role === 'SUB_ADMIN';
+  const roleLabel = isHOD ? 'HOD' : 'Principal';
+
+  const name = profile?.name ?? user?.email ?? roleLabel;
   const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
 
   return (
@@ -28,7 +32,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
           <div className="min-w-0">
             <p className="font-metric-label text-on-surface text-sm font-semibold truncate">{name}</p>
-            <p className="font-caption text-on-surface-variant text-xs">Admin</p>
+            <p className="font-caption text-on-surface-variant text-xs">{roleLabel}</p>
           </div>
         </div>
         <div className="flex-1 space-y-2">
@@ -48,6 +52,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="material-symbols-outlined">calendar_month</span>
             <span>Scheduling</span>
           </Link>
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/finals">
+            <span className="material-symbols-outlined">workspace_premium</span>
+            <span>Final Exams</span>
+          </Link>
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/enrollment">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group_add</span>
             <span>Enrollment</span>
@@ -63,6 +71,10 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/mapping">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>hub</span>
             <span>Mapping</span>
+          </Link>
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/staff">
+            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>badge</span>
+            <span>Staff</span>
           </Link>
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/mentors">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>school</span>

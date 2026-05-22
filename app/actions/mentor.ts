@@ -1,31 +1,41 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getCallerScope } from './scope';
 
 // ─── Mentor dashboard summary ─────────────────────────────────────────────────
 export async function getMentorDashboard() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const scope = await getCallerScope();
+  if (!scope.userId) throw new Error('Not authenticated');
 
-  const { data: mentorProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = mentorProfile?.college_id;
+  // adminClient bypasses RLS (mentors are not is_admin()); a MENTOR sees only
+  // students in their assigned classes (mentor_classes → class_id).
+  const adminClient = createAdminClient();
 
-  let studentsQ = supabase
+  const emptyResult = {
+    students: [], totalStudents: 0, activeStudents: 0,
+    atRiskCount: 0, overallAvg: 0, recentTests: [],
+  };
+
+  let studentsQ = adminClient
     .from('users')
     .select('id, name, email, created_at')
     .eq('role', 'STUDENT');
-  if (collegeId) studentsQ = (studentsQ as any).eq('college_id', collegeId);
+  if (scope.role === 'MENTOR') {
+    if (scope.classIds.length === 0) return emptyResult;
+    studentsQ = studentsQ.in('class_id', scope.classIds);
+  } else if (scope.collegeId) {
+    // ADMIN / SUPER_ADMIN previewing the mentor view
+    studentsQ = studentsQ.eq('college_id', scope.collegeId);
+  }
   const { data: students } = await studentsQ;
 
   const studentIds = (students ?? []).map((s: any) => s.id);
+  if (studentIds.length === 0) return emptyResult;
 
   // Latest scores per student — exclude synthetic OVERALL rows
-  const { data: scores } = await supabase
+  const { data: scores } = await adminClient
     .from('scores')
     .select('student_id, score, domain, created_at')
     .in('student_id', studentIds)
@@ -33,7 +43,7 @@ export async function getMentorDashboard() {
     .order('created_at', { ascending: false });
 
   // Tests completed count per student
-  const { data: tests } = await supabase
+  const { data: tests } = await adminClient
     .from('tests')
     .select('student_id, id, status, type, created_at')
     .in('student_id', studentIds)

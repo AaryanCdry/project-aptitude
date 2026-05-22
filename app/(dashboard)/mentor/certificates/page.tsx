@@ -1,11 +1,9 @@
-import React from 'react';
-import { getMentorCertificates, issueCertificate, revokeCertificate } from '@/app/actions/certificates';
+import { getMentorCertificates } from '@/app/actions/certificates';
 import MentorCertificatesClient from './MentorCertificatesClient';
 
 export default async function MentorCertificatesPage() {
   const students = await getMentorCertificates();
 
-  const eligible = students.filter(s => s.eligible && !s.certificate);
   const issued = students.filter(s => s.certificate && !s.certificate.revoked);
   const revoked = students.filter(s => s.certificate?.revoked);
 
@@ -14,14 +12,12 @@ export default async function MentorCertificatesPage() {
       <div className="mb-8">
         <h1 className="font-display-sm text-on-surface text-2xl font-bold mb-1">Certificates</h1>
         <p className="font-body-md text-on-surface-variant">
-          Issue certificates to eligible students (avg ≥ 75%, min 3 tests).
+          Auto-issued when a student passes a Final Exam (≥70%). Mentors can revoke for fraud.
         </p>
       </div>
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-4 mb-8">
+      <div className="grid grid-cols-2 gap-4 mb-8">
         {[
-          { label: 'Eligible (pending)', value: eligible.length, icon: 'pending', color: 'text-primary' },
           { label: 'Issued', value: issued.length, icon: 'workspace_premium', color: 'text-secondary' },
           { label: 'Revoked', value: revoked.length, icon: 'block', color: 'text-error' },
         ].map(({ label, value, icon, color }) => (

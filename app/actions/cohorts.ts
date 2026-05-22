@@ -3,42 +3,50 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { getCallerScope } from './scope';
 
 export async function getStudentCohortData() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return null;
 
-  const { data: memberships } = await supabase
-    .from('cohort_members')
-    .select(`
-      cohort_id,
-      cohorts!cohort_id(
-        id, name, description, status, start_date, end_date,
-        dept:departments(name, course_type),
-        class:classes(name, year, section)
-      )
-    `)
-    .eq('student_id', user.id)
-    .limit(1);
+  // Use adminClient so RLS on cohort_members doesn't block the read
+  const adminClient = createAdminClient();
 
-  if (!memberships || memberships.length === 0) return null;
-  return (memberships[0] as any).cohorts ?? null;
+  // Step 1: get cohort_id (simple, no joins — avoids double-nested embed issues)
+  const { data: membership, error: memberError } = await adminClient
+    .from('cohort_members')
+    .select('cohort_id')
+    .eq('student_id', user.id)
+    .limit(1)
+    .single();
+
+  if (memberError || !membership) return null;
+
+  // Step 2: fetch full cohort data (same query shape used in getCohortById / getCohorts)
+  const { data: cohort, error: cohortError } = await adminClient
+    .from('cohorts')
+    .select(`
+      id, name, description, status, start_date, end_date,
+      dept:departments(name, course_type),
+      class:classes(name, year, section)
+    `)
+    .eq('id', membership.cohort_id)
+    .single();
+
+  if (cohortError) console.error('getStudentCohortData cohort error:', cohortError.message);
+  if (!cohort) return null;
+
+  // PostgREST types to-one embeds as arrays; normalize dept/class to single objects.
+  const first = (v: any) => (Array.isArray(v) ? (v[0] ?? null) : (v ?? null));
+  return { ...cohort, dept: first((cohort as any).dept), class: first((cohort as any).class) };
 }
 
 export async function getCohorts() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  const scope = await getCallerScope();
+  if (!scope.userId) return [];
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = profile?.college_id ?? null;
-
-  let query = supabase
+  let query = createAdminClient()
     .from('cohorts')
     .select(`
       id, name, description, status, start_date, end_date,
@@ -48,7 +56,10 @@ export async function getCohorts() {
       cohort_members(student_id)
     `)
     .order('created_at', { ascending: false });
-  if (collegeId) query = (query as any).eq('college_id', collegeId);
+  if (scope.collegeId) query = (query as any).eq('college_id', scope.collegeId);
+  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    query = (query as any).eq('dept_id', scope.departmentId);
+  }
 
   const { data: cohorts, error } = await query;
 
@@ -67,7 +78,7 @@ export async function getCohorts() {
   ];
 
   const { data: allScores } = allStudentIds.length > 0
-    ? await supabase.from('scores').select('student_id, score').in('student_id', allStudentIds)
+    ? await createAdminClient().from('scores').select('student_id, score').in('student_id', allStudentIds)
     : { data: [] };
 
   const studentScoreMap: Record<string, number[]> = {};
@@ -94,29 +105,29 @@ export async function getCohorts() {
 }
 
 export async function getCohortStats() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { activeCohorts: 0, totalStudents: 0, avgCompletionRate: 0, newThisMonth: 0 };
+  const scope = await getCallerScope();
+  if (!scope.userId) return { activeCohorts: 0, totalStudents: 0, avgCompletionRate: 0, newThisMonth: 0 };
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = profile?.college_id ?? null;
+  const adminClient = createAdminClient();
+  const isHOD = scope.role === 'SUB_ADMIN' && !!scope.departmentId;
 
   const thirtyDaysAgo = new Date();
   thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
-  // Run all count queries in parallel
-  let activeQ = supabase.from('cohorts').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE');
-  if (collegeId) activeQ = (activeQ as any).eq('college_id', collegeId);
+  const applyScope = (q: any) => {
+    if (scope.collegeId) q = q.eq('college_id', scope.collegeId);
+    if (isHOD) q = q.eq('dept_id', scope.departmentId);
+    return q;
+  };
 
-  let newQ = supabase.from('cohorts').select('*', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString());
-  if (collegeId) newQ = (newQ as any).eq('college_id', collegeId);
+  let activeQ = adminClient.from('cohorts').select('*', { count: 'exact', head: true }).eq('status', 'ACTIVE');
+  activeQ = applyScope(activeQ);
 
-  let cohortIdsQ = supabase.from('cohorts').select('id');
-  if (collegeId) cohortIdsQ = (cohortIdsQ as any).eq('college_id', collegeId);
+  let newQ = adminClient.from('cohorts').select('*', { count: 'exact', head: true }).gte('created_at', thirtyDaysAgo.toISOString());
+  newQ = applyScope(newQ);
+
+  let cohortIdsQ: any = adminClient.from('cohorts').select('id');
+  cohortIdsQ = applyScope(cohortIdsQ);
 
   const [{ count: activeCohortsCount }, { count: newThisMonth }, { data: collegeCohorts }] =
     await Promise.all([activeQ, newQ, cohortIdsQ]);
@@ -127,8 +138,7 @@ export async function getCohortStats() {
     return { activeCohorts: activeCohortsCount || 0, totalStudents: 0, avgCompletionRate: 0, newThisMonth: newThisMonth || 0 };
   }
 
-  // Count unique students and those with at least one score
-  const { data: members } = await supabase
+  const { data: members } = await adminClient
     .from('cohort_members')
     .select('student_id')
     .in('cohort_id', cohortIds);
@@ -136,7 +146,7 @@ export async function getCohortStats() {
   const uniqueStudentIds = [...new Set((members ?? []).map((m: any) => m.student_id))];
 
   const { data: scoredStudents } = uniqueStudentIds.length > 0
-    ? await supabase
+    ? await adminClient
         .from('scores')
         .select('student_id')
         .in('student_id', uniqueStudentIds)
@@ -296,6 +306,11 @@ export async function scheduleCohortAssessment(formData: FormData) {
   const domain = (formData.get('domain') as string) || null;
   const instructions = (formData.get('instructions') as string) || null;
   const due_date = (formData.get('due_date') as string) || null;
+  const class_ids_raw = (formData.get('class_ids') as string) || '';
+  const question_ids_raw = (formData.get('question_ids') as string) || '';
+
+  const class_ids = class_ids_raw.split(',').map(s => s.trim()).filter(Boolean);
+  const question_ids = question_ids_raw.split(',').map(s => s.trim()).filter(Boolean);
 
   if (!cohort_id || !title) return { error: 'Cohort and title are required.' };
 
@@ -306,6 +321,8 @@ export async function scheduleCohortAssessment(formData: FormData) {
     instructions,
     due_date: due_date ? new Date(due_date).toISOString() : null,
     created_by: user.id,
+    class_ids,
+    question_ids,
   });
 
   if (error) return { error: error.message };
@@ -333,8 +350,10 @@ export async function getStudentAssignedAssessments() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return [];
 
-  // Find all cohorts the student belongs to
-  const { data: memberships } = await supabase
+  // Use adminClient — cohort_members has no student-readable RLS policy
+  const adminClient = createAdminClient();
+
+  const { data: memberships } = await adminClient
     .from('cohort_members')
     .select('cohort_id')
     .eq('student_id', user.id);
@@ -342,7 +361,7 @@ export async function getStudentAssignedAssessments() {
   const cohortIds = (memberships ?? []).map((m: any) => m.cohort_id);
   if (cohortIds.length === 0) return [];
 
-  const { data, error } = await supabase
+  const { data, error } = await adminClient
     .from('cohort_assessments')
     .select('id, title, domain, instructions, due_date, cohort_id, cohorts!cohort_id(name)')
     .in('cohort_id', cohortIds)

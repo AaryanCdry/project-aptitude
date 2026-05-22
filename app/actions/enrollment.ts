@@ -3,22 +3,18 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { getCallerScope } from './scope';
 
-// ─── Fetch all enrolled students (scoped to admin's college) ────────────────
+// ─── Fetch all enrolled students (scoped by caller role) ────────────────────
+// ADMIN (Principal)  → all students in college
+// SUB_ADMIN (HOD)    → only students in their department
+// MENTOR             → only students in their assigned classes
 
 export async function getEnrolledStudents() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+  const scope = await getCallerScope();
+  if (!scope.userId) return [];
 
-  const { data: adminProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = adminProfile?.college_id ?? null;
-
-  let query = supabase
+  let query = createAdminClient()
     .from('users')
     .select(`
       id, name, email, role, created_at, temp_password,
@@ -28,7 +24,16 @@ export async function getEnrolledStudents() {
     `)
     .eq('role', 'STUDENT')
     .order('created_at', { ascending: false });
-  if (collegeId) query = (query as any).eq('college_id', collegeId);
+
+  if (scope.collegeId) query = (query as any).eq('college_id', scope.collegeId);
+
+  if (scope.role === 'SUB_ADMIN') {
+    if (!scope.departmentId) return [];
+    query = (query as any).eq('department_id', scope.departmentId);
+  } else if (scope.role === 'MENTOR') {
+    if (scope.classIds.length === 0) return [];
+    query = (query as any).in('class_id', scope.classIds);
+  }
 
   const { data, error } = await query;
   if (error) {
@@ -54,29 +59,32 @@ export async function getEnrolledStudents() {
 // ─── Enrollment stats (scoped to admin's college) ─────────────────────────────
 
 export async function getEnrollmentStats() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return { totalStudents: 0, pendingInvites: 0, cohorts: [] };
+  const scope = await getCallerScope();
+  if (!scope.userId) return { totalStudents: 0, pendingInvites: 0, cohorts: [] };
 
-  const { data: adminProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = adminProfile?.college_id ?? null;
+  const adminClient = createAdminClient();
 
-  let countQ = supabase
+  let countQ = adminClient
     .from('users')
     .select('*', { count: 'exact', head: true })
     .eq('role', 'STUDENT');
-  if (collegeId) countQ = (countQ as any).eq('college_id', collegeId);
+  if (scope.collegeId) countQ = (countQ as any).eq('college_id', scope.collegeId);
+  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    countQ = (countQ as any).eq('department_id', scope.departmentId);
+  } else if (scope.role === 'MENTOR') {
+    if (scope.classIds.length === 0) return { totalStudents: 0, pendingInvites: 0, cohorts: [] };
+    countQ = (countQ as any).in('class_id', scope.classIds);
+  }
   const { count: totalStudents } = await countQ;
 
-  let cohortsQ = supabase
+  let cohortsQ = adminClient
     .from('cohorts')
     .select('id, name')
     .order('created_at', { ascending: false });
-  if (collegeId) cohortsQ = (cohortsQ as any).eq('college_id', collegeId);
+  if (scope.collegeId) cohortsQ = (cohortsQ as any).eq('college_id', scope.collegeId);
+  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    cohortsQ = (cohortsQ as any).eq('dept_id', scope.departmentId);
+  }
   const { data: cohorts } = await cohortsQ;
 
   return {

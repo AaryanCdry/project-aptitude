@@ -9,12 +9,13 @@ export default async function StudentLayout({ children }: { children: React.Reac
 
   const { data: profile } = await supabase
     .from('users')
-    .select('name, email')
+    .select('name, email, total_points')
     .eq('id', user?.id ?? '')
     .single();
 
   const name = profile?.name ?? user?.email ?? 'Student';
   const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const totalPoints = profile?.total_points ?? 0;
 
   return (
     <div className="flex h-screen bg-background">
@@ -80,7 +81,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
               <div className="w-px h-4 bg-outline-variant"></div>
               <div className="flex items-center gap-1 text-secondary-container">
                 <span className="material-symbols-outlined text-base">monetization_on</span>
-                <span className="text-on-surface">2,450 Pts</span>
+                <span className="text-on-surface">{totalPoints.toLocaleString()} Pts</span>
               </div>
             </div>
             <Link href="/student/profile" className="w-10 h-10 rounded-full bg-primary flex items-center justify-center text-on-primary font-bold text-sm hover:ring-2 ring-primary transition-all">

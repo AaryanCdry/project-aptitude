@@ -26,7 +26,7 @@ export default function CollegeCurriculumCard({ cohort }: { cohort: CohortData |
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-8 shadow-sm text-center">
           <span className="material-symbols-outlined text-4xl mb-2 block text-outline">school</span>
           <p className="font-body-md text-on-surface-variant">
-            You haven't been assigned to a cohort yet. Contact your admin.
+            You haven&apos;t been assigned to a cohort yet. Contact your admin.
           </p>
         </div>
       </section>

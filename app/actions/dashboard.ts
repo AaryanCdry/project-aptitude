@@ -1,20 +1,25 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 export async function getStudentDashboardData() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data: studentProfile } = await supabase
+  // Use adminClient for table reads — RLS on the embedded scores resource can
+  // silently return an empty array, leaving the dashboard with no domain data.
+  const adminClient = createAdminClient();
+
+  const { data: studentProfile } = await adminClient
     .from('users')
     .select('college_id')
     .eq('id', user.id)
     .single();
 
-  // Fetch all completed tests for this user
-  const { data: tests } = await supabase
+  // Fetch all completed tests for this user (with their per-domain + OVERALL scores)
+  const { data: tests } = await adminClient
     .from('tests')
     .select('*, scores(*)')
     .eq('student_id', user.id)
@@ -85,40 +90,38 @@ export async function getStudentDashboardData() {
 }
 
 export async function getAdminDashboardData() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const { getCallerScope } = await import('./scope');
+  const scope = await getCallerScope();
+  if (!scope.userId) throw new Error('Not authenticated');
 
-  const { data: adminProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = adminProfile?.college_id;
+  // adminClient bypasses RLS (HODs are not is_admin() so the session client
+  // returns nothing); scope the student set to the college, or to the
+  // department when the caller is a HOD (SUB_ADMIN).
+  const adminClient = createAdminClient();
 
-  let studentsCountQ = supabase
+  let studentsQ = adminClient
     .from('users')
-    .select('*', { count: 'exact', head: true })
+    .select('id')
     .eq('role', 'STUDENT');
-  if (collegeId) studentsCountQ = (studentsCountQ as any).eq('college_id', collegeId);
-  const { count: totalStudents } = await studentsCountQ;
+  if (scope.collegeId) studentsQ = studentsQ.eq('college_id', scope.collegeId);
+  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    studentsQ = studentsQ.eq('department_id', scope.departmentId);
+  }
+  const { data: scopedStudents } = await studentsQ;
+  const collegeStudentIds = (scopedStudents ?? []).map((s: any) => s.id);
+  const totalStudents = collegeStudentIds.length;
 
-  // Get student IDs for this college to scope tests and scores
-  let studentIdsQ = supabase.from('users').select('id').eq('role', 'STUDENT');
-  if (collegeId) studentIdsQ = (studentIdsQ as any).eq('college_id', collegeId);
-  const { data: collegeStudents } = await studentIdsQ;
-  const collegeStudentIds = (collegeStudents ?? []).map((s: any) => s.id);
-
-  const testsFilter = supabase.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'COMPLETED');
+  const testsFilter = adminClient.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'COMPLETED');
   const { count: totalCompletedTests } = collegeStudentIds.length
     ? await (testsFilter as any).in('student_id', collegeStudentIds)
-    : await testsFilter;
+    : { count: 0 };
 
-  let scoresQ = supabase
-    .from('scores')
-    .select('score, domain, created_at, student_id, users!student_id(id, name)');
-  if (collegeStudentIds.length) scoresQ = (scoresQ as any).in('student_id', collegeStudentIds);
-  const { data: scores } = await scoresQ;
+  const { data: scores } = collegeStudentIds.length
+    ? await adminClient
+        .from('scores')
+        .select('score, domain, created_at, student_id, users!student_id(id, name)')
+        .in('student_id', collegeStudentIds)
+    : { data: [] };
 
   let averageScore = 0;
   const domainTotals: Record<string, { total: number; count: number }> = {};

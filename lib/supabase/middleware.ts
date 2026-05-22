@@ -49,7 +49,7 @@ export async function updateSession(request: NextRequest) {
     const roleHomeMap: Record<string, string> = {
       SUPER_ADMIN: '/super',
       ADMIN:       '/admin',
-      SUB_ADMIN:   '/subadmin',
+      SUB_ADMIN:   '/admin',     // HOD shares the Principal dashboard, scoped to their department
       MENTOR:      '/mentor',
       STUDENT:     '/student',
     };
@@ -68,13 +68,13 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (pathname.startsWith('/admin') && role !== 'ADMIN') {
+    if (pathname.startsWith('/admin') && !['ADMIN', 'SUB_ADMIN'].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = roleHomeMap[role] ?? '/student';
       return NextResponse.redirect(url);
     }
 
-    if (pathname.startsWith('/subadmin') && role !== 'SUB_ADMIN' && role !== 'ADMIN') {
+    if (pathname.startsWith('/subadmin') && !['SUB_ADMIN', 'ADMIN'].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = roleHomeMap[role] ?? '/student';
       return NextResponse.redirect(url);

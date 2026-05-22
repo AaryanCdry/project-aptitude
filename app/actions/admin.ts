@@ -15,7 +15,7 @@ async function getAuthedUser() {
 
 export async function fetchAllQuestions() {
   const { userData, supabase } = await getAuthedUser();
-  if (userData?.role !== 'ADMIN') throw new Error('Not authorized');
+  if (!['ADMIN', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
 
   const { data: questions, error } = await supabase
     .from('questions')
@@ -137,7 +137,7 @@ Requirements:
 
 export async function toggleQuestionActive(id: string) {
   const { userData } = await getAuthedUser();
-  if (!['ADMIN', 'MENTOR'].includes(userData?.role ?? '')) throw new Error('Not authorized');
+  if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
 
   const adminClient = createAdminClient();
   const { data: q } = await adminClient.from('questions').select('active').eq('id', id).single();
@@ -152,7 +152,7 @@ export async function toggleQuestionActive(id: string) {
 
 export async function deleteQuestion(id: string) {
   const { userData } = await getAuthedUser();
-  if (!['ADMIN', 'MENTOR'].includes(userData?.role ?? '')) throw new Error('Not authorized');
+  if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
 
   const adminClient = createAdminClient();
   const { error } = await adminClient.from('questions').delete().eq('id', id);
@@ -205,7 +205,7 @@ export async function bulkAddQuestions(payload: Array<{
 
 export async function generateExplanation(questionId: string) {
   const { userData } = await getAuthedUser();
-  if (!['ADMIN', 'MENTOR'].includes(userData?.role ?? '')) throw new Error('Not authorized');
+  if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
 
   const adminClient = createAdminClient();
   const { data: question, error: qError } = await adminClient
