@@ -344,8 +344,15 @@ export async function getTestResultDetails(testId: string) {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
+  // Use adminClient for reads — RLS on `tests` only lets the student see their
+  // own row, so the session client returns null when a viewer (Admin / HOD /
+  // Mentor) drills into a student's result via the Insights link.
+  const { createAdminClient } = await import('@/lib/supabase/admin');
+  const { canViewStudent } = await import('./scope');
+  const adminClient = createAdminClient();
+
   // Fetch test details
-  const { data: test, error: testError } = await supabase
+  const { data: test, error: testError } = await adminClient
     .from('tests')
     .select('*')
     .eq('id', testId)
@@ -353,9 +360,15 @@ export async function getTestResultDetails(testId: string) {
 
   if (testError || !test) throw new Error('Test not found');
 
+  // Authorization: caller must be the test's student or a viewer with scope.
+  if (test.student_id !== user.id) {
+    const allowed = await canViewStudent(test.student_id);
+    if (!allowed) throw new Error('Not authorized to view this test.');
+  }
+
   // Fetch the OVERALL score row (a test has one row per domain + one OVERALL row,
   // so .single() on test_id alone would fail — filter to OVERALL)
-  const { data: scoreData } = await supabase
+  const { data: scoreData } = await adminClient
     .from('scores')
     .select('*')
     .eq('test_id', testId)
@@ -363,7 +376,7 @@ export async function getTestResultDetails(testId: string) {
     .maybeSingle();
 
   // Fetch attempts with question details
-  const { data: attempts } = await supabase
+  const { data: attempts } = await adminClient
     .from('test_attempts')
     .select(`
       id,

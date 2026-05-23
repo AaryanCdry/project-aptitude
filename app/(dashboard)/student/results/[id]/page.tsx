@@ -1,5 +1,4 @@
 import React from 'react';
-import Link from 'next/link';
 import { getTestResultDetails } from '@/app/actions/assessment';
 import QuestionReview from './QuestionReview';
 
@@ -47,23 +46,6 @@ export default async function TestResultsPage({ params }: { params: { id: string
 
   return (
     <div className="relative flex h-auto min-h-screen w-full flex-col">
-      {/* Top Navigation Bar - Similar to Stitch */}
-      <header className="flex items-center justify-between px-margin-desktop py-4 bg-surface border-b border-outline-variant">
-        <div className="flex items-center gap-4">
-          <span className="material-symbols-outlined text-primary text-3xl">psychology</span>
-          <span className="font-headline-md text-on-surface">Cognitive Modern</span>
-        </div>
-        <nav className="hidden md:flex gap-8">
-          <Link href="/student" className="text-on-surface font-metric-label hover:text-primary transition-colors">Dashboard</Link>
-          <span className="text-primary font-metric-label border-b-2 border-primary pb-1">Assessments Results</span>
-        </nav>
-        <div className="flex items-center gap-4">
-          <Link href="/student" className="px-4 py-2 border border-outline rounded-lg text-sm font-metric-label hover:bg-surface-container">
-            Back to Dashboard
-          </Link>
-        </div>
-      </header>
-
       <main className="layout-container flex h-full grow flex-col px-margin-mobile md:px-margin-desktop py-8 max-w-container-max-width mx-auto w-full">
         {/* Page Heading */}
         <div className="flex flex-col gap-6 mb-10">

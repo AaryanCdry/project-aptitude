@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useTransition } from 'react';
+import Link from 'next/link';
 import { resetStudentPassword } from '@/app/actions/enrollment';
 
 export default function StudentActions({
@@ -50,6 +51,14 @@ export default function StudentActions({
 
           {/* Dropdown */}
           <div className="absolute right-0 top-10 z-20 w-72 bg-surface-container-lowest border border-outline-variant rounded-xl shadow-xl overflow-hidden">
+            <Link
+              href={`/admin/students/${studentId}`}
+              className="flex items-center gap-2 px-4 py-3 hover:bg-surface-container transition-colors border-b border-outline-variant font-metric-label text-sm text-on-surface"
+              onClick={() => setOpen(false)}
+            >
+              <span className="material-symbols-outlined text-[18px] text-primary">dashboard</span>
+              View Dashboard
+            </Link>
             <div className="px-4 py-3 border-b border-outline-variant bg-surface-container">
               <p className="font-metric-label text-on-surface-variant text-xs uppercase tracking-wider">
                 Temporary Password

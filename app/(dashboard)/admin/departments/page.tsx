@@ -1,6 +1,8 @@
 import React from 'react';
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { getDepartments } from '@/app/actions/departments';
+import { getCallerScope } from '@/app/actions/scope';
 import CreateDepartmentForm from './CreateDepartmentForm';
 import AddClassButton from './AddClassButton';
 
@@ -15,6 +17,10 @@ const COURSE_COLORS: Record<string, string> = {
 };
 
 export default async function DepartmentsPage() {
+  // Department setup is a Principal-only task; HOD already heads one department.
+  const scope = await getCallerScope();
+  if (scope.role && scope.role !== 'ADMIN' && scope.role !== 'SUPER_ADMIN') redirect('/admin');
+
   const departments = await getDepartments();
 
   return (

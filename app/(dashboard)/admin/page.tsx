@@ -1,8 +1,9 @@
 import React from 'react';
 import { getAdminDashboardData } from '@/app/actions/dashboard';
+import { getCallerScope } from '@/app/actions/scope';
 
 export default async function AdminDashboard() {
-  const {
+  const [{
     totalStudents,
     totalCompletedTests,
     averageScore,
@@ -10,7 +11,14 @@ export default async function AdminDashboard() {
     studentsAtRisk,
     topPerformers,
     weeklyTrend,
-  } = await getAdminDashboardData();
+  }, scope] = await Promise.all([getAdminDashboardData(), getCallerScope()]);
+
+  // Page-header copy tracks the caller's actual remit: a HOD's view is
+  // department-scoped, while a Principal sees the whole college.
+  const isHOD = scope.role === 'SUB_ADMIN';
+  const overviewTitle = isHOD ? 'Department Overview' : 'College Overview';
+  const overviewSubtitle = isHOD ? 'Department Assessment Cycle' : 'Platform Assessment Cycle';
+  const avgScopeLabel = isHOD ? 'department-wide' : 'college-wide';
 
   // Max bar height = 200px; scale bars relative to the highest weekly avg
   const maxAvg = Math.max(...weeklyTrend.map(w => w.average), 1);
@@ -20,8 +28,8 @@ export default async function AdminDashboard() {
       {/* ── Page Header ───────────────────────────────────────────── */}
       <header className="mb-10 flex justify-between items-end">
         <div>
-          <h1 className="font-display-sm text-display-sm text-on-surface">Admin Overview</h1>
-          <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">Platform Assessment Cycle</p>
+          <h1 className="font-display-sm text-display-sm text-on-surface">{overviewTitle}</h1>
+          <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">{overviewSubtitle}</p>
         </div>
         <button className="bg-primary text-on-primary px-6 py-3 rounded-lg font-metric-label text-metric-label hover:bg-primary-fixed-variant transition-colors flex items-center space-x-2">
           <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>download</span>
@@ -52,7 +60,7 @@ export default async function AdminDashboard() {
           </div>
           <div className="flex items-baseline space-x-3">
             <span className="font-display-lg text-display-lg text-primary">{averageScore}%</span>
-            <span className="font-caption text-caption text-on-surface-variant">platform-wide</span>
+            <span className="font-caption text-caption text-on-surface-variant">{avgScopeLabel}</span>
           </div>
         </div>
 

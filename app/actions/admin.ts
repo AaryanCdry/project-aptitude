@@ -135,6 +135,86 @@ Requirements:
   }>;
 }
 
+// ─── Extract questions from an uploaded PDF (AI-driven) ─────────────────────
+// Reads text from the PDF, asks Gemini to extract structured aptitude
+// questions, and returns the parsed drafts. The caller decides whether to
+// confirm-and-save via the existing `bulkAddQuestions` action.
+export async function extractQuestionsFromPdf(params: {
+  pdfBase64: string;       // base64-encoded PDF bytes
+  domain: string;          // target domain enum
+  defaultDifficulty: number; // 1..10 — used when the PDF doesn't tag difficulty
+}) {
+  const { userData } = await getAuthedUser();
+  if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
+
+  const apiKey = process.env.GEMINI_API_KEY;
+  if (!apiKey) throw new Error('GEMINI_API_KEY not configured');
+
+  // Decode + extract text from the PDF. pdf-parse v2 exposes a PDFParse class
+  // (no default export). Dynamic-import keeps the Node-only dep out of any
+  // client-side bundle.
+  const buffer = Buffer.from(params.pdfBase64, 'base64');
+  const { PDFParse } = await import('pdf-parse');
+  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  const result = await parser.getText();
+  await parser.destroy();
+  const text: string = (result?.text ?? '').toString().trim();
+  if (!text) throw new Error('Could not read any text from the PDF.');
+
+  // Cap the prompt size — Gemini handles a lot but for safety we trim.
+  const MAX_CHARS = 60_000;
+  const slice = text.length > MAX_CHARS ? text.slice(0, MAX_CHARS) : text;
+
+  const ai = new GoogleGenAI({ apiKey });
+  const prompt = `You are an aptitude test author. Read the document text below and
+extract every multiple-choice question you find. Convert each into the JSON shape
+shown. If a question has fewer than 4 options, fabricate plausible distractors
+to make it 4. Difficulty is 1 (easiest) to 10 (hardest). Use ${params.defaultDifficulty}
+as a default if you cannot infer one. Domain is "${params.domain}".
+
+Return ONLY a raw JSON array (no markdown, no code fences). Each item:
+[
+  {
+    "text": "question stem",
+    "options": ["option A", "option B", "option C", "option D"],
+    "correct_index": 0,
+    "difficulty": 3,
+    "explanation": "one-line solution sketch"
+  }
+]
+
+Document text:
+"""
+${slice}
+"""`;
+
+  const response = await ai.models.generateContent({
+    model: 'gemini-2.5-flash',
+    contents: prompt,
+  });
+
+  const raw = response.text ?? '';
+  const jsonMatch = raw.match(/\[[\s\S]*\]/);
+  if (!jsonMatch) throw new Error('AI returned no JSON array — try a clearer PDF.');
+
+  const drafts = JSON.parse(jsonMatch[0]);
+  if (!Array.isArray(drafts)) throw new Error('AI returned a non-array response.');
+
+  // Normalize: clamp difficulty 1-10, fill defaults.
+  return (drafts as any[])
+    .filter(d => d && typeof d.text === 'string' && Array.isArray(d.options))
+    .map(d => ({
+      text: String(d.text).trim(),
+      options: (d.options as any[]).map(o => String(o)).slice(0, 4),
+      correct_index: typeof d.correct_index === 'number' ? Math.max(0, Math.min(3, d.correct_index)) : 0,
+      difficulty: typeof d.difficulty === 'number'
+        ? Math.max(1, Math.min(10, Math.round(d.difficulty)))
+        : params.defaultDifficulty,
+      explanation: d.explanation ? String(d.explanation) : '',
+    }))
+    .filter(d => d.options.length === 4);
+}
+
 export async function toggleQuestionActive(id: string) {
   const { userData } = await getAuthedUser();
   if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');

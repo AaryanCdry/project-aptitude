@@ -21,17 +21,19 @@ function InitialsAvatar({ name }: { name: string }) {
 export default async function MentorStudentsPage({
   searchParams,
 }: {
-  searchParams: Promise<{ id?: string; q?: string }>;
+  searchParams: Promise<{ id?: string; q?: string; classId?: string }>;
 }) {
-  const { id: selectedId, q: query } = await searchParams;
+  const { id: selectedId, q: query, classId } = await searchParams;
   const { students } = await getMentorDashboard();
 
-  const filtered = query
-    ? students.filter((s: any) =>
-        s.name?.toLowerCase().includes(query.toLowerCase()) ||
-        s.email?.toLowerCase().includes(query.toLowerCase())
-      )
-    : students;
+  let filtered = students;
+  if (classId) filtered = filtered.filter((s: any) => s.class_id === classId);
+  if (query) {
+    const q = query.toLowerCase();
+    filtered = filtered.filter((s: any) =>
+      s.name?.toLowerCase().includes(q) || s.email?.toLowerCase().includes(q)
+    );
+  }
 
   const detail = selectedId ? await getStudentDetail(selectedId) : null;
 
@@ -101,11 +103,20 @@ export default async function MentorStudentsPage({
               <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xl">
                 {(detail.student?.name ?? detail.student?.email ?? '?').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()}
               </div>
-              <div>
+              <div className="flex-1">
                 <h1 className="font-headline-md text-on-surface text-[22px] font-bold">{detail.student?.name ?? '—'}</h1>
                 <p className="font-body-md text-on-surface-variant">{detail.student?.email}</p>
                 <p className="font-caption text-outline">Joined {new Date(detail.student?.created_at).toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}</p>
               </div>
+              {selectedId && (
+                <Link
+                  href={`/mentor/students/${selectedId}`}
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-metric-label text-sm hover:bg-primary/90 transition-colors shrink-0"
+                >
+                  <span className="material-symbols-outlined text-[18px]">dashboard</span>
+                  View Full Dashboard
+                </Link>
+              )}
             </div>
 
             {/* Domain summary */}
@@ -135,30 +146,46 @@ export default async function MentorStudentsPage({
               </div>
             )}
 
-            {/* Recent scores */}
-            <h2 className="font-headline-md text-on-surface font-semibold mb-3">Score History</h2>
+            {/* Test History — one row per test, with overall + per-domain breakdown */}
+            <h2 className="font-headline-md text-on-surface font-semibold mb-3">Test History</h2>
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden">
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="border-b border-outline-variant bg-surface-bright">
-                    {['Date', 'Domain', 'Score'].map(h => (
+                    {['Date', 'Overall', 'Domain breakdown'].map(h => (
                       <th key={h} className="py-3 px-5 font-metric-label text-on-surface-variant">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-outline-variant">
-                  {detail.scores.length === 0 ? (
-                    <tr><td colSpan={3} className="py-8 text-center text-on-surface-variant font-caption">No scores yet.</td></tr>
-                  ) : detail.scores.slice(0, 15).map((s: any, i: number) => (
-                    <tr key={i} className="hover:bg-surface-container transition-colors">
+                  {detail.testHistory.length === 0 ? (
+                    <tr><td colSpan={3} className="py-8 text-center text-on-surface-variant font-caption">No tests yet.</td></tr>
+                  ) : detail.testHistory.slice(0, 15).map((t: any) => (
+                    <tr key={t.test_id} className="hover:bg-surface-container transition-colors">
                       <td className="py-3 px-5 font-caption text-on-surface-variant">
-                        {new Date(s.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
+                        {new Date(t.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                       </td>
                       <td className="py-3 px-5">
-                        <span className={`text-xs px-2 py-0.5 rounded-full border font-bold ${DOMAIN_COLOR[s.domain] ?? ''}`}>{s.domain}</span>
+                        {t.overall != null ? (
+                          <span className={`font-bold ${t.overall >= 75 ? 'text-secondary' : t.overall >= 50 ? 'text-primary' : 'text-error'}`}>
+                            {t.overall}%
+                          </span>
+                        ) : (
+                          <span className="text-on-surface-variant/60">—</span>
+                        )}
                       </td>
                       <td className="py-3 px-5">
-                        <span className={`font-bold ${s.score >= 75 ? 'text-secondary' : s.score >= 50 ? 'text-primary' : 'text-error'}`}>{s.score}%</span>
+                        <div className="flex flex-wrap gap-1">
+                          {t.domains.map((d: any) => (
+                            <span
+                              key={d.domain}
+                              className={`text-[10px] px-1.5 py-0.5 rounded-full border font-bold ${DOMAIN_COLOR[d.domain] ?? ''}`}
+                              title={`${d.domain}: ${d.score}%`}
+                            >
+                              {d.domain.slice(0, 3)} {d.score}%
+                            </span>
+                          ))}
+                        </div>
                       </td>
                     </tr>
                   ))}

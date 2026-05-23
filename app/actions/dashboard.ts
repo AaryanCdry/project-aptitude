@@ -3,10 +3,17 @@
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
-export async function getStudentDashboardData() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+// When studentId is omitted, returns the signed-in student's dashboard.
+// When provided, the caller must have already verified scope (e.g. via
+// canViewStudent) — this fn just keys all reads off `studentId`.
+export async function getStudentDashboardData(studentId?: string) {
+  let targetId = studentId;
+  if (!targetId) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) throw new Error('Not authenticated');
+    targetId = user.id;
+  }
 
   // Use adminClient for table reads — RLS on the embedded scores resource can
   // silently return an empty array, leaving the dashboard with no domain data.
@@ -15,14 +22,14 @@ export async function getStudentDashboardData() {
   const { data: studentProfile } = await adminClient
     .from('users')
     .select('college_id')
-    .eq('id', user.id)
+    .eq('id', targetId)
     .single();
 
-  // Fetch all completed tests for this user (with their per-domain + OVERALL scores)
+  // Fetch all completed tests for this student (with their per-domain + OVERALL scores)
   const { data: tests } = await adminClient
     .from('tests')
     .select('*, scores(*)')
-    .eq('student_id', user.id)
+    .eq('student_id', targetId)
     .eq('status', 'COMPLETED')
     .order('completed_at', { ascending: true }); // ascending for chart
 

@@ -1,32 +1,30 @@
 'use server';
 
-import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
+import { getCallerScope } from './scope';
 
 async function getCallerCollegeId() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
-  const { data: profile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  return profile?.college_id ?? null;
+  const scope = await getCallerScope();
+  return scope.collegeId;
 }
 
-// ─── Get all departments for a college ──────────────────────────────────────
+// ─── Get all departments for the caller's scope ─────────────────────────────
 export async function getDepartments() {
   const adminClient = createAdminClient();
-  const collegeId = await getCallerCollegeId();
+  const scope = await getCallerScope();
+  if (!scope.collegeId) return [];
 
   let query = adminClient
     .from('departments')
     .select(`id, name, course_type, semester_count, created_at, classes(count)`)
+    .eq('college_id', scope.collegeId)
     .order('created_at', { ascending: false });
 
-  if (collegeId) query = query.eq('college_id', collegeId);
+  // A HOD only sees their own department.
+  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    query = query.eq('id', scope.departmentId);
+  }
 
   const { data, error } = await query;
   if (error) {
@@ -67,15 +65,20 @@ export async function createDepartment(formData: FormData) {
 // ─── Get all classes (scoped to caller's college) ─────────────────────────────
 export async function getClasses(deptId?: string) {
   const adminClient = createAdminClient();
-  const collegeId = await getCallerCollegeId();
+  const scope = await getCallerScope();
+  if (!scope.collegeId) return [];
 
-  // Resolve dept IDs that belong to this college
+  // A HOD is locked to their department regardless of any `deptId` query param.
+  const effectiveDeptId =
+    scope.role === 'SUB_ADMIN' && scope.departmentId ? scope.departmentId : deptId;
+
+  // Resolve dept IDs that belong to this college (used when no explicit dept filter).
   let deptIds: string[] | null = null;
-  if (!deptId && collegeId) {
+  if (!effectiveDeptId) {
     const { data: depts } = await adminClient
       .from('departments')
       .select('id')
-      .eq('college_id', collegeId);
+      .eq('college_id', scope.collegeId);
     deptIds = (depts ?? []).map((d: any) => d.id);
     if (deptIds.length === 0) return [];
   }
@@ -89,8 +92,8 @@ export async function getClasses(deptId?: string) {
     `)
     .order('created_at', { ascending: false });
 
-  if (deptId) {
-    query = query.eq('dept_id', deptId);
+  if (effectiveDeptId) {
+    query = query.eq('dept_id', effectiveDeptId);
   } else if (deptIds) {
     query = query.in('dept_id', deptIds);
   }
@@ -141,19 +144,44 @@ export async function createClass(formData: FormData) {
   return { success: true };
 }
 
+// ─── Get assigned mentors per class ─────────────────────────────────────────
+// Mentor ownership of a class lives in `mentor_classes`, not on the legacy
+// `classes.sub_admin_id` column. Returns { classId → [{ id, name }] }.
+export async function getClassMentors(classIds: string[]) {
+  if (!classIds.length) return {} as Record<string, Array<{ id: string; name: string | null }>>;
+  const adminClient = createAdminClient();
+
+  const { data } = await adminClient
+    .from('mentor_classes')
+    .select('class_id, users!mentor_id(id, name)')
+    .in('class_id', classIds);
+
+  const byClass: Record<string, Array<{ id: string; name: string | null }>> = {};
+  (data ?? []).forEach((r: any) => {
+    const u = r.users as any;
+    if (!u || !r.class_id) return;
+    if (!byClass[r.class_id]) byClass[r.class_id] = [];
+    byClass[r.class_id].push({ id: u.id, name: u.name ?? null });
+  });
+  return byClass;
+}
+
 // ─── Get student count per class ─────────────────────────────────────────────
+// Students are tracked on `users.class_id` (not the legacy `student_college`
+// table, which is empty). Counts come from the users table.
 export async function getClassStudentCounts(classIds: string[]) {
   if (!classIds.length) return {};
   const adminClient = createAdminClient();
 
   const { data } = await adminClient
-    .from('student_college')
+    .from('users')
     .select('class_id')
+    .eq('role', 'STUDENT')
     .in('class_id', classIds);
 
   const counts: Record<string, number> = {};
   (data ?? []).forEach((r: any) => {
-    counts[r.class_id] = (counts[r.class_id] ?? 0) + 1;
+    if (r.class_id) counts[r.class_id] = (counts[r.class_id] ?? 0) + 1;
   });
   return counts;
 }

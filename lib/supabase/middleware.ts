@@ -85,6 +85,16 @@ export async function updateSession(request: NextRequest) {
       url.pathname = roleHomeMap[role] ?? '/student';
       return NextResponse.redirect(url);
     }
+
+    // /student/* is the student's own portal. Admin/HOD/Mentor use their
+    // own viewer routes (/admin/students/[id], /mentor/students/[id],
+    // /admin/results/[id], /mentor/results/[id]) which sit under the
+    // matching layout — no need to ever route a non-student through /student.
+    if (pathname.startsWith('/student') && role !== 'STUDENT') {
+      const url = request.nextUrl.clone();
+      url.pathname = roleHomeMap[role] ?? '/student';
+      return NextResponse.redirect(url);
+    }
   }
 
   return supabaseResponse

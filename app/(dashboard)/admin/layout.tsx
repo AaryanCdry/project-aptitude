@@ -60,10 +60,12 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group_add</span>
             <span>Enrollment</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/departments">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>account_tree</span>
-            <span>Departments</span>
-          </Link>
+          {!isHOD && (
+            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/departments">
+              <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>account_tree</span>
+              <span>Departments</span>
+            </Link>
+          )}
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/classes">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>meeting_room</span>
             <span>Classes</span>
@@ -76,18 +78,22 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>badge</span>
             <span>Staff</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/mentors">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>school</span>
-            <span>Mentors</span>
-          </Link>
+          {!isHOD && (
+            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/mentors">
+              <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>school</span>
+              <span>Mentors</span>
+            </Link>
+          )}
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/reports">
             <span className="material-symbols-outlined">assessment</span>
             <span>Reports</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/settings">
-            <span className="material-symbols-outlined">settings</span>
-            <span>Settings</span>
-          </Link>
+          {!isHOD && (
+            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/settings">
+              <span className="material-symbols-outlined">settings</span>
+              <span>Settings</span>
+            </Link>
+          )}
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/profile">
             <span className="material-symbols-outlined">person</span>
             <span>Profile</span>

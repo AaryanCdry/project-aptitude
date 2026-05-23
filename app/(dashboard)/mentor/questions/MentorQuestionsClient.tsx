@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useTransition } from 'react';
-import { addQuestion, bulkAddQuestions, generateBatchQuestions, toggleQuestionActive, deleteQuestion, generateExplanation } from '@/app/actions/admin';
+import { addQuestion, bulkAddQuestions, extractQuestionsFromPdf, generateBatchQuestions, toggleQuestionActive, deleteQuestion, generateExplanation } from '@/app/actions/admin';
 
 const DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'] as const;
 
@@ -53,6 +53,7 @@ type DraftQuestion = {
   options: string[];
   correct_index: number;
   explanation: string;
+  difficulty?: number;  // optional — set when extracted from a PDF
 };
 
 type Tab = 'browse' | 'add' | 'generate' | 'bulk';
@@ -189,6 +190,71 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
   const [parsedRows, setParsedRows] = useState<ParsedRow[]>([]);
   const [bulkUploading, setBulkUploading] = useState(false);
   const [bulkResult, setBulkResult] = useState<{ added: number } | null>(null);
+
+  // PDF Upload — AI extraction of questions from an uploaded PDF
+  const [pdfDomain, setPdfDomain] = useState('QUANTITATIVE');
+  const [pdfDifficulty, setPdfDifficulty] = useState(5);
+  const [pdfDrafts, setPdfDrafts] = useState<DraftQuestion[]>([]);
+  const [pdfLoading, setPdfLoading] = useState(false);
+  const [pdfError, setPdfError] = useState('');
+  const [pdfFileName, setPdfFileName] = useState('');
+  const [pdfSaving, setPdfSaving] = useState(false);
+  const [pdfResult, setPdfResult] = useState<{ added: number } | null>(null);
+
+  async function handlePdfPick(file: File) {
+    setPdfError('');
+    setPdfResult(null);
+    setPdfDrafts([]);
+    setPdfFileName(file.name);
+    setPdfLoading(true);
+    try {
+      const buf = await file.arrayBuffer();
+      let binary = '';
+      const bytes = new Uint8Array(buf);
+      for (let i = 0; i < bytes.length; i++) binary += String.fromCharCode(bytes[i]);
+      const pdfBase64 = btoa(binary);
+      const drafts = await extractQuestionsFromPdf({
+        pdfBase64,
+        domain: pdfDomain,
+        defaultDifficulty: pdfDifficulty,
+      });
+      if (drafts.length === 0) setPdfError('No questions could be extracted from this PDF.');
+      setPdfDrafts(drafts as DraftQuestion[]);
+    } catch (err: any) {
+      setPdfError(err?.message ?? 'Failed to read PDF.');
+    } finally {
+      setPdfLoading(false);
+    }
+  }
+
+  async function handlePdfSaveAll() {
+    if (pdfDrafts.length === 0) return;
+    setPdfSaving(true);
+    try {
+      const rows = pdfDrafts.map(d => ({
+        domain: pdfDomain,
+        difficulty: d.difficulty ?? pdfDifficulty,
+        text: d.text,
+        options: d.options,
+        correct_index: d.correct_index,
+        explanation: d.explanation,
+        time_suggestion_sec: 60,
+      }));
+      const added = await bulkAddQuestions(rows);
+      setQuestions(qs => [...(added as Question[]), ...qs]);
+      setPdfResult({ added: added.length });
+      setPdfDrafts([]);
+      setPdfFileName('');
+    } catch (err: any) {
+      setPdfError(err?.message ?? 'Failed to save questions.');
+    } finally {
+      setPdfSaving(false);
+    }
+  }
+
+  function discardPdfDraft(i: number) {
+    setPdfDrafts(prev => prev.filter((_, idx) => idx !== i));
+  }
 
   const domainCounts = DOMAINS.reduce((acc, d) => {
     acc[d] = questions.filter(q => q.domain === d).length;
@@ -821,6 +887,131 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
       {/* ===== BULK UPLOAD TAB ===== */}
       {tab === 'bulk' && (
         <div>
+          {/* PDF upload (AI extraction) */}
+          <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm mb-5">
+            <div className="flex items-start justify-between gap-4 mb-1">
+              <div>
+                <h2 className="font-headline-md text-on-surface text-lg font-bold">Extract Questions from a PDF</h2>
+                <p className="font-body-md text-on-surface-variant text-sm mt-1">
+                  Upload a PDF of practice questions. Gemini reads it and proposes question drafts — review and save in one click.
+                </p>
+              </div>
+              <span className="px-2 py-1 rounded-full bg-tertiary-fixed text-on-tertiary-fixed text-[11px] font-metric-label uppercase">AI</span>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mt-4">
+              <div>
+                <label className="font-metric-label text-xs uppercase text-on-surface-variant block mb-1">Domain</label>
+                <select
+                  value={pdfDomain}
+                  onChange={e => setPdfDomain(e.target.value)}
+                  disabled={pdfLoading}
+                  className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm"
+                >
+                  {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="font-metric-label text-xs uppercase text-on-surface-variant block mb-1">Default difficulty (1-10)</label>
+                <input
+                  type="number"
+                  min={1}
+                  max={10}
+                  value={pdfDifficulty}
+                  onChange={e => setPdfDifficulty(Math.max(1, Math.min(10, Number(e.target.value) || 5)))}
+                  disabled={pdfLoading}
+                  className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm"
+                />
+                <p className="font-caption text-on-surface-variant text-[11px] mt-1">Used when a question doesn&apos;t advertise its own level.</p>
+              </div>
+              <div className="flex items-end">
+                <label className={`w-full inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg font-metric-label text-sm transition-colors cursor-pointer ${pdfLoading ? 'bg-surface-container text-on-surface-variant' : 'bg-primary text-on-primary hover:opacity-90'}`}>
+                  <span className={`material-symbols-outlined text-sm ${pdfLoading ? 'animate-spin' : ''}`}>
+                    {pdfLoading ? 'refresh' : 'picture_as_pdf'}
+                  </span>
+                  {pdfLoading ? 'Extracting…' : 'Upload PDF'}
+                  <input
+                    type="file"
+                    accept="application/pdf,.pdf"
+                    className="hidden"
+                    disabled={pdfLoading}
+                    onChange={e => {
+                      const f = e.target.files?.[0];
+                      if (f) handlePdfPick(f);
+                      e.target.value = '';
+                    }}
+                  />
+                </label>
+              </div>
+            </div>
+
+            {pdfFileName && (
+              <p className="font-caption text-on-surface-variant text-xs mt-3 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">attach_file</span>
+                {pdfFileName}
+              </p>
+            )}
+            {pdfError && (
+              <p className="font-caption text-error text-xs mt-3 flex items-center gap-1.5">
+                <span className="material-symbols-outlined text-[14px]">error</span>
+                {pdfError}
+              </p>
+            )}
+            {pdfResult && (
+              <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-lg px-4 py-2 mt-3">
+                <span className="material-symbols-outlined text-green-600 text-sm">check_circle</span>
+                <p className="font-body-md text-green-800 text-sm">{pdfResult.added} question{pdfResult.added !== 1 ? 's' : ''} added from the PDF.</p>
+              </div>
+            )}
+          </div>
+
+          {/* PDF drafts review */}
+          {pdfDrafts.length > 0 && (
+            <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm mb-5">
+              <div className="flex items-center justify-between mb-3 flex-wrap gap-3">
+                <h3 className="font-headline-md text-on-surface font-semibold">
+                  {pdfDrafts.length} draft{pdfDrafts.length !== 1 ? 's' : ''} extracted — review &amp; save
+                </h3>
+                <button
+                  onClick={handlePdfSaveAll}
+                  disabled={pdfSaving}
+                  className="inline-flex items-center gap-2 px-5 py-2 bg-primary text-on-primary rounded-lg font-metric-label text-sm hover:opacity-90 transition-opacity disabled:opacity-50"
+                >
+                  <span className={`material-symbols-outlined text-sm ${pdfSaving ? 'animate-spin' : ''}`}>
+                    {pdfSaving ? 'refresh' : 'save'}
+                  </span>
+                  {pdfSaving ? 'Saving…' : `Save all ${pdfDrafts.length}`}
+                </button>
+              </div>
+              <div className="space-y-3 max-h-[60vh] overflow-y-auto pr-1">
+                {pdfDrafts.map((d, i) => (
+                  <div key={i} className="border border-outline-variant rounded-lg p-4 bg-surface-container-low">
+                    <div className="flex items-start justify-between gap-3 mb-2">
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-metric-label bg-surface-container px-2 py-0.5 rounded">#{i + 1}</span>
+                        <span className="text-xs font-metric-label bg-primary-fixed-dim text-on-primary-fixed px-2 py-0.5 rounded">L{d.difficulty ?? pdfDifficulty}</span>
+                      </div>
+                      <button onClick={() => discardPdfDraft(i)} className="text-on-surface-variant hover:text-error" title="Discard this draft">
+                        <span className="material-symbols-outlined text-[18px]">close</span>
+                      </button>
+                    </div>
+                    <p className="font-body-md text-on-surface mb-2">{d.text}</p>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-1.5">
+                      {d.options.map((o, oi) => (
+                        <div key={oi} className={`text-sm px-2 py-1 rounded border ${oi === d.correct_index ? 'border-secondary bg-secondary-fixed/40 text-on-secondary-fixed-variant font-semibold' : 'border-outline-variant text-on-surface'}`}>
+                          <span className="font-metric-label mr-1.5">{String.fromCharCode(65 + oi)}.</span>{o}
+                        </div>
+                      ))}
+                    </div>
+                    {d.explanation && (
+                      <p className="font-caption text-on-surface-variant mt-2">{d.explanation}</p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
           {/* Instructions + template */}
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-sm mb-5">
             <h2 className="font-headline-md text-on-surface text-lg font-bold mb-1">Bulk Upload via CSV</h2>

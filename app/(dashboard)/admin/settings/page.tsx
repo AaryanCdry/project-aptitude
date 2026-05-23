@@ -1,8 +1,14 @@
 import React from 'react';
+import { redirect } from 'next/navigation';
 import { getAdminSettings } from '@/app/actions/reports';
+import { getCallerScope } from '@/app/actions/scope';
 import AdminSettingsForm from './AdminSettingsForm';
 
 export default async function AdminSettingsPage() {
+  // College-level settings — Principal only.
+  const scope = await getCallerScope();
+  if (scope.role && scope.role !== 'ADMIN' && scope.role !== 'SUPER_ADMIN') redirect('/admin');
+
   const admin = await getAdminSettings();
 
   return (

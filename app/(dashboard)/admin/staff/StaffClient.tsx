@@ -13,9 +13,13 @@ interface StaffData {
 
 export default function StaffClient({ initialData, role }: { initialData: StaffData; role: string | null }) {
   const router = useRouter();
-  // Only a Principal (ADMIN) can create HODs; a HOD (SUB_ADMIN) cannot.
+  // Only a Principal (ADMIN) can create HODs or remove staff; a HOD (SUB_ADMIN)
+  // can only manage Mentors for their department.
   const canCreateHOD = role === 'ADMIN';
-  const [tab, setTab] = useState<'hods' | 'mentors'>('hods');
+  const canRemoveStaff = role === 'ADMIN';
+  const isHOD = role === 'SUB_ADMIN';
+  // HOD only manages mentors; land on Mentors tab by default for them.
+  const [tab, setTab] = useState<'hods' | 'mentors'>(role === 'SUB_ADMIN' ? 'mentors' : 'hods');
   const [showHODModal, setShowHODModal] = useState(false);
   const [showMentorModal, setShowMentorModal] = useState(false);
   const [editingMentor, setEditingMentor] = useState<string | null>(null);
@@ -91,8 +95,12 @@ export default function StaffClient({ initialData, role }: { initialData: StaffD
     <div>
       <div className="flex items-end justify-between mb-6">
         <div>
-          <h1 className="font-headline-md text-2xl text-on-surface">Staff</h1>
-          <p className="font-body-md text-on-surface-variant mt-1">Manage HODs and Mentors for your college.</p>
+          <h1 className="font-headline-md text-2xl text-on-surface">{isHOD ? 'Mentors' : 'Staff'}</h1>
+          <p className="font-body-md text-on-surface-variant mt-1">
+            {isHOD
+              ? 'Assign mentors to the classes in your department.'
+              : 'Manage HODs and Mentors for your college.'}
+          </p>
         </div>
         <div className="flex gap-2">
           {canCreateHOD && (
@@ -120,20 +128,23 @@ export default function StaffClient({ initialData, role }: { initialData: StaffD
         </div>
       )}
 
-      <div className="flex gap-2 mb-4 border-b border-outline-variant">
-        <button
-          onClick={() => setTab('hods')}
-          className={`px-4 py-2 font-metric-label text-sm border-b-2 transition-colors ${tab === 'hods' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'}`}
-        >
-          HODs ({initialData.hods.length})
-        </button>
-        <button
-          onClick={() => setTab('mentors')}
-          className={`px-4 py-2 font-metric-label text-sm border-b-2 transition-colors ${tab === 'mentors' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'}`}
-        >
-          Mentors ({initialData.mentors.length})
-        </button>
-      </div>
+      {/* HOD only sees Mentors — the HODs tab would just list themselves. */}
+      {!isHOD && (
+        <div className="flex gap-2 mb-4 border-b border-outline-variant">
+          <button
+            onClick={() => setTab('hods')}
+            className={`px-4 py-2 font-metric-label text-sm border-b-2 transition-colors ${tab === 'hods' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'}`}
+          >
+            HODs ({initialData.hods.length})
+          </button>
+          <button
+            onClick={() => setTab('mentors')}
+            className={`px-4 py-2 font-metric-label text-sm border-b-2 transition-colors ${tab === 'mentors' ? 'border-primary text-primary' : 'border-transparent text-on-surface-variant'}`}
+          >
+            Mentors ({initialData.mentors.length})
+          </button>
+        </div>
+      )}
 
       {tab === 'hods' && (
         <div className="bg-surface-container rounded-xl border border-outline-variant overflow-hidden">
@@ -158,13 +169,15 @@ export default function StaffClient({ initialData, role }: { initialData: StaffD
                     <td className="px-5 py-3 font-body-md text-on-surface">{h.departmentName ?? '—'}</td>
                     <td className="px-5 py-3 font-caption text-on-surface-variant">{h.temp_password ?? '—'}</td>
                     <td className="px-5 py-3 text-right">
-                      <button
-                        onClick={() => handleRemove(h.id)}
-                        disabled={pending}
-                        className="text-error hover:underline text-sm"
-                      >
-                        Remove
-                      </button>
+                      {canRemoveStaff && (
+                        <button
+                          onClick={() => handleRemove(h.id)}
+                          disabled={pending}
+                          className="text-error hover:underline text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}
@@ -248,13 +261,15 @@ export default function StaffClient({ initialData, role }: { initialData: StaffD
                       >
                         Edit classes
                       </button>
-                      <button
-                        onClick={() => handleRemove(m.id)}
-                        disabled={pending}
-                        className="text-error hover:underline text-sm"
-                      >
-                        Remove
-                      </button>
+                      {canRemoveStaff && (
+                        <button
+                          onClick={() => handleRemove(m.id)}
+                          disabled={pending}
+                          className="text-error hover:underline text-sm"
+                        >
+                          Remove
+                        </button>
+                      )}
                     </td>
                   </tr>
                 ))}

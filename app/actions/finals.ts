@@ -7,16 +7,21 @@ import { getCallerScope } from './scope';
 
 // ─── Student-facing: pending final exams ─────────────────────────────────────
 
-// Returns the signed-in student's final exams that are not yet completed.
-export async function getStudentFinalExams() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+// Optional studentId: defaults to the signed-in student. Caller is responsible
+// for scope checks (canViewStudent) when supplying a different student.
+export async function getStudentFinalExams(studentId?: string) {
+  let targetId = studentId;
+  if (!targetId) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    targetId = user.id;
+  }
 
   const { data } = await createAdminClient()
     .from('tests')
     .select('id, status, scheduled_at, completed_at')
-    .eq('student_id', user.id)
+    .eq('student_id', targetId)
     .eq('type', 'FINAL')
     .neq('status', 'COMPLETED')
     .order('scheduled_at', { ascending: true });

@@ -5,10 +5,16 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { getCallerScope } from './scope';
 
-export async function getStudentCohortData() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return null;
+// Optional studentId: defaults to the signed-in student. Caller is responsible
+// for scope checks (canViewStudent) when supplying a different student.
+export async function getStudentCohortData(studentId?: string) {
+  let targetId = studentId;
+  if (!targetId) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return null;
+    targetId = user.id;
+  }
 
   // Use adminClient so RLS on cohort_members doesn't block the read
   const adminClient = createAdminClient();
@@ -17,7 +23,7 @@ export async function getStudentCohortData() {
   const { data: membership, error: memberError } = await adminClient
     .from('cohort_members')
     .select('cohort_id')
-    .eq('student_id', user.id)
+    .eq('student_id', targetId)
     .limit(1)
     .single();
 
@@ -345,10 +351,16 @@ export async function deleteCohortAssessment(assessmentId: string, cohortId: str
   return { success: true };
 }
 
-export async function getStudentAssignedAssessments() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) return [];
+// Optional studentId: defaults to the signed-in student. Caller is responsible
+// for scope checks (canViewStudent) when supplying a different student.
+export async function getStudentAssignedAssessments(studentId?: string) {
+  let targetId = studentId;
+  if (!targetId) {
+    const supabase = await createClient();
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return [];
+    targetId = user.id;
+  }
 
   // Use adminClient — cohort_members has no student-readable RLS policy
   const adminClient = createAdminClient();
@@ -356,7 +368,7 @@ export async function getStudentAssignedAssessments() {
   const { data: memberships } = await adminClient
     .from('cohort_members')
     .select('cohort_id')
-    .eq('student_id', user.id);
+    .eq('student_id', targetId);
 
   const cohortIds = (memberships ?? []).map((m: any) => m.cohort_id);
   if (cohortIds.length === 0) return [];
@@ -370,10 +382,10 @@ export async function getStudentAssignedAssessments() {
   if (error) return [];
 
   // Check which ones the student has a completed test for (rough match by domain + date)
-  const { data: completedTests } = await supabase
+  const { data: completedTests } = await adminClient
     .from('tests')
     .select('id, type, completed_at, scores(domain)')
-    .eq('student_id', user.id)
+    .eq('student_id', targetId)
     .eq('status', 'COMPLETED');
 
   const completedDomains = new Set<string>();

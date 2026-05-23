@@ -121,10 +121,10 @@ export default async function ClassRosterPage({ params }: { params: Promise<{ id
                 return (
                   <tr key={s.id} className="hover:bg-surface-container transition-colors group">
                     <td className="py-3 px-5">
-                      <div className="flex items-center gap-3">
+                      <Link href={`/admin/students/${s.id}`} className="flex items-center gap-3">
                         <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-xs shrink-0 ${colors[ci]}`}>{initials}</div>
                         <span className="font-body-md font-semibold text-on-surface group-hover:text-primary transition-colors">{s.name || '—'}</span>
-                      </div>
+                      </Link>
                     </td>
                     <td className="py-3 px-5 font-caption text-on-surface-variant">{s.email}</td>
                     <td className="py-3 px-5">

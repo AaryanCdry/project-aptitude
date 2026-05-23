@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
-import { getClasses, getDepartments, getClassStudentCounts } from '@/app/actions/departments';
+import { getClasses, getDepartments, getClassStudentCounts, getClassMentors } from '@/app/actions/departments';
+import { getCallerScope } from '@/app/actions/scope';
 import CreateClassForm from './CreateClassForm';
 
 export default async function ClassesPage({
@@ -10,13 +11,18 @@ export default async function ClassesPage({
 }) {
   const { dept: deptFilter } = await searchParams;
 
-  const [classes, departments] = await Promise.all([
+  const [classes, departments, scope] = await Promise.all([
     getClasses(deptFilter),
     getDepartments(),
+    getCallerScope(),
   ]);
+  const isHOD = scope.role === 'SUB_ADMIN';
 
   const classIds = classes.map((c: any) => c.id);
-  const studentCounts = await getClassStudentCounts(classIds);
+  const [studentCounts, mentorsByClass] = await Promise.all([
+    getClassStudentCounts(classIds),
+    getClassMentors(classIds),
+  ]);
 
   // Group by department
   const grouped: Record<string, any[]> = {};
@@ -33,14 +39,18 @@ export default async function ClassesPage({
         <div>
           <h1 className="font-display-sm text-display-sm text-on-background mb-2">Classes & Sections</h1>
           <p className="font-body-md text-on-surface-variant">
-            Manage class batches within departments. Assign students and sub-admins.
+            {isHOD
+              ? 'Class batches in your department. Assign mentors and track student rosters.'
+              : 'Manage class batches across all departments. Assign students and mentors.'}
           </p>
         </div>
         <div className="flex gap-3">
-          <Link href="/admin/departments" className="px-5 py-3 border border-outline-variant rounded-lg font-metric-label text-on-surface-variant hover:bg-surface-container-low transition-colors flex items-center gap-2">
-            <span className="material-symbols-outlined text-xl">account_tree</span>
-            Departments
-          </Link>
+          {!isHOD && (
+            <Link href="/admin/departments" className="px-5 py-3 border border-outline-variant rounded-lg font-metric-label text-on-surface-variant hover:bg-surface-container-low transition-colors flex items-center gap-2">
+              <span className="material-symbols-outlined text-xl">account_tree</span>
+              Departments
+            </Link>
+          )}
           <CreateClassForm
             departments={(departments as any[]).map((d: any) => ({ id: d.id, name: d.name, course_type: d.course_type ?? '' }))}
             defaultDeptId={deptFilter}
@@ -111,7 +121,7 @@ export default async function ClassesPage({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-outline-variant bg-surface-bright">
-                      {['Class Name', 'Year / Section', 'Students', 'Sub-Admin', 'Created', 'Actions'].map((h, i) => (
+                      {['Class Name', 'Year / Section', 'Students', 'Mentor', 'Created', 'Actions'].map((h, i) => (
                         <th key={h} className={`py-3 px-5 font-metric-label text-metric-label text-on-surface-variant ${i === 5 ? 'text-right' : ''}`}>{h}</th>
                       ))}
                     </tr>
@@ -135,7 +145,12 @@ export default async function ClassesPage({
                           </span>
                         </td>
                         <td className="py-3 px-5 text-on-surface-variant font-caption">
-                          {c.sub_admin?.name ?? <span className="text-outline italic">Unassigned</span>}
+                          {(() => {
+                            const ms = mentorsByClass[c.id] ?? [];
+                            if (ms.length === 0) return <span className="text-outline italic">Unassigned</span>;
+                            if (ms.length === 1) return <span className="text-on-surface">{ms[0].name ?? '—'}</span>;
+                            return <span className="text-on-surface">{ms[0].name ?? '—'} <span className="text-on-surface-variant">+{ms.length - 1}</span></span>;
+                          })()}
                         </td>
                         <td className="py-3 px-5 text-on-surface-variant font-caption">
                           {new Date(c.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}

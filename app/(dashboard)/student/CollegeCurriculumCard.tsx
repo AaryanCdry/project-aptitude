@@ -18,7 +18,13 @@ const STATUS_STYLES: Record<string, string> = {
   COMPLETED: 'bg-surface-container-high text-on-surface-variant border-outline-variant',
 };
 
-export default function CollegeCurriculumCard({ cohort }: { cohort: CohortData | null }) {
+export default function CollegeCurriculumCard({
+  cohort,
+  hideActions = false,
+}: {
+  cohort: CohortData | null;
+  hideActions?: boolean;
+}) {
   if (!cohort) {
     return (
       <section>
@@ -102,14 +108,18 @@ export default function CollegeCurriculumCard({ cohort }: { cohort: CohortData |
 
         <div className="pt-4 border-t border-outline-variant flex flex-col sm:flex-row sm:items-center justify-between gap-3">
           <p className="font-caption text-on-surface-variant">
-            Your college tracks your progress through this curriculum. Take tests to advance.
+            {hideActions
+              ? 'This student is tracked through this curriculum.'
+              : 'Your college tracks your progress through this curriculum. Take tests to advance.'}
           </p>
-          <Link
-            href="/assessment"
-            className="flex items-center gap-1 text-primary font-metric-label text-sm hover:underline shrink-0"
-          >
-            Start Test <span className="material-symbols-outlined text-sm">arrow_forward</span>
-          </Link>
+          {!hideActions && (
+            <Link
+              href="/assessment"
+              className="flex items-center gap-1 text-primary font-metric-label text-sm hover:underline shrink-0"
+            >
+              Start Test <span className="material-symbols-outlined text-sm">arrow_forward</span>
+            </Link>
+          )}
         </div>
       </div>
     </section>

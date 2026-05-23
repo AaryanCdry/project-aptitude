@@ -98,3 +98,35 @@ export async function resolveAllowedClassIds(scope: CallerScope): Promise<string
 
   return [];
 }
+
+// Can the caller view the dashboard of the given student?
+//   - SUPER_ADMIN: always
+//   - the student themselves: always
+//   - ADMIN (Principal):  target must share the caller's college
+//   - SUB_ADMIN (HOD):    target must share the caller's college AND department
+//   - MENTOR:             target's class_id must be in the mentor's classIds
+//   - anyone else:        no
+export async function canViewStudent(studentId: string): Promise<boolean> {
+  const scope = await getCallerScope();
+  if (!scope.userId || !scope.role) return false;
+  if (scope.userId === studentId) return true;
+  if (scope.role === 'SUPER_ADMIN') return true;
+
+  const adminClient = createAdminClient();
+  const { data: target } = await adminClient
+    .from('users')
+    .select('id, role, college_id, department_id, class_id')
+    .eq('id', studentId)
+    .eq('role', 'STUDENT')
+    .single();
+  if (!target) return false;
+
+  if (scope.role === 'ADMIN') return target.college_id === scope.collegeId;
+  if (scope.role === 'SUB_ADMIN') {
+    return target.college_id === scope.collegeId && target.department_id === scope.departmentId;
+  }
+  if (scope.role === 'MENTOR') {
+    return target.class_id != null && scope.classIds.includes(target.class_id);
+  }
+  return false;
+}

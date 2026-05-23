@@ -20,7 +20,7 @@ export async function getMentorDashboard() {
 
   let studentsQ = adminClient
     .from('users')
-    .select('id, name, email, created_at')
+    .select('id, name, email, created_at, class_id')
     .eq('role', 'STUDENT');
   if (scope.role === 'MENTOR') {
     if (scope.classIds.length === 0) return emptyResult;
@@ -97,68 +97,110 @@ export async function getMentorDashboard() {
 
 // ─── Student detail for mentor ────────────────────────────────────────────────
 export async function getStudentDetail(studentId: string) {
+  // Caller must be authenticated AND scoped to view this student.
+  // Session client is RLS-bound to auth.uid() = student_id, which blocks
+  // mentors from reading any student row — switch to adminClient after the
+  // scope check.
   const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return { student: null, domainSummary: [], testHistory: [] };
 
-  const { data: student } = await supabase
+  if (user.id !== studentId) {
+    const { canViewStudent } = await import('./scope');
+    const allowed = await canViewStudent(studentId);
+    if (!allowed) return { student: null, domainSummary: [], testHistory: [] };
+  }
+
+  const adminClient = createAdminClient();
+
+  const { data: student } = await adminClient
     .from('users')
     .select('id, name, email, created_at')
     .eq('id', studentId)
     .single();
 
-  const { data: scores } = await supabase
+  // Pull all score rows including the synthetic OVERALL — we filter in JS so
+  // we can build both the domain aggregation AND a per-test history.
+  const { data: rawScores } = await adminClient
     .from('scores')
-    .select('domain, score, percentile, created_at, tests!test_id(type, completed_at)')
+    .select('test_id, domain, score, percentile, created_at, tests!test_id(type, completed_at)')
     .eq('student_id', studentId)
     .order('created_at', { ascending: true });
 
-  const { data: domainLevels } = await supabase
-    .from('domain_progress')
-    .select('domain, level, updated_at')
-    .eq('student_id', studentId);
+  const allScores = rawScores ?? [];
+  const domainOnly = allScores.filter((s: any) => s.domain !== 'OVERALL');
 
-  // Domain averages
+  // 1–5 mastery tier from running average (matches student dashboard banding).
+  const levelFromAvg = (avg: number) =>
+    avg >= 90 ? 5 : avg >= 75 ? 4 : avg >= 60 ? 3 : avg >= 40 ? 2 : 1;
+
+  // Domain Performance cards: aggregate per-domain across all of this student's tests
   const domainAgg: Record<string, number[]> = {};
-  (scores ?? []).forEach((s: any) => {
+  domainOnly.forEach((s: any) => {
     if (!domainAgg[s.domain]) domainAgg[s.domain] = [];
     domainAgg[s.domain].push(s.score);
   });
 
-  const domainSummary = Object.entries(domainAgg).map(([domain, vals]) => ({
-    domain,
-    avg: Math.round(vals.reduce((a, b) => a + b, 0) / vals.length),
-    level: (domainLevels ?? []).find((l: any) => l.domain === domain)?.level ?? 1,
-    count: vals.length,
-  }));
+  const domainSummary = Object.entries(domainAgg).map(([domain, vals]) => {
+    const avg = Math.round(vals.reduce((a, b) => a + b, 0) / vals.length);
+    return { domain, avg, level: levelFromAvg(avg), count: vals.length };
+  });
 
-  return { student, scores: scores ?? [], domainSummary };
+  // Test History: group score rows by test_id; each test gets one row with
+  // its OVERALL score and the per-domain breakdown. Sorted newest-first.
+  const byTest: Record<string, { test_id: string; date: string; overall: number | null; domains: Array<{ domain: string; score: number }> }> = {};
+  for (const s of allScores) {
+    const tid = (s as any).test_id;
+    if (!tid) continue;
+    if (!byTest[tid]) {
+      const t = (s as any).tests as any;
+      byTest[tid] = {
+        test_id: tid,
+        date: t?.completed_at ?? s.created_at,
+        overall: null,
+        domains: [],
+      };
+    }
+    if (s.domain === 'OVERALL') {
+      byTest[tid].overall = s.score;
+    } else {
+      byTest[tid].domains.push({ domain: s.domain, score: s.score });
+    }
+  }
+  const testHistory = Object.values(byTest).sort(
+    (a, b) => new Date(b.date).getTime() - new Date(a.date).getTime(),
+  );
+
+  return { student, domainSummary, testHistory };
 }
 
 // ─── Proctoring flags ─────────────────────────────────────────────────────────
 export async function getProctoringFlags() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const scope = await getCallerScope();
+  if (!scope.userId) return [];
 
-  const { data: mentorProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = mentorProfile?.college_id;
+  const adminClient = createAdminClient();
 
-  // Scope to this college's students
-  let studentIdsQ = supabase.from('users').select('id').eq('role', 'STUDENT');
-  if (collegeId) studentIdsQ = (studentIdsQ as any).eq('college_id', collegeId);
-  const { data: collegeStudents } = await studentIdsQ;
-  const collegeStudentIds = (collegeStudents ?? []).map((s: any) => s.id);
+  // Build the student set the caller can see (class-scope for MENTOR,
+  // dept-scope for SUB_ADMIN, college-scope for ADMIN).
+  let studentsQ = adminClient.from('users').select('id').eq('role', 'STUDENT');
+  if (scope.collegeId) studentsQ = studentsQ.eq('college_id', scope.collegeId);
+  if (scope.role === 'MENTOR') {
+    if (scope.classIds.length === 0) return [];
+    studentsQ = studentsQ.in('class_id', scope.classIds);
+  } else if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    studentsQ = studentsQ.eq('department_id', scope.departmentId);
+  }
+  const { data: scopedStudents } = await studentsQ;
+  const studentIds = (scopedStudents ?? []).map((s: any) => s.id);
+  if (studentIds.length === 0) return [];
 
-  // Get test IDs for those students
-  let testIdsQ = supabase.from('tests').select('id');
-  if (collegeStudentIds.length) testIdsQ = (testIdsQ as any).in('student_id', collegeStudentIds);
-  const { data: collegTests } = await testIdsQ;
-  const collegeTestIds = (collegTests ?? []).map((t: any) => t.id);
+  const { data: scopedTests } = await adminClient
+    .from('tests').select('id').in('student_id', studentIds);
+  const testIds = (scopedTests ?? []).map((t: any) => t.id);
+  if (testIds.length === 0) return [];
 
-  let logsQ = supabase
+  const { data: logs } = await adminClient
     .from('proctoring_logs')
     .select(`
       id, tab_switches, face_detected, audio_flag, avg_time_ms, flagged, created_at,
@@ -166,10 +208,9 @@ export async function getProctoringFlags() {
         users!student_id(name, email)
       )
     `)
+    .in('test_id', testIds)
     .order('created_at', { ascending: false })
     .limit(50);
-  if (collegeTestIds.length) logsQ = (logsQ as any).in('test_id', collegeTestIds);
-  const { data: logs } = await logsQ;
 
   return (logs ?? []).map((l: any) => ({
     id: l.id,
@@ -186,34 +227,69 @@ export async function getProctoringFlags() {
 }
 
 // ─── Assessments (scheduled tests) ────────────────────────────────────────────
+// ─── Mentor's assigned classes (for /mentor/classes) ────────────────────────
+export async function getMentorClasses() {
+  const scope = await getCallerScope();
+  if (!scope.userId || scope.role !== 'MENTOR' || scope.classIds.length === 0) return [];
+
+  const adminClient = createAdminClient();
+
+  // Pull classes + their department + the count of students in each class.
+  const { data: classes } = await adminClient
+    .from('classes')
+    .select('id, name, year, section, dept_id, departments!dept_id(name, course_type)')
+    .in('id', scope.classIds)
+    .order('name');
+
+  const classIds = (classes ?? []).map((c: any) => c.id);
+  const { data: students } = classIds.length > 0
+    ? await adminClient.from('users').select('id, class_id').eq('role', 'STUDENT').in('class_id', classIds)
+    : { data: [] };
+
+  const countByClass: Record<string, number> = {};
+  (students ?? []).forEach((s: any) => {
+    if (s.class_id) countByClass[s.class_id] = (countByClass[s.class_id] ?? 0) + 1;
+  });
+
+  return (classes ?? []).map((c: any) => ({
+    id: c.id,
+    name: c.name,
+    year: c.year,
+    section: c.section,
+    departmentName: (c.departments as any)?.name ?? null,
+    courseType: (c.departments as any)?.course_type ?? null,
+    studentCount: countByClass[c.id] ?? 0,
+  }));
+}
+
 export async function getAssessments() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const scope = await getCallerScope();
+  if (!scope.userId) return [];
 
-  const { data: mentorProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = mentorProfile?.college_id;
+  const adminClient = createAdminClient();
 
-  let studentIdsQ = supabase.from('users').select('id').eq('role', 'STUDENT');
-  if (collegeId) studentIdsQ = (studentIdsQ as any).eq('college_id', collegeId);
-  const { data: collegeStudents } = await studentIdsQ;
-  const collegeStudentIds = (collegeStudents ?? []).map((s: any) => s.id);
+  let studentsQ = adminClient.from('users').select('id').eq('role', 'STUDENT');
+  if (scope.collegeId) studentsQ = studentsQ.eq('college_id', scope.collegeId);
+  if (scope.role === 'MENTOR') {
+    if (scope.classIds.length === 0) return [];
+    studentsQ = studentsQ.in('class_id', scope.classIds);
+  } else if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
+    studentsQ = studentsQ.eq('department_id', scope.departmentId);
+  }
+  const { data: scopedStudents } = await studentsQ;
+  const studentIds = (scopedStudents ?? []).map((s: any) => s.id);
+  if (studentIds.length === 0) return [];
 
-  let testsQ = supabase
+  const { data: tests } = await adminClient
     .from('tests')
     .select(`
       id, type, status, scheduled_at, created_at, completed_at,
       users!student_id(id, name, email),
       classes!class_id(id, name, departments(name))
     `)
+    .in('student_id', studentIds)
     .order('scheduled_at', { ascending: false })
     .limit(40);
-  if (collegeStudentIds.length) testsQ = (testsQ as any).in('student_id', collegeStudentIds);
-  const { data: tests } = await testsQ;
 
   return tests ?? [];
 }
