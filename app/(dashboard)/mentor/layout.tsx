@@ -45,6 +45,10 @@ export default async function MentorLayout({ children }: { children: React.React
             <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>quiz</span>
             <span>Assessments</span>
           </Link>
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/schedule-test">
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>add_circle</span>
+            <span>Schedule Test</span>
+          </Link>
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/mentor/questions">
             <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>help</span>
             <span>Question Bank</span>

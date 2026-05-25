@@ -1,0 +1,373 @@
+'use server';
+
+import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { revalidatePath } from 'next/cache';
+import { getCallerScope, resolveAllowedClassIds } from './scope';
+
+// Domains the schedule-test flow supports as quota buckets. Mirrors the four
+// domains that have authoring sub-types in MentorQuestionsClient (REASONING
+// and OVERALL exist in the domain enum but lack authoring affordances).
+// Not exported — 'use server' files may only export async functions.
+const QUOTA_DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'] as const;
+
+const STAFF_ROLES = ['ADMIN', 'SUB_ADMIN', 'MENTOR', 'SUPER_ADMIN'];
+
+type Draft = {
+  id: string;
+  cohort_id: string;
+  title: string;
+  instructions: string | null;
+  due_date: string | null;
+  scheduled_at: string | null;
+  class_ids: string[];
+  question_ids: string[];
+  domain_quotas: Record<string, number>;
+  status: 'DRAFT' | 'ACTIVE';
+  created_by: string;
+};
+
+async function assertCallerCanEditDraft(assessmentId: string) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' as const };
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from('cohort_assessments')
+    .select('id, cohort_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by')
+    .eq('id', assessmentId)
+    .single();
+  if (!data) return { error: 'Draft not found' as const };
+  const draft = data as unknown as Draft;
+  if (draft.status !== 'DRAFT') return { error: 'This test has already been scheduled' as const };
+  const isOwner = draft.created_by === scope.userId;
+  const isPrincipal = scope.role === 'ADMIN' || scope.role === 'SUPER_ADMIN';
+  if (!isOwner && !isPrincipal) return { error: 'Not authorized to edit this draft' as const };
+  return { draft, adminClient, scope };
+}
+
+export async function createTestDraft(formData: FormData) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' };
+  if (!STAFF_ROLES.includes(scope.role ?? '')) return { error: 'Not authorized to schedule tests' };
+
+  const cohort_id = formData.get('cohort_id') as string;
+  const title = ((formData.get('title') as string) ?? '').trim();
+  const instructions = ((formData.get('instructions') as string) ?? '').trim() || null;
+  const due_date = (formData.get('due_date') as string) || '';
+  const scheduled_at_raw = (formData.get('scheduled_at') as string) || '';
+  const class_ids_raw = (formData.get('class_ids') as string) || '';
+
+  if (!title) return { error: 'Title is required.' };
+  if (!cohort_id) return { error: 'Cohort is required.' };
+
+  const domain_quotas: Record<string, number> = {};
+  let totalQuota = 0;
+  for (const d of QUOTA_DOMAINS) {
+    const raw = formData.get(`quota_${d}`);
+    const n = Math.max(0, Math.floor(Number(raw ?? 0) || 0));
+    if (n > 0) {
+      domain_quotas[d] = n;
+      totalQuota += n;
+    }
+  }
+  if (totalQuota === 0) return { error: 'Set at least one domain quota.' };
+
+  const class_ids = class_ids_raw.split(',').map((s) => s.trim()).filter(Boolean);
+  const scheduledAtIso = scheduled_at_raw ? new Date(scheduled_at_raw).toISOString() : null;
+  const dueDateIso = due_date ? new Date(due_date).toISOString() : null;
+
+  const adminClient = createAdminClient();
+  const { data: cohort } = await adminClient
+    .from('cohorts')
+    .select('id, college_id, dept_id, class_id')
+    .eq('id', cohort_id)
+    .single();
+  if (!cohort) return { error: 'Cohort not found.' };
+
+  if (scope.role !== 'SUPER_ADMIN' && cohort.college_id !== scope.collegeId) {
+    return { error: 'Cohort outside your scope.' };
+  }
+  if (scope.role === 'SUB_ADMIN' && cohort.dept_id !== scope.departmentId) {
+    return { error: 'Cohort outside your department.' };
+  }
+  if (scope.role === 'MENTOR' && (!cohort.class_id || !scope.classIds.includes(cohort.class_id))) {
+    return { error: 'Cohort outside your assigned classes.' };
+  }
+
+  const allowedClassIds = await resolveAllowedClassIds(scope);
+  if (allowedClassIds !== null && class_ids.length > 0) {
+    const allowedSet = new Set(allowedClassIds);
+    const bad = class_ids.find((id) => !allowedSet.has(id));
+    if (bad) return { error: 'One or more classes are outside your scope.' };
+  }
+
+  const { data: inserted, error } = await adminClient
+    .from('cohort_assessments')
+    .insert({
+      cohort_id,
+      title,
+      instructions,
+      due_date: dueDateIso,
+      scheduled_at: scheduledAtIso,
+      created_by: scope.userId,
+      class_ids,
+      question_ids: [],
+      domain_quotas,
+      status: 'DRAFT',
+    })
+    .select('id')
+    .single();
+  if (error) return { error: error.message };
+  return { success: true as const, assessmentId: inserted.id as string };
+}
+
+export async function getDraft(assessmentId: string) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return null;
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from('cohort_assessments')
+    .select('id, cohort_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by, cohorts!cohort_id(name)')
+    .eq('id', assessmentId)
+    .single();
+  if (!data) return null;
+  const draft = data as any;
+  const isOwner = draft.created_by === scope.userId;
+  const isPrincipal = scope.role === 'ADMIN' || scope.role === 'SUPER_ADMIN';
+  if (!isOwner && !isPrincipal) return null;
+
+  const ids: string[] = (draft.question_ids ?? []) as string[];
+  let questions: any[] = [];
+  if (ids.length > 0) {
+    const { data: qs } = await adminClient
+      .from('questions')
+      .select('id, domain, sub_type, difficulty, text, options, correct_index')
+      .in('id', ids);
+    questions = qs ?? [];
+  }
+  return {
+    id: draft.id as string,
+    cohort_id: draft.cohort_id as string,
+    cohort_name: (draft.cohorts as any)?.name ?? '',
+    title: draft.title as string,
+    instructions: (draft.instructions ?? null) as string | null,
+    due_date: (draft.due_date ?? null) as string | null,
+    scheduled_at: (draft.scheduled_at ?? null) as string | null,
+    class_ids: (draft.class_ids ?? []) as string[],
+    question_ids: ids,
+    domain_quotas: (draft.domain_quotas ?? {}) as Record<string, number>,
+    status: draft.status as 'DRAFT' | 'ACTIVE',
+    created_by: draft.created_by as string,
+    questions,
+  };
+}
+
+export async function attachQuestionToDraft(assessmentId: string, questionId: string) {
+  const gate = await assertCallerCanEditDraft(assessmentId);
+  if ('error' in gate) return gate;
+  const { draft, adminClient } = gate;
+
+  const ids = (draft.question_ids ?? []) as string[];
+  if (ids.includes(questionId)) return { error: 'Already attached' };
+
+  const { data: q } = await adminClient
+    .from('questions')
+    .select('id, domain')
+    .eq('id', questionId)
+    .single();
+  if (!q) return { error: 'Question not found' };
+
+  const quotas = draft.domain_quotas ?? {};
+  const target = quotas[q.domain] ?? 0;
+  if (target === 0) return { error: `No quota for ${q.domain}` };
+
+  let currentInDomain = 0;
+  if (ids.length > 0) {
+    const { data: existing } = await adminClient
+      .from('questions')
+      .select('id, domain')
+      .in('id', ids);
+    currentInDomain = (existing ?? []).filter((x: any) => x.domain === q.domain).length;
+  }
+  if (currentInDomain >= target) return { error: `${q.domain} quota is full` };
+
+  const next = [...ids, questionId];
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .update({ question_ids: next })
+    .eq('id', assessmentId);
+  if (error) return { error: error.message };
+  return { success: true as const };
+}
+
+export async function attachManyToDraft(assessmentId: string, questionIds: string[]) {
+  const gate = await assertCallerCanEditDraft(assessmentId);
+  if ('error' in gate) return gate;
+  const { draft, adminClient } = gate;
+
+  const existing = new Set<string>((draft.question_ids ?? []) as string[]);
+  const candidates = questionIds.filter((id) => !existing.has(id));
+  if (candidates.length === 0) return { success: true as const, attached: 0, skipped: 0 };
+
+  const allIds = Array.from(new Set([...existing, ...candidates]));
+  const { data: qs } = await adminClient
+    .from('questions')
+    .select('id, domain')
+    .in('id', allIds);
+  const byId: Record<string, string> = Object.fromEntries((qs ?? []).map((q: any) => [q.id, q.domain]));
+
+  const quotas = draft.domain_quotas ?? {};
+  const counts: Record<string, number> = {};
+  existing.forEach((id) => {
+    const d = byId[id];
+    if (d) counts[d] = (counts[d] ?? 0) + 1;
+  });
+
+  const accepted: string[] = [];
+  for (const id of candidates) {
+    const d = byId[id];
+    if (!d) continue;
+    const target = quotas[d] ?? 0;
+    if (target === 0) continue;
+    if ((counts[d] ?? 0) >= target) continue;
+    counts[d] = (counts[d] ?? 0) + 1;
+    accepted.push(id);
+  }
+  if (accepted.length === 0) return { error: 'No questions accepted — quotas full or invalid domains' };
+
+  const finalList = [...Array.from(existing), ...accepted];
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .update({ question_ids: finalList })
+    .eq('id', assessmentId);
+  if (error) return { error: error.message };
+  return { success: true as const, attached: accepted.length, skipped: candidates.length - accepted.length };
+}
+
+export async function detachQuestionFromDraft(assessmentId: string, questionId: string) {
+  const gate = await assertCallerCanEditDraft(assessmentId);
+  if ('error' in gate) return gate;
+  const { draft, adminClient } = gate;
+  const next = ((draft.question_ids ?? []) as string[]).filter((id) => id !== questionId);
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .update({ question_ids: next })
+    .eq('id', assessmentId);
+  if (error) return { error: error.message };
+  return { success: true as const };
+}
+
+export async function finalizeTest(assessmentId: string) {
+  const gate = await assertCallerCanEditDraft(assessmentId);
+  if ('error' in gate) return gate;
+  const { draft, adminClient } = gate;
+
+  const ids = (draft.question_ids ?? []) as string[];
+  if (ids.length === 0) return { error: 'No questions attached' };
+
+  const { data: qs } = await adminClient
+    .from('questions')
+    .select('id, domain')
+    .in('id', ids);
+  const counts: Record<string, number> = {};
+  (qs ?? []).forEach((q: any) => { counts[q.domain] = (counts[q.domain] ?? 0) + 1; });
+
+  const quotas = draft.domain_quotas ?? {};
+  for (const [d, target] of Object.entries(quotas)) {
+    if ((counts[d] ?? 0) !== target) {
+      return { error: `${d} quota is ${counts[d] ?? 0}/${target} — finalize requires an exact match` };
+    }
+  }
+
+  const { data: members } = await adminClient
+    .from('cohort_members')
+    .select('student_id')
+    .eq('cohort_id', draft.cohort_id);
+  let studentIds: string[] = (members ?? []).map((m: any) => m.student_id);
+
+  const classIds = (draft.class_ids ?? []) as string[];
+  if (classIds.length > 0 && studentIds.length > 0) {
+    const { data: classScoped } = await adminClient
+      .from('users')
+      .select('id')
+      .in('id', studentIds)
+      .in('class_id', classIds);
+    studentIds = (classScoped ?? []).map((u: any) => u.id);
+  }
+
+  const { error: flipErr } = await adminClient
+    .from('cohort_assessments')
+    .update({ status: 'ACTIVE' })
+    .eq('id', assessmentId);
+  if (flipErr) return { error: flipErr.message };
+
+  let scheduled = 0;
+  if (studentIds.length > 0) {
+    const rows = studentIds.map((id) => ({
+      student_id: id,
+      type: 'CENTER' as const,
+      status: 'SCHEDULED' as const,
+      scheduled_at: draft.scheduled_at ?? new Date().toISOString(),
+      assessment_id: assessmentId,
+    }));
+    const { error: testsError } = await adminClient.from('tests').insert(rows);
+    if (testsError) {
+      await adminClient.from('cohort_assessments').update({ status: 'DRAFT' }).eq('id', assessmentId);
+      return { error: `Failed to schedule tests: ${testsError.message}` };
+    }
+    scheduled = rows.length;
+  }
+
+  revalidatePath('/admin/assessments');
+  revalidatePath(`/admin/cohorts/${draft.cohort_id}`);
+  return { success: true as const, scheduled };
+}
+
+export async function discardDraft(assessmentId: string) {
+  const gate = await assertCallerCanEditDraft(assessmentId);
+  if ('error' in gate) return gate;
+  const { adminClient } = gate;
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .delete()
+    .eq('id', assessmentId)
+    .eq('status', 'DRAFT');
+  if (error) return { error: error.message };
+  return { success: true as const };
+}
+
+// Question-bank search for the "Pick from bank" tab in step 2. Restricted to a
+// single domain (the caller picks which under-quota bucket to fill) so the
+// candidate set stays manageable.
+export async function searchBankQuestions(args: {
+  domain: string;
+  difficultyMin?: number;
+  difficultyMax?: number;
+  subType?: string;
+  search?: string;
+  excludeIds?: string[];
+  limit?: number;
+}) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return [];
+  if (!STAFF_ROLES.includes(scope.role ?? '')) return [];
+
+  const adminClient = createAdminClient();
+  let q: any = adminClient
+    .from('questions')
+    .select('id, domain, sub_type, difficulty, text, options, correct_index')
+    .eq('domain', args.domain)
+    .eq('active', true)
+    .order('created_at', { ascending: false })
+    .limit(args.limit ?? 100);
+
+  if (typeof args.difficultyMin === 'number') q = q.gte('difficulty', args.difficultyMin);
+  if (typeof args.difficultyMax === 'number') q = q.lte('difficulty', args.difficultyMax);
+  if (args.subType) q = q.eq('sub_type', args.subType);
+  if (args.search) q = q.ilike('text', `%${args.search}%`);
+  if (args.excludeIds && args.excludeIds.length > 0) {
+    q = q.not('id', 'in', `(${args.excludeIds.join(',')})`);
+  }
+  const { data } = await q;
+  return data ?? [];
+}

@@ -312,28 +312,76 @@ export async function scheduleCohortAssessment(formData: FormData) {
   const domain = (formData.get('domain') as string) || null;
   const instructions = (formData.get('instructions') as string) || null;
   const due_date = (formData.get('due_date') as string) || null;
+  const scheduled_at_raw = (formData.get('scheduled_at') as string) || '';
   const class_ids_raw = (formData.get('class_ids') as string) || '';
   const question_ids_raw = (formData.get('question_ids') as string) || '';
 
   const class_ids = class_ids_raw.split(',').map(s => s.trim()).filter(Boolean);
   const question_ids = question_ids_raw.split(',').map(s => s.trim()).filter(Boolean);
+  const scheduledAtIso = scheduled_at_raw ? new Date(scheduled_at_raw).toISOString() : null;
+  const dueDateIso = due_date ? new Date(due_date).toISOString() : null;
 
   if (!cohort_id || !title) return { error: 'Cohort and title are required.' };
 
-  const { error } = await supabase.from('cohort_assessments').insert({
-    cohort_id,
-    title,
-    domain,
-    instructions,
-    due_date: due_date ? new Date(due_date).toISOString() : null,
-    created_by: user.id,
-    class_ids,
-    question_ids,
-  });
+  const adminClient = createAdminClient();
 
-  if (error) return { error: error.message };
+  // 1. Insert the assessment row (the announcement / definition).
+  const { data: inserted, error: insertError } = await adminClient
+    .from('cohort_assessments')
+    .insert({
+      cohort_id,
+      title,
+      domain,
+      instructions,
+      due_date: dueDateIso,
+      scheduled_at: scheduledAtIso,
+      created_by: user.id,
+      class_ids,
+      question_ids,
+    })
+    .select('id')
+    .single();
+  if (insertError) return { error: insertError.message };
+  const assessmentId = inserted.id as string;
+
+  // 2. Resolve the target student set: cohort members ∩ optional class_ids.
+  const { data: members } = await adminClient
+    .from('cohort_members')
+    .select('student_id')
+    .eq('cohort_id', cohort_id);
+  let studentIds = (members ?? []).map((m: any) => m.student_id);
+
+  if (class_ids.length > 0 && studentIds.length > 0) {
+    const { data: classScoped } = await adminClient
+      .from('users')
+      .select('id')
+      .in('id', studentIds)
+      .in('class_id', class_ids);
+    studentIds = (classScoped ?? []).map((u: any) => u.id);
+  }
+
+  // 3. Materialize one CENTER test per targeted student.
+  let scheduled = 0;
+  if (studentIds.length > 0) {
+    const rows = studentIds.map((id: string) => ({
+      student_id: id,
+      type: 'CENTER' as const,
+      status: 'SCHEDULED' as const,
+      scheduled_at: scheduledAtIso ?? new Date().toISOString(),
+      assessment_id: assessmentId,
+    }));
+    const { error: testsError } = await adminClient.from('tests').insert(rows);
+    if (testsError) {
+      // Roll back the assessment so we never leave a half-created schedule.
+      await adminClient.from('cohort_assessments').delete().eq('id', assessmentId);
+      return { error: `Failed to schedule tests: ${testsError.message}` };
+    }
+    scheduled = rows.length;
+  }
+
   revalidatePath(`/admin/cohorts/${cohort_id}`);
-  return { success: true };
+  revalidatePath('/admin/assessments');
+  return { success: true as const, assessmentId, scheduled };
 }
 
 export async function deleteCohortAssessment(assessmentId: string, cohortId: string) {
@@ -375,36 +423,43 @@ export async function getStudentAssignedAssessments(studentId?: string) {
 
   const { data, error } = await adminClient
     .from('cohort_assessments')
-    .select('id, title, domain, instructions, due_date, cohort_id, cohorts!cohort_id(name)')
+    .select('id, title, domain, instructions, due_date, scheduled_at, cohort_id, cohorts!cohort_id(name)')
     .in('cohort_id', cohortIds)
+    .eq('status', 'ACTIVE')
     .order('due_date', { ascending: true, nullsFirst: false });
 
   if (error) return [];
 
-  // Check which ones the student has a completed test for (rough match by domain + date)
-  const { data: completedTests } = await adminClient
-    .from('tests')
-    .select('id, type, completed_at, scores(domain)')
-    .eq('student_id', targetId)
-    .eq('status', 'COMPLETED');
+  // Join this student's own test row per assessment, so the card can show
+  // Start / Resume / Review and link to the right URL.
+  const assessmentIds = (data ?? []).map((a: any) => a.id);
+  const { data: myTests } = assessmentIds.length > 0
+    ? await adminClient
+        .from('tests')
+        .select('id, assessment_id, status')
+        .eq('student_id', targetId)
+        .in('assessment_id', assessmentIds)
+    : { data: [] };
 
-  const completedDomains = new Set<string>();
-  (completedTests ?? []).forEach((t: any) => {
-    (t.scores ?? []).forEach((s: any) => {
-      if (s.domain && s.domain !== 'OVERALL') completedDomains.add(s.domain);
-    });
+  const testByAssessment: Record<string, { id: string; status: string }> = {};
+  (myTests ?? []).forEach((t: any) => {
+    if (t.assessment_id) testByAssessment[t.assessment_id] = { id: t.id, status: t.status };
   });
 
   return (data ?? []).map((a: any) => {
     const now = new Date();
     const due = a.due_date ? new Date(a.due_date) : null;
+    const opensAt = a.scheduled_at ? new Date(a.scheduled_at) : null;
     const isOverdue = due ? due < now : false;
-    const isDomainDone = a.domain ? completedDomains.has(a.domain) : false;
+    const isOpenable = !opensAt || opensAt <= now;
+    const test = testByAssessment[a.id] ?? null;
     return {
       ...a,
       cohortName: (a.cohorts as any)?.name ?? '',
       isOverdue,
-      isDomainDone,
+      isOpenable,
+      testId: test?.id ?? null,
+      testStatus: (test?.status ?? null) as 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | null,
     };
   });
 }

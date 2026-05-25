@@ -18,9 +18,9 @@ export async function getEnrolledStudents() {
     .from('users')
     .select(`
       id, name, email, role, created_at, temp_password,
-      registration_id, section,
+      registration_id, section, semester,
       departments!department_id(name),
-      classes!class_id(name)
+      classes!class_id(name, year)
     `)
     .eq('role', 'STUDENT')
     .order('created_at', { ascending: false });
@@ -48,6 +48,7 @@ export async function getEnrolledStudents() {
       platformId: `STU-${year}-${String(i + 1).padStart(3, '0')}`,
       departmentName: (u.departments as any)?.name ?? null,
       className: (u.classes as any)?.name ?? null,
+      classYear: (u.classes as any)?.year ?? null,
       status: 'ACTIVE',
       dateEnrolled: new Date(u.created_at).toLocaleDateString('en-US', {
         month: 'short', day: 'numeric', year: 'numeric',
@@ -116,8 +117,13 @@ export async function enrollStudent(formData: FormData) {
   const classId = (formData.get('class_id') as string) || null;
   const section = (formData.get('section') as string) || null;
   const registrationId = (formData.get('registration_id') as string) || null;
+  const semesterRaw = (formData.get('semester') as string) || '';
+  const semester = semesterRaw ? Math.max(1, Math.min(12, parseInt(semesterRaw, 10))) : null;
 
   if (!name || !email) return { error: 'Name and email are required.' };
+  if (semesterRaw && Number.isNaN(parseInt(semesterRaw, 10))) {
+    return { error: 'Semester must be a number between 1 and 12.' };
+  }
 
   const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
   const adminClient = createAdminClient();
@@ -144,6 +150,7 @@ export async function enrollStudent(formData: FormData) {
     class_id: classId,
     section,
     registration_id: registrationId,
+    semester,
   });
 
   if (userError) return { error: userError.message };

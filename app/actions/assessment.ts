@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { stepLevel, questionTimer, computeWeightedScore, testTotalPoints } from '@/lib/adaptive';
+import { stepLevel, questionTimer, testTotalPoints } from '@/lib/adaptive';
 
 const TOTAL_QUESTIONS_PER_TEST = 25;
 
@@ -38,8 +38,22 @@ export async function getOrCreateActiveTest() {
   return newTest;
 }
 
+// Lightweight test metadata read for routing/auth decisions outside the runner
+// (e.g. the /assessment?test=<id> launcher needs to know whether to call
+// startScheduledTest or startFinalExam).
+export async function getTestMeta(testId: string) {
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from('tests')
+    .select('id, type, status, student_id, assessment_id')
+    .eq('id', testId)
+    .single();
+  return data ?? null;
+}
+
 export async function fetchNextQuestion(testId: string, domainFilter?: string | null) {
   const supabase = await createClient();
+  const adminClient = createAdminClient();
 
   const { data: attempts, error: attemptsError } = await supabase
     .from('test_attempts')
@@ -49,7 +63,33 @@ export async function fetchNextQuestion(testId: string, domainFilter?: string | 
 
   if (attemptsError) throw attemptsError;
 
-  if ((attempts?.length ?? 0) >= TOTAL_QUESTIONS_PER_TEST) {
+  // Resolve the curated pool (if any) before the exit check so we can use the
+  // pool size as the effective total instead of the global TOTAL_QUESTIONS_PER_TEST.
+  let curatedQuestionIds: string[] | null = null;
+  {
+    const { data: testRow } = await adminClient
+      .from('tests')
+      .select('assessment_id')
+      .eq('id', testId)
+      .single();
+    if (testRow?.assessment_id) {
+      const { data: ass } = await adminClient
+        .from('cohort_assessments')
+        .select('domain, question_ids')
+        .eq('id', testRow.assessment_id)
+        .single();
+      if (ass) {
+        if (Array.isArray(ass.question_ids) && ass.question_ids.length > 0) {
+          curatedQuestionIds = ass.question_ids as string[];
+        }
+        if (!domainFilter && ass.domain) domainFilter = ass.domain as string;
+      }
+    }
+  }
+
+  const effectiveTotal = curatedQuestionIds ? curatedQuestionIds.length : TOTAL_QUESTIONS_PER_TEST;
+
+  if ((attempts?.length ?? 0) >= effectiveTotal) {
     return { finished: true };
   }
 
@@ -113,14 +153,17 @@ export async function fetchNextQuestion(testId: string, domainFilter?: string | 
   let pool: any[] = [];
   if (targetDomain) {
     let dq = supabase.from('questions').select('*').eq('domain', targetDomain).limit(300);
+    if (curatedQuestionIds) dq = (dq as any).in('id', curatedQuestionIds);
     if (answeredIds.length > 0) dq = (dq as any).not('id', 'in', `(${answeredIds.join(',')})`);
     const { data: domainQuestions } = await dq;
     pool = nearestDifficulty(domainQuestions ?? [], targetLevel);
   }
 
-  // Fallback: domain exhausted (or no domain) → any unanswered question, nearest difficulty
+  // Fallback: domain exhausted (or no domain) → any unanswered question, nearest difficulty.
+  // When the assessment curated a question set, the fallback also stays inside it.
   if (pool.length === 0) {
     let aq = supabase.from('questions').select('*').limit(300);
+    if (curatedQuestionIds) aq = (aq as any).in('id', curatedQuestionIds);
     if (answeredIds.length > 0) aq = (aq as any).not('id', 'in', `(${answeredIds.join(',')})`);
     const { data: anyQuestions } = await aq;
     pool = nearestDifficulty(anyQuestions ?? [], targetLevel);
@@ -133,7 +176,7 @@ export async function fetchNextQuestion(testId: string, domainFilter?: string | 
   return {
     question: picked,
     progress: attempts?.length ?? 0,
-    total: TOTAL_QUESTIONS_PER_TEST,
+    total: effectiveTotal,
     timerSeconds: questionTimer(picked.difficulty),
   };
 }
@@ -268,30 +311,50 @@ export async function finishTest(testId: string) {
     };
   });
 
-  const scorePercent = computeWeightedScore(attemptRows);
+  const totalCount = attemptRows.length;
+  const correctCount = attemptRows.filter(r => r.isCorrect).length;
+  const scorePercent = totalCount > 0 ? Math.round((correctCount / totalCount) * 100) : 0;
 
   if (user) {
-    // Per-domain weighted scores (each domain scored independently with the same formula)
+    // Per-domain simple accuracy scores (correct / total for that domain)
     const domainGroups: Record<string, typeof attemptRows> = {};
     for (const row of attemptRows) {
       if (!domainGroups[row.domain]) domainGroups[row.domain] = [];
       domainGroups[row.domain].push(row);
     }
 
-    const domainRows = Object.entries(domainGroups).map(([domain, rows]) => ({
-      student_id: user.id,
-      test_id: testId,
-      domain,
-      score: computeWeightedScore(rows),
-      percentile: 50.0,
-    }));
+    // Compute real percentile: proportion of existing scores that are strictly
+    // below this student's score, queried before we insert so the current test
+    // doesn't skew its own ranking. Falls back to 50 when the table is empty.
+    async function computePercentile(domain: string, score: number): Promise<number> {
+      const [{ count: below }, { count: total }] = await Promise.all([
+        adminClient.from('scores').select('*', { count: 'exact', head: true }).eq('domain', domain).lt('score', score),
+        adminClient.from('scores').select('*', { count: 'exact', head: true }).eq('domain', domain),
+      ]);
+      if (!total || total === 0) return 50;
+      return Math.min(99, Math.round(((below ?? 0) / total) * 100));
+    }
+
+    const domainRows = await Promise.all(
+      Object.entries(domainGroups).map(async ([domain, rows]) => {
+        const dc = rows.filter(r => r.isCorrect).length;
+        const domainScore = rows.length > 0 ? Math.round((dc / rows.length) * 100) : 0;
+        return {
+          student_id: user.id,
+          test_id: testId,
+          domain,
+          score: domainScore,
+          percentile: await computePercentile(domain, domainScore),
+        };
+      }),
+    );
 
     const overallRow = {
       student_id: user.id,
       test_id: testId,
       domain: 'OVERALL',
       score: scorePercent,
-      percentile: 50.0,
+      percentile: await computePercentile('OVERALL', scorePercent),
     };
 
     // Use adminClient — RLS blocks student inserts on the scores table

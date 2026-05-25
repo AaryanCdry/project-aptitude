@@ -343,7 +343,7 @@ export async function getScheduledAssessments() {
 
   const { data: tests } = await supabase
     .from('tests')
-    .select('id, type, status, scheduled_at, created_at, completed_at, student_id, users!student_id(name, email), classes!class_id(name)')
+    .select('id, type, status, scheduled_at, created_at, completed_at, student_id, assessment_id, users!student_id(name, email), classes!class_id(name)')
     .order('scheduled_at', { ascending: true, nullsFirst: false });
 
   const allTests = tests ?? [];
@@ -380,12 +380,61 @@ export async function getScheduledAssessments() {
     completedAt: t.completed_at,
   }));
 
+  // Per-assessment completion roll-up. Group CENTER tests by assessment_id and
+  // pair with the cohort_assessments title/cohort/domain for the side panel.
+  const adminClient = createAdminClient();
+  const assessmentBuckets: Record<string, { scheduled: number; inProgress: number; completed: number }> = {};
+  for (const t of allTests) {
+    const aId = (t as any).assessment_id as string | null;
+    if (!aId) continue;
+    if (!assessmentBuckets[aId]) assessmentBuckets[aId] = { scheduled: 0, inProgress: 0, completed: 0 };
+    const status = (t as any).status as string;
+    if (status === 'COMPLETED') assessmentBuckets[aId].completed += 1;
+    else if (status === 'IN_PROGRESS') assessmentBuckets[aId].inProgress += 1;
+    else assessmentBuckets[aId].scheduled += 1;
+  }
+  const assessmentIds = Object.keys(assessmentBuckets);
+  let assessmentStats: Array<{
+    id: string;
+    title: string;
+    cohortName: string | null;
+    domain: string | null;
+    scheduledAt: string | null;
+    dueDate: string | null;
+    total: number;
+    completed: number;
+    inProgress: number;
+  }> = [];
+  if (assessmentIds.length > 0) {
+    const { data: rows } = await adminClient
+      .from('cohort_assessments')
+      .select('id, title, domain, scheduled_at, due_date, cohort_id, cohorts!cohort_id(name)')
+      .in('id', assessmentIds)
+      .order('created_at', { ascending: false });
+    assessmentStats = (rows ?? []).map((a: any) => {
+      const b = assessmentBuckets[a.id]!;
+      const total = b.scheduled + b.inProgress + b.completed;
+      return {
+        id: a.id,
+        title: a.title,
+        cohortName: (a.cohorts as any)?.name ?? null,
+        domain: a.domain ?? null,
+        scheduledAt: a.scheduled_at ?? null,
+        dueDate: a.due_date ?? null,
+        total,
+        completed: b.completed,
+        inProgress: b.inProgress,
+      };
+    });
+  }
+
   return {
     totalThisWeek: thisWeek.length,
     totalCandidates: uniqueCandidates,
     completionRate,
     upcoming,
     recentCompleted,
+    assessmentStats,
     totalScheduled: allTests.filter((t: any) => t.status !== 'COMPLETED').length,
     totalCompleted: completed.length,
     totalTests: allTests.length,

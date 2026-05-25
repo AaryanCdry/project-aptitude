@@ -74,12 +74,6 @@ export async function updateSession(request: NextRequest) {
       return NextResponse.redirect(url);
     }
 
-    if (pathname.startsWith('/subadmin') && !['SUB_ADMIN', 'ADMIN'].includes(role)) {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHomeMap[role] ?? '/student';
-      return NextResponse.redirect(url);
-    }
-
     if (pathname.startsWith('/mentor') && !['MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
       const url = request.nextUrl.clone();
       url.pathname = roleHomeMap[role] ?? '/student';

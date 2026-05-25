@@ -124,9 +124,9 @@ export default async function AdminAssessmentsPage() {
     completionRate,
     upcoming,
     recentCompleted,
+    assessmentStats,
     totalScheduled,
     totalCompleted,
-    totalTests,
   } = await getScheduledAssessments();
 
   return (
@@ -183,6 +183,58 @@ export default async function AdminAssessmentsPage() {
 
           {/* Calendar */}
           <MiniCalendar />
+
+          {/* Scheduled assessments — per-assessment progress */}
+          {assessmentStats.length > 0 && (
+            <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
+              <div className="px-5 py-4 border-b border-outline-variant bg-surface-bright flex items-center justify-between">
+                <h2 className="font-headline-md text-on-surface">Scheduled Assessments</h2>
+                <Link href="/schedule-test" className="font-metric-label text-sm text-primary hover:underline flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">add</span>
+                  Schedule new
+                </Link>
+              </div>
+              <div className="divide-y divide-outline-variant">
+                {assessmentStats.slice(0, 8).map(a => {
+                  const pct = a.total > 0 ? Math.round((a.completed / a.total) * 100) : 0;
+                  const isDone = a.completed === a.total && a.total > 0;
+                  return (
+                    <div key={a.id} className="p-4 hover:bg-surface-container transition-colors">
+                      <div className="flex items-start justify-between gap-3 mb-2">
+                        <div className="min-w-0">
+                          <p className="font-body-md font-semibold text-on-surface truncate">{a.title}</p>
+                          <p className="font-caption text-on-surface-variant flex items-center gap-2 flex-wrap mt-0.5">
+                            {a.cohortName && <span>{a.cohortName}</span>}
+                            {a.domain && <span className="px-1.5 py-0.5 rounded bg-surface-container text-[10px] font-metric-label">{a.domain}</span>}
+                            {a.dueDate && (
+                              <span className="text-on-surface-variant">
+                                due {formatScheduledTime(a.dueDate)}
+                              </span>
+                            )}
+                          </p>
+                        </div>
+                        <div className="text-right shrink-0">
+                          <p className="font-metric-label text-on-surface text-sm">{a.completed} / {a.total}</p>
+                          <p className="font-caption text-on-surface-variant text-[10px]">completed</p>
+                        </div>
+                      </div>
+                      <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">
+                        <div
+                          className={`h-full rounded-full ${isDone ? 'bg-secondary' : 'bg-primary'}`}
+                          style={{ width: `${pct}%` }}
+                        />
+                      </div>
+                      {a.inProgress > 0 && (
+                        <p className="font-caption text-on-surface-variant text-[10px] mt-1">
+                          {a.inProgress} in progress
+                        </p>
+                      )}
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          )}
 
           {/* Recent completions */}
           {recentCompleted.length > 0 && (

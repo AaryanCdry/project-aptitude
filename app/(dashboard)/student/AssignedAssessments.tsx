@@ -7,9 +7,12 @@ interface Assignment {
   domain: string | null;
   instructions: string | null;
   due_date: string | null;
+  scheduled_at: string | null;
   cohortName: string;
   isOverdue: boolean;
-  isDomainDone: boolean;
+  isOpenable: boolean;
+  testId: string | null;
+  testStatus: 'SCHEDULED' | 'IN_PROGRESS' | 'COMPLETED' | null;
 }
 
 const DOMAIN_ICONS: Record<string, string> = {
@@ -17,6 +20,7 @@ const DOMAIN_ICONS: Record<string, string> = {
   LOGICAL: 'psychology',
   VERBAL: 'format_quote',
   REASONING: 'visibility',
+  SPATIAL: 'view_in_ar',
 };
 
 function formatDue(dateStr: string | null): string {
@@ -33,11 +37,23 @@ function formatDue(dateStr: string | null): string {
   return `Due ${d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
 }
 
+function formatOpensIn(dateStr: string): string {
+  const d = new Date(dateStr);
+  const diffMs = d.getTime() - Date.now();
+  if (diffMs <= 0) return 'Available now';
+  const diffMin = Math.round(diffMs / 60000);
+  if (diffMin < 60) return `Opens in ${diffMin}m`;
+  const diffHr = Math.round(diffMin / 60);
+  if (diffHr < 24) return `Opens in ${diffHr}h`;
+  const diffDays = Math.round(diffHr / 24);
+  return `Opens in ${diffDays}d`;
+}
+
 export default function AssignedAssessments({ assignments }: { assignments: Assignment[] }) {
   if (assignments.length === 0) return null;
 
-  const pending = assignments.filter((a) => !a.isDomainDone);
-  const done = assignments.filter((a) => a.isDomainDone);
+  const completed = assignments.filter((a) => a.testStatus === 'COMPLETED');
+  const pending = assignments.filter((a) => a.testStatus !== 'COMPLETED');
 
   return (
     <section>
@@ -63,11 +79,14 @@ export default function AssignedAssessments({ assignments }: { assignments: Assi
             : 'Mixed';
           const dueLabel = formatDue(a.due_date);
           const isOverdue = a.isOverdue;
+          const isInProgress = a.testStatus === 'IN_PROGRESS';
+          const startable = !!a.testId && a.isOpenable && !isOverdue;
+          const startHref = a.testId ? `/assessment?test=${a.testId}` : '/assessment';
 
           return (
             <div
               key={a.id}
-              className={`flex items-center gap-4 px-5 py-4 ${i < pending.length - 1 || done.length > 0 ? 'border-b border-outline-variant' : ''}`}
+              className={`flex items-center gap-4 px-5 py-4 ${i < pending.length - 1 || completed.length > 0 ? 'border-b border-outline-variant' : ''}`}
             >
               <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 ${isOverdue ? 'bg-error-container text-error' : 'bg-primary-fixed text-on-primary-fixed'}`}>
                 <span className="material-symbols-outlined text-[18px]">{icon}</span>
@@ -79,6 +98,16 @@ export default function AssignedAssessments({ assignments }: { assignments: Assi
                   <span className={`font-caption text-xs font-medium ${isOverdue ? 'text-error' : 'text-secondary'}`}>
                     {dueLabel}
                   </span>
+                  {!a.isOpenable && a.scheduled_at && (
+                    <span className="font-caption text-xs font-medium text-on-surface-variant">
+                      {formatOpensIn(a.scheduled_at)}
+                    </span>
+                  )}
+                  {isInProgress && (
+                    <span className="font-caption text-xs font-medium text-primary">
+                      In progress
+                    </span>
+                  )}
                 </div>
                 {a.instructions && (
                   <p className="font-caption text-on-surface-variant text-[11px] mt-0.5 line-clamp-1 italic">
@@ -86,18 +115,30 @@ export default function AssignedAssessments({ assignments }: { assignments: Assi
                   </p>
                 )}
               </div>
-              <Link
-                href="/assessment"
-                className="shrink-0 px-4 py-2 bg-primary text-on-primary font-metric-label text-sm rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1"
-              >
-                <span className="material-symbols-outlined text-sm">play_arrow</span>
-                Start
-              </Link>
+              {isOverdue ? (
+                <span className="shrink-0 px-4 py-2 bg-error-container text-on-error-container font-metric-label text-sm rounded-lg flex items-center gap-1">
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                  Closed
+                </span>
+              ) : startable ? (
+                <Link
+                  href={startHref}
+                  className="shrink-0 px-4 py-2 bg-primary text-on-primary font-metric-label text-sm rounded-lg hover:bg-primary/90 transition-colors flex items-center gap-1"
+                >
+                  <span className="material-symbols-outlined text-sm">play_arrow</span>
+                  {isInProgress ? 'Resume' : 'Start'}
+                </Link>
+              ) : (
+                <span className="shrink-0 px-4 py-2 bg-surface-container text-on-surface-variant font-metric-label text-sm rounded-lg flex items-center gap-1 cursor-not-allowed">
+                  <span className="material-symbols-outlined text-sm">schedule</span>
+                  Not yet open
+                </span>
+              )}
             </div>
           );
         })}
 
-        {done.map((a, i) => {
+        {completed.map((a, i) => {
           const icon = a.domain ? (DOMAIN_ICONS[a.domain] ?? 'quiz') : 'quiz';
           const domainLabel = a.domain
             ? a.domain.charAt(0) + a.domain.slice(1).toLowerCase()
@@ -105,7 +146,7 @@ export default function AssignedAssessments({ assignments }: { assignments: Assi
           return (
             <div
               key={a.id}
-              className={`flex items-center gap-4 px-5 py-4 opacity-60 ${i < done.length - 1 ? 'border-b border-outline-variant' : ''}`}
+              className={`flex items-center gap-4 px-5 py-4 opacity-80 ${i < completed.length - 1 ? 'border-b border-outline-variant' : ''}`}
             >
               <div className="w-10 h-10 rounded-full flex items-center justify-center shrink-0 bg-secondary-fixed text-on-secondary-fixed">
                 <span className="material-symbols-outlined text-[18px]">{icon}</span>
@@ -114,10 +155,20 @@ export default function AssignedAssessments({ assignments }: { assignments: Assi
                 <p className="font-metric-label text-on-surface truncate">{a.title}</p>
                 <span className="font-caption text-on-surface-variant text-xs">{domainLabel}</span>
               </div>
-              <span className="shrink-0 flex items-center gap-1 text-secondary font-metric-label text-sm">
-                <span className="material-symbols-outlined text-sm">check_circle</span>
-                Done
-              </span>
+              {a.testId ? (
+                <Link
+                  href={`/student/results/${a.testId}`}
+                  className="shrink-0 flex items-center gap-1 px-4 py-2 border border-outline text-on-surface font-metric-label text-sm rounded-lg hover:bg-surface-container transition-colors"
+                >
+                  <span className="material-symbols-outlined text-sm">analytics</span>
+                  Review
+                </Link>
+              ) : (
+                <span className="shrink-0 flex items-center gap-1 text-secondary font-metric-label text-sm">
+                  <span className="material-symbols-outlined text-sm">check_circle</span>
+                  Done
+                </span>
+              )}
             </div>
           );
         })}

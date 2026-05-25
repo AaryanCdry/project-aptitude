@@ -1,5 +1,6 @@
 import React from 'react';
 import { getTestResultDetails } from '@/app/actions/assessment';
+import { testTotalPoints } from '@/lib/adaptive';
 import QuestionReview from './QuestionReview';
 
 export default async function TestResultsPage({ params }: { params: { id: string } }) {
@@ -9,6 +10,18 @@ export default async function TestResultsPage({ params }: { params: { id: string
   const totalQuestions = attempts?.length || 0;
   const correctCount = attempts?.filter(a => a.is_correct).length || 0;
   const incorrectCount = totalQuestions - correctCount;
+  const simplePercent = totalQuestions > 0 ? Math.round((correctCount / totalQuestions) * 100) : 0;
+
+  const earnedPoints = testTotalPoints(
+    (attempts ?? []).map(a => {
+      const q: any = Array.isArray(a.questions) ? a.questions[0] : a.questions;
+      return {
+        difficulty: q?.difficulty ?? 3,
+        isCorrect: !!a.is_correct,
+        timeTakenMs: a.time_taken_ms ?? 0,
+      };
+    }),
+  );
   
   // Calculate avg speed
   const totalTimeMs = attempts?.reduce((acc, curr) => acc + (curr.time_taken_ms || 0), 0) || 0;
@@ -59,7 +72,7 @@ export default async function TestResultsPage({ params }: { params: { id: string
               </div>
               <h1 className="font-display-sm text-on-surface">Assessment Results: {score?.domain || 'Overall'}</h1>
               <p className="text-on-surface-variant font-body-lg">
-                You scored {score?.score || 0}% and are in the {score?.percentile || 50}th percentile.
+                You answered {correctCount}/{totalQuestions} correctly ({simplePercent}%) and are in the {score?.percentile || 50}th percentile.
               </p>
             </div>
             <div className="flex gap-3">
@@ -74,11 +87,12 @@ export default async function TestResultsPage({ params }: { params: { id: string
             <div className="bg-surface rounded-xl p-6 border border-outline-variant flex flex-col gap-2 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
               <p className="font-metric-label text-on-surface-variant uppercase">Overall Score</p>
               <div className="flex items-baseline gap-2">
-                <span className="font-display-lg text-primary">{score?.score || 0}%</span>
+                <span className="font-display-lg text-primary">{earnedPoints} pts</span>
                 <span className="text-secondary font-metric-label bg-secondary-fixed px-2 py-1 rounded">
-                  {(score?.score || 0) >= 70 ? 'Pass' : 'Needs Work'}
+                  {simplePercent >= 70 ? 'Pass' : 'Needs Work'}
                 </span>
               </div>
+              <p className="font-caption text-on-surface-variant">{correctCount}/{totalQuestions} correct · {simplePercent}%</p>
             </div>
             <div className="bg-surface rounded-xl p-6 border border-outline-variant flex flex-col gap-2 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
               <p className="font-metric-label text-on-surface-variant uppercase">Percentile Rank</p>

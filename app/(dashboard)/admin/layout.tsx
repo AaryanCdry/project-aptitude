@@ -78,12 +78,6 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>badge</span>
             <span>Staff</span>
           </Link>
-          {!isHOD && (
-            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/mentors">
-              <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>school</span>
-              <span>Mentors</span>
-            </Link>
-          )}
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/reports">
             <span className="material-symbols-outlined">assessment</span>
             <span>Reports</span>

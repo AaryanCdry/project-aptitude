@@ -225,16 +225,29 @@ export default function ManualEnrollmentForm({
               </div>
             </div>
 
-            {/* Section */}
-            <div className="flex flex-col gap-2">
-              <label className="font-metric-label text-on-surface" htmlFor="section">
-                Section
-                <span className="font-body-md text-on-surface-variant ml-1">(optional)</span>
-              </label>
-              <div className="relative">
-                <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">group</span>
-                <input id="section" name="section" type="text" placeholder="e.g. A, B, Morning"
-                  className="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
+            {/* Section + Semester */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="flex flex-col gap-2">
+                <label className="font-metric-label text-on-surface" htmlFor="section">
+                  Section
+                  <span className="font-body-md text-on-surface-variant ml-1">(optional)</span>
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">group</span>
+                  <input id="section" name="section" type="text" placeholder="e.g. A, B, Morning"
+                    className="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
+                </div>
+              </div>
+              <div className="flex flex-col gap-2">
+                <label className="font-metric-label text-on-surface" htmlFor="semester">
+                  Current Semester
+                  <span className="font-body-md text-on-surface-variant ml-1">(optional)</span>
+                </label>
+                <div className="relative">
+                  <span className="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-outline">school</span>
+                  <input id="semester" name="semester" type="number" min={1} max={12} placeholder="e.g. 3"
+                    className="w-full pl-12 pr-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
+                </div>
               </div>
             </div>
 

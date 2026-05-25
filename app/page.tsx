@@ -16,7 +16,9 @@ export default async function Home() {
   } else if (role === 'ADMIN') {
     redirect('/admin');
   } else if (role === 'SUB_ADMIN') {
-    redirect('/subadmin');
+    // HOD shares the Principal dashboard at /admin, scoped to their department
+    // (matches roleHomeMap in lib/supabase/middleware.ts).
+    redirect('/admin');
   } else if (role === 'MENTOR') {
     redirect('/mentor');
   } else {
