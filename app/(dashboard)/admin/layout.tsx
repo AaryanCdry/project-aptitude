@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex h-screen bg-background">
-      <nav className="hidden md:flex flex-col py-gutter px-4 space-y-2 docked h-screen left-0 w-64 border-r border-outline-variant bg-surface-container-low text-primary flex-shrink-0 sticky top-0">
+      <nav className="hidden md:flex flex-col py-gutter px-4 space-y-2 docked h-screen left-0 w-64 border-r border-outline-variant bg-surface-container-low text-primary shrink-0 sticky top-0 overflow-y-auto">
         <div className="mb-6 px-4 pt-6">
           <span className="text-headline-md font-headline-md text-primary font-bold">AptitudePro</span>
         </div>
@@ -36,54 +36,46 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           </div>
         </div>
         <div className="flex-1 space-y-2">
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>dashboard</span>
             <span>Overview</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/questions">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/questions">
             <span className="material-symbols-outlined">quiz</span>
             <span>Questions</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/cohorts">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group</span>
-            <span>Cohorts</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/assessments">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/assessments">
             <span className="material-symbols-outlined">calendar_month</span>
             <span>Scheduling</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/finals">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/finals">
             <span className="material-symbols-outlined">workspace_premium</span>
             <span>Final Exams</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/enrollment">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/enrollment">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group_add</span>
             <span>Enrollment</span>
           </Link>
           {!isHOD && (
-            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/departments">
+            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/departments">
               <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>account_tree</span>
               <span>Departments</span>
             </Link>
           )}
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/classes">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/classes">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>meeting_room</span>
             <span>Classes</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/mapping">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>hub</span>
-            <span>Mapping</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/staff">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/staff">
             <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>badge</span>
             <span>Staff</span>
           </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/reports">
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/reports">
             <span className="material-symbols-outlined">assessment</span>
             <span>Reports</span>
           </Link>
           {!isHOD && (
-            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high hover:bg-surface-container-highest transition-all rounded-lg" href="/admin/settings">
+            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/settings">
               <span className="material-symbols-outlined">settings</span>
               <span>Settings</span>
             </Link>
@@ -97,8 +89,8 @@ export default async function AdminLayout({ children }: { children: React.ReactN
           <LogoutButton />
         </div>
       </nav>
-      <div className="flex-1 flex flex-col min-w-0 overflow-hidden">
-        <main className="flex-1 overflow-y-auto p-8">
+      <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
+        <main className="flex-1 overflow-y-auto min-h-0 p-8">
           {children}
         </main>
       </div>

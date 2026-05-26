@@ -4,12 +4,10 @@ import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { createTestDraft } from '@/app/actions/scheduling';
 
-interface Cohort { id: string; name: string; class_id: string | null; dept_id: string | null }
 interface ClassRow { id: string; name: string; year: number | null; section: string | null; dept_id: string; departments?: { name?: string } }
 
 interface Props {
   role: string | null;
-  cohorts: Cohort[];
   classes: ClassRow[];
 }
 
@@ -30,7 +28,7 @@ const DOMAIN_ICON: Record<QuotaDomain, string> = {
   SPATIAL: 'view_in_ar',
 };
 
-export default function ScheduleFormClient({ role, cohorts, classes }: Props) {
+export default function ScheduleFormClient({ role, classes }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [classIds, setClassIds] = useState<Set<string>>(new Set());
@@ -104,24 +102,6 @@ export default function ScheduleFormClient({ role, cohorts, classes }: Props) {
         </div>
 
         <div>
-          <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">Cohort</label>
-          <select
-            name="cohort_id"
-            required
-            defaultValue=""
-            className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest"
-          >
-            <option value="" disabled>Select cohort</option>
-            {cohorts.map(c => (
-              <option key={c.id} value={c.id}>{c.name}</option>
-            ))}
-          </select>
-          {cohorts.length === 0 && (
-            <p className="font-caption text-on-surface-variant mt-1">No cohorts in your scope yet.</p>
-          )}
-        </div>
-
-        <div>
           <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-2">
             Questions per domain
           </label>
@@ -183,7 +163,7 @@ export default function ScheduleFormClient({ role, cohorts, classes }: Props) {
 
         <div>
           <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">
-            Classes (optional — leave empty to apply to all cohort members)
+            Target classes <span className="text-error">*</span>
           </label>
           <div className="grid grid-cols-2 md:grid-cols-3 gap-1 max-h-48 overflow-y-auto p-3 rounded-lg border border-outline-variant bg-surface-container-lowest">
             {classes.length === 0 ? (

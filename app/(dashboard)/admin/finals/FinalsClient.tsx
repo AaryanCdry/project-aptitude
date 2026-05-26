@@ -6,7 +6,7 @@ import { scheduleFinalForCohort } from '@/app/actions/finals';
 
 interface Data {
   finals: Array<{ id: string; scheduled_at: string | null; status: string; completed_at: string | null; studentName: string }>;
-  cohorts: Array<{ id: string; name: string }>;
+  classes: Array<{ id: string; name: string }>;
 }
 
 const STATUS_CHIP: Record<string, string> = {
@@ -56,17 +56,17 @@ export default function FinalsClient({ initialData }: { initialData: Data }) {
       )}
 
       <form onSubmit={handleSubmit} className="max-w-2xl bg-surface-container rounded-xl border border-outline-variant p-6 mb-8 space-y-4">
-        <h2 className="font-headline-md text-lg text-on-surface">Schedule for a cohort</h2>
+        <h2 className="font-headline-md text-lg text-on-surface">Schedule for a class</h2>
 
         <div>
-          <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">Cohort</label>
+          <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">Class</label>
           <select
-            name="cohort_id"
+            name="class_id"
             required
             className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest"
           >
-            <option value="">Select cohort</option>
-            {initialData.cohorts.map(c => (
+            <option value="">Select class</option>
+            {initialData.classes.map(c => (
               <option key={c.id} value={c.id}>{c.name}</option>
             ))}
           </select>

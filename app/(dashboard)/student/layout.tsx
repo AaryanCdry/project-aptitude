@@ -1,25 +1,46 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import LogoutButton from '@/components/LogoutButton';
+
+function calcStreak(completedAts: string[]): number {
+  if (completedAts.length === 0) return 0;
+  const dateSet = new Set(completedAts.map(d => d.slice(0, 10))); // YYYY-MM-DD
+  const toKey = (d: Date) => d.toISOString().slice(0, 10);
+  const today = new Date();
+  today.setUTCHours(0, 0, 0, 0);
+  const yesterday = new Date(today);
+  yesterday.setUTCDate(yesterday.getUTCDate() - 1);
+  // Streak must include today or yesterday to be alive
+  let cursor = dateSet.has(toKey(today)) ? new Date(today) : dateSet.has(toKey(yesterday)) ? new Date(yesterday) : null;
+  if (!cursor) return 0;
+  let count = 0;
+  while (dateSet.has(toKey(cursor))) {
+    count++;
+    cursor.setUTCDate(cursor.getUTCDate() - 1);
+  }
+  return count;
+}
 
 export default async function StudentLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
-  const { data: profile } = await supabase
-    .from('users')
-    .select('name, email, total_points')
-    .eq('id', user?.id ?? '')
-    .single();
+  const adminClient = createAdminClient();
+  const [{ data: profile }, { data: completedTests }] = await Promise.all([
+    adminClient.from('users').select('name, email, total_points').eq('id', user?.id ?? '').single(),
+    adminClient.from('tests').select('completed_at').eq('student_id', user?.id ?? '').eq('status', 'COMPLETED').not('completed_at', 'is', null),
+  ]);
 
   const name = profile?.name ?? user?.email ?? 'Student';
   const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
   const totalPoints = profile?.total_points ?? 0;
+  const streak = calcStreak((completedTests ?? []).map((t: any) => t.completed_at as string));
 
   return (
     <div className="flex h-screen bg-background">
-      <aside className="flex flex-col w-64 border-r border-outline-variant bg-surface-container-lowest shrink-0 hidden md:flex sticky top-0 h-screen">
+      <aside className="hidden md:flex flex-col w-64 border-r border-outline-variant bg-surface-container-lowest shrink-0 sticky top-0 h-screen">
         <div className="p-6 flex items-center gap-3 border-b border-outline-variant">
           <div className="bg-primary rounded-full size-10 flex items-center justify-center text-on-primary font-bold text-sm">
             {initials}
@@ -76,7 +97,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
             <div className="hidden lg:flex items-center gap-4 text-sm font-metric-label bg-surface-container rounded-full px-4 py-1.5 border border-outline-variant">
               <div className="flex items-center gap-1 text-tertiary-container">
                 <span className="material-symbols-outlined text-base">local_fire_department</span>
-                <span>12 Day Streak</span>
+                <span>{streak} Day Streak</span>
               </div>
               <div className="w-px h-4 bg-outline-variant"></div>
               <div className="flex items-center gap-1 text-secondary-container">

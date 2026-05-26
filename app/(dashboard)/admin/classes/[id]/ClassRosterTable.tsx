@@ -9,8 +9,6 @@ type Student = {
   email: string;
   registration_id: string | null;
   section: string | null;
-  cohortId: string | null;
-  cohortName: string | null;
 };
 
 const COLORS = [
@@ -19,14 +17,13 @@ const COLORS = [
   'bg-secondary-fixed text-on-secondary-fixed',
 ];
 
-type SortKey = 'name' | 'email' | 'registration_id' | 'section' | 'cohort';
+type SortKey = 'name' | 'email' | 'registration_id' | 'section';
 const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
   (a ?? '').localeCompare(b ?? '', undefined, { sensitivity: 'base' });
 
 export default function ClassRosterTable({ students }: { students: Student[] }) {
   const [query, setQuery] = useState('');
   const [sectionFilter, setSectionFilter] = useState('ALL');
-  const [cohortFilter, setCohortFilter] = useState<'ALL' | 'ASSIGNED' | 'UNASSIGNED'>('ALL');
   const [sortBy, setSortBy] = useState<SortKey>('name');
   const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
 
@@ -52,8 +49,6 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
         ? rows.filter(s => !s.section)
         : rows.filter(s => s.section === sectionFilter);
     }
-    if (cohortFilter === 'ASSIGNED') rows = rows.filter(s => !!s.cohortId);
-    if (cohortFilter === 'UNASSIGNED') rows = rows.filter(s => !s.cohortId);
 
     const dir = sortDir === 'asc' ? 1 : -1;
     rows = [...rows].sort((a, b) => {
@@ -61,13 +56,12 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
         case 'email':           return dir * cmpStr(a.email, b.email);
         case 'registration_id': return dir * cmpStr(a.registration_id, b.registration_id);
         case 'section':         return dir * cmpStr(a.section, b.section);
-        case 'cohort':          return dir * cmpStr(a.cohortName, b.cohortName);
         case 'name':
         default:                return dir * cmpStr(a.name, b.name);
       }
     });
     return rows;
-  }, [students, query, sectionFilter, cohortFilter, sortBy, sortDir]);
+  }, [students, query, sectionFilter, sortBy, sortDir]);
 
   const toggleSort = (key: SortKey) => {
     if (sortBy === key) setSortDir(d => (d === 'asc' ? 'desc' : 'asc'));
@@ -92,7 +86,7 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
     </th>
   );
 
-  const filtersActive = query !== '' || sectionFilter !== 'ALL' || cohortFilter !== 'ALL';
+  const filtersActive = query !== '' || sectionFilter !== 'ALL';
 
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
@@ -107,7 +101,7 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
         </div>
 
         <div className="flex flex-wrap items-center gap-3">
-          <div className="relative flex-1 min-w-[200px] max-w-md">
+          <div className="relative flex-1 min-w-50 max-w-md">
             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
             <input
               value={query}
@@ -125,18 +119,9 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
             <option value="ALL">All sections</option>
             {sections.map(s => <option key={s} value={s}>{s === '__NONE__' ? 'No section' : s}</option>)}
           </select>
-          <select
-            value={cohortFilter}
-            onChange={e => setCohortFilter(e.target.value as any)}
-            className="text-[12px] py-1.5 px-2 rounded-md border border-outline-variant bg-surface-container-lowest text-on-surface"
-          >
-            <option value="ALL">Any cohort status</option>
-            <option value="ASSIGNED">In a cohort</option>
-            <option value="UNASSIGNED">Unassigned</option>
-          </select>
           {filtersActive && (
             <button
-              onClick={() => { setQuery(''); setSectionFilter('ALL'); setCohortFilter('ALL'); }}
+              onClick={() => { setQuery(''); setSectionFilter('ALL'); }}
               className="text-[12px] text-primary hover:underline font-metric-label inline-flex items-center gap-1"
             >
               <span className="material-symbols-outlined text-[14px]">close</span>
@@ -154,13 +139,12 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
               {headerCell('Email', 'email')}
               {headerCell('Reg ID', 'registration_id')}
               {headerCell('Section', 'section')}
-              {headerCell('Cohort', 'cohort')}
             </tr>
           </thead>
           <tbody className="divide-y divide-outline-variant">
             {filtered.length === 0 ? (
               <tr>
-                <td colSpan={5} className="py-16 text-center text-on-surface-variant">
+                <td colSpan={4} className="py-16 text-center text-on-surface-variant">
                   <span className="material-symbols-outlined text-4xl block mb-2 text-outline">
                     {students.length === 0 ? 'person_off' : 'search_off'}
                   </span>
@@ -191,19 +175,6 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
                       <span className="text-sm font-medium bg-surface-container px-2 py-0.5 rounded-full border border-outline-variant">{s.section}</span>
                     ) : (
                       <span className="text-on-surface-variant/40 text-sm">—</span>
-                    )}
-                  </td>
-                  <td className="py-3 px-5">
-                    {s.cohortName ? (
-                      <Link
-                        href={`/admin/cohorts/${s.cohortId}`}
-                        className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-xs font-medium bg-secondary-fixed text-on-secondary-fixed-variant border border-secondary-fixed-dim hover:bg-secondary/10 transition-colors"
-                      >
-                        <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                        {s.cohortName}
-                      </Link>
-                    ) : (
-                      <span className="font-caption text-on-surface-variant/60 italic">Unassigned</span>
                     )}
                   </td>
                 </tr>

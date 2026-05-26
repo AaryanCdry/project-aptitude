@@ -145,7 +145,7 @@ export default async function TestResultsPage({ params }: { params: { id: string
             <div className="bg-surface rounded-xl p-8 border border-outline-variant flex flex-col">
               <h3 className="font-metric-label text-on-surface-variant uppercase mb-2">Difficulty Distribution</h3>
               <p className="font-body-md text-on-surface-variant mb-8">Performance across complexity levels.</p>
-              <div className="flex-grow flex items-end justify-center gap-6 sm:gap-12 px-2 sm:px-6 h-[200px]">
+              <div className="grow flex items-end justify-center gap-6 sm:gap-12 px-2 sm:px-6 h-50">
                 {[1, 2, 3, 4, 5].map(level => {
                   const stats = difficultyStats[level];
                   const hasQuestions = stats.total > 0;

@@ -21,24 +21,11 @@ export default async function ScheduleTestPage() {
   if (!STAFF_ROLES.includes(scope.role ?? '')) redirect('/');
 
   const allowedClassIds = await resolveAllowedClassIds(scope);
+  if (scope.role === 'MENTOR' && scope.classIds.length === 0) {
+    return <EmptyState text="You have no classes assigned. Ask your HOD to assign you to a class." />;
+  }
+
   const adminClient = createAdminClient();
-
-  let cohortsQ = adminClient
-    .from('cohorts')
-    .select('id, name, class_id, dept_id')
-    .order('name');
-  if (scope.collegeId) cohortsQ = cohortsQ.eq('college_id', scope.collegeId);
-  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
-    cohortsQ = cohortsQ.eq('dept_id', scope.departmentId);
-  }
-  if (scope.role === 'MENTOR') {
-    if (scope.classIds.length === 0) {
-      return <EmptyState text="You have no classes assigned. Ask your HOD to assign you to a class." />;
-    }
-    cohortsQ = cohortsQ.in('class_id', scope.classIds);
-  }
-  const { data: cohorts } = await cohortsQ;
-
   let classesQ = adminClient
     .from('classes')
     .select('id, name, year, section, dept_id, departments!dept_id(name)')
@@ -54,7 +41,6 @@ export default async function ScheduleTestPage() {
   return (
     <ScheduleFormClient
       role={scope.role}
-      cohorts={(cohorts ?? []) as any}
       classes={(classes ?? []) as any}
     />
   );

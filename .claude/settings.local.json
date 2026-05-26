@@ -18,7 +18,8 @@
       "Bash(rm -rf \"./.playwright-mcp\")",
       "Bash(ls -d .playwright-mcp)",
       "Bash(dir \"c:\\\\Aaryan Core\\\\Work_Stuffs\\\\project-aptitude\\\\supabase\\\\migrations\")",
-      "mcp__plugin_supabase_supabase__list_projects"
+      "mcp__plugin_supabase_supabase__list_projects",
+      "Bash(grep -v \"Use \\\\`node\")"
     ]
   },
   "enableAllProjectMcpServers": true,

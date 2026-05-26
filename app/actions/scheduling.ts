@@ -5,17 +5,13 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { getCallerScope, resolveAllowedClassIds } from './scope';
 
-// Domains the schedule-test flow supports as quota buckets. Mirrors the four
-// domains that have authoring sub-types in MentorQuestionsClient (REASONING
-// and OVERALL exist in the domain enum but lack authoring affordances).
-// Not exported — 'use server' files may only export async functions.
 const QUOTA_DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'] as const;
 
 const STAFF_ROLES = ['ADMIN', 'SUB_ADMIN', 'MENTOR', 'SUPER_ADMIN'];
 
 type Draft = {
   id: string;
-  cohort_id: string;
+  college_id: string | null;
   title: string;
   instructions: string | null;
   due_date: string | null;
@@ -33,7 +29,7 @@ async function assertCallerCanEditDraft(assessmentId: string) {
   const adminClient = createAdminClient();
   const { data } = await adminClient
     .from('cohort_assessments')
-    .select('id, cohort_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by')
+    .select('id, college_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by')
     .eq('id', assessmentId)
     .single();
   if (!data) return { error: 'Draft not found' as const };
@@ -50,7 +46,6 @@ export async function createTestDraft(formData: FormData) {
   if (!scope.userId) return { error: 'Not authenticated' };
   if (!STAFF_ROLES.includes(scope.role ?? '')) return { error: 'Not authorized to schedule tests' };
 
-  const cohort_id = formData.get('cohort_id') as string;
   const title = ((formData.get('title') as string) ?? '').trim();
   const instructions = ((formData.get('instructions') as string) ?? '').trim() || null;
   const due_date = (formData.get('due_date') as string) || '';
@@ -58,7 +53,6 @@ export async function createTestDraft(formData: FormData) {
   const class_ids_raw = (formData.get('class_ids') as string) || '';
 
   if (!title) return { error: 'Title is required.' };
-  if (!cohort_id) return { error: 'Cohort is required.' };
 
   const domain_quotas: Record<string, number> = {};
   let totalQuota = 0;
@@ -73,29 +67,29 @@ export async function createTestDraft(formData: FormData) {
   if (totalQuota === 0) return { error: 'Set at least one domain quota.' };
 
   const class_ids = class_ids_raw.split(',').map((s) => s.trim()).filter(Boolean);
+  if (class_ids.length === 0) return { error: 'Select at least one class.' };
+
   const scheduledAtIso = scheduled_at_raw ? new Date(scheduled_at_raw).toISOString() : null;
   const dueDateIso = due_date ? new Date(due_date).toISOString() : null;
 
   const adminClient = createAdminClient();
-  const { data: cohort } = await adminClient
-    .from('cohorts')
-    .select('id, college_id, dept_id, class_id')
-    .eq('id', cohort_id)
-    .single();
-  if (!cohort) return { error: 'Cohort not found.' };
 
-  if (scope.role !== 'SUPER_ADMIN' && cohort.college_id !== scope.collegeId) {
-    return { error: 'Cohort outside your scope.' };
-  }
-  if (scope.role === 'SUB_ADMIN' && cohort.dept_id !== scope.departmentId) {
-    return { error: 'Cohort outside your department.' };
-  }
-  if (scope.role === 'MENTOR' && (!cohort.class_id || !scope.classIds.includes(cohort.class_id))) {
-    return { error: 'Cohort outside your assigned classes.' };
+  // Derive college_id from the first selected class via its department
+  const { data: classRow } = await adminClient
+    .from('classes')
+    .select('id, dept_id, departments!dept_id(college_id)')
+    .eq('id', class_ids[0])
+    .single();
+  if (!classRow) return { error: 'Selected class not found.' };
+  const college_id = (classRow.departments as any)?.college_id ?? null;
+
+  // Scope checks
+  if (scope.role !== 'SUPER_ADMIN' && scope.collegeId && college_id !== scope.collegeId) {
+    return { error: 'Class outside your college scope.' };
   }
 
   const allowedClassIds = await resolveAllowedClassIds(scope);
-  if (allowedClassIds !== null && class_ids.length > 0) {
+  if (allowedClassIds !== null) {
     const allowedSet = new Set(allowedClassIds);
     const bad = class_ids.find((id) => !allowedSet.has(id));
     if (bad) return { error: 'One or more classes are outside your scope.' };
@@ -104,7 +98,7 @@ export async function createTestDraft(formData: FormData) {
   const { data: inserted, error } = await adminClient
     .from('cohort_assessments')
     .insert({
-      cohort_id,
+      college_id,
       title,
       instructions,
       due_date: dueDateIso,
@@ -127,7 +121,7 @@ export async function getDraft(assessmentId: string) {
   const adminClient = createAdminClient();
   const { data } = await adminClient
     .from('cohort_assessments')
-    .select('id, cohort_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by, cohorts!cohort_id(name)')
+    .select('id, college_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by')
     .eq('id', assessmentId)
     .single();
   if (!data) return null;
@@ -135,6 +129,15 @@ export async function getDraft(assessmentId: string) {
   const isOwner = draft.created_by === scope.userId;
   const isPrincipal = scope.role === 'ADMIN' || scope.role === 'SUPER_ADMIN';
   if (!isOwner && !isPrincipal) return null;
+
+  // Resolve class names for display
+  const classIds: string[] = (draft.class_ids ?? []) as string[];
+  let classLabel = '';
+  if (classIds.length > 0) {
+    const { data: classRows } = await adminClient.from('classes').select('id, name').in('id', classIds);
+    const nameMap: Record<string, string> = Object.fromEntries((classRows ?? []).map((c: any) => [c.id, c.name]));
+    classLabel = classIds.map((id) => nameMap[id] ?? id).filter(Boolean).join(', ');
+  }
 
   const ids: string[] = (draft.question_ids ?? []) as string[];
   let questions: any[] = [];
@@ -147,13 +150,13 @@ export async function getDraft(assessmentId: string) {
   }
   return {
     id: draft.id as string,
-    cohort_id: draft.cohort_id as string,
-    cohort_name: (draft.cohorts as any)?.name ?? '',
+    college_id: (draft.college_id ?? null) as string | null,
+    class_label: classLabel,
     title: draft.title as string,
     instructions: (draft.instructions ?? null) as string | null,
     due_date: (draft.due_date ?? null) as string | null,
     scheduled_at: (draft.scheduled_at ?? null) as string | null,
-    class_ids: (draft.class_ids ?? []) as string[],
+    class_ids: classIds,
     question_ids: ids,
     domain_quotas: (draft.domain_quotas ?? {}) as Record<string, number>,
     status: draft.status as 'DRAFT' | 'ACTIVE',
@@ -279,20 +282,16 @@ export async function finalizeTest(assessmentId: string) {
     }
   }
 
-  const { data: members } = await adminClient
-    .from('cohort_members')
-    .select('student_id')
-    .eq('cohort_id', draft.cohort_id);
-  let studentIds: string[] = (members ?? []).map((m: any) => m.student_id);
-
+  // Get students from the selected classes directly (no cohort_members needed)
   const classIds = (draft.class_ids ?? []) as string[];
-  if (classIds.length > 0 && studentIds.length > 0) {
-    const { data: classScoped } = await adminClient
+  let studentIds: string[] = [];
+  if (classIds.length > 0) {
+    const { data: classStudents } = await adminClient
       .from('users')
       .select('id')
-      .in('id', studentIds)
+      .eq('role', 'STUDENT')
       .in('class_id', classIds);
-    studentIds = (classScoped ?? []).map((u: any) => u.id);
+    studentIds = (classStudents ?? []).map((u: any) => u.id);
   }
 
   const { error: flipErr } = await adminClient
@@ -319,7 +318,6 @@ export async function finalizeTest(assessmentId: string) {
   }
 
   revalidatePath('/admin/assessments');
-  revalidatePath(`/admin/cohorts/${draft.cohort_id}`);
   return { success: true as const, scheduled };
 }
 
@@ -336,9 +334,6 @@ export async function discardDraft(assessmentId: string) {
   return { success: true as const };
 }
 
-// Question-bank search for the "Pick from bank" tab in step 2. Restricted to a
-// single domain (the caller picks which under-quota bucket to fill) so the
-// candidate set stays manageable.
 export async function searchBankQuestions(args: {
   domain: string;
   difficultyMin?: number;

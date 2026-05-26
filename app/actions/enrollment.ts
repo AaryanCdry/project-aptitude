@@ -61,7 +61,7 @@ export async function getEnrolledStudents() {
 
 export async function getEnrollmentStats() {
   const scope = await getCallerScope();
-  if (!scope.userId) return { totalStudents: 0, pendingInvites: 0, cohorts: [] };
+  if (!scope.userId) return { totalStudents: 0 };
 
   const adminClient = createAdminClient();
 
@@ -73,26 +73,12 @@ export async function getEnrollmentStats() {
   if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
     countQ = (countQ as any).eq('department_id', scope.departmentId);
   } else if (scope.role === 'MENTOR') {
-    if (scope.classIds.length === 0) return { totalStudents: 0, pendingInvites: 0, cohorts: [] };
+    if (scope.classIds.length === 0) return { totalStudents: 0 };
     countQ = (countQ as any).in('class_id', scope.classIds);
   }
   const { count: totalStudents } = await countQ;
 
-  let cohortsQ = adminClient
-    .from('cohorts')
-    .select('id, name')
-    .order('created_at', { ascending: false });
-  if (scope.collegeId) cohortsQ = (cohortsQ as any).eq('college_id', scope.collegeId);
-  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
-    cohortsQ = (cohortsQ as any).eq('dept_id', scope.departmentId);
-  }
-  const { data: cohorts } = await cohortsQ;
-
-  return {
-    totalStudents: totalStudents ?? 0,
-    pendingInvites: 0,
-    cohorts: cohorts ?? [],
-  };
+  return { totalStudents: totalStudents ?? 0 };
 }
 
 // ─── Manual enrollment (single student) ───────────────────────────────────────
@@ -111,7 +97,6 @@ export async function enrollStudent(formData: FormData) {
 
   const name = formData.get('name') as string;
   const email = formData.get('email') as string;
-  const cohortId = formData.get('cohortId') as string | null;
   const sendInvite = formData.get('sendInvite') === 'true';
   const departmentId = (formData.get('department_id') as string) || null;
   const classId = (formData.get('class_id') as string) || null;
@@ -155,14 +140,6 @@ export async function enrollStudent(formData: FormData) {
 
   if (userError) return { error: userError.message };
 
-  let cohortName: string | undefined;
-  if (cohortId) {
-    await adminClient.from('cohort_members').insert({ cohort_id: cohortId, student_id: userId });
-    const { data: cohortRow } = await adminClient
-      .from('cohorts').select('name').eq('id', cohortId).single();
-    cohortName = cohortRow?.name;
-  }
-
   let emailSent = false;
   let emailError: string | undefined;
 
@@ -197,7 +174,6 @@ export interface BulkResult {
 
 export async function processBulkEnrollment(
   rows: BulkRow[],
-  cohortId?: string
 ): Promise<BulkResult[]> {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
@@ -249,10 +225,6 @@ export async function processBulkEnrollment(
         college_id: collegeId,
         temp_password: tempPassword,
       });
-
-      if (cohortId) {
-        await adminClient.from('cohort_members').insert({ cohort_id: cohortId, student_id: userId });
-      }
 
       results.push({
         ...row,

@@ -55,39 +55,40 @@ export async function startFinalExam(testId: string) {
   return { success: true as const, testId };
 }
 
-// Schedule a FINAL exam: create one tests row per cohort member with type='FINAL'.
-// Students will see these via getOrCreateActiveTest on their next visit.
+// Schedule a FINAL exam: create one tests row per student in the selected class.
 export async function scheduleFinalForCohort(formData: FormData) {
   const scope = await getCallerScope();
   if (!scope.userId) return { error: 'Not authenticated' };
   if (!['ADMIN', 'SUB_ADMIN'].includes(scope.role ?? '')) return { error: 'Not authorized.' };
 
-  const cohortId = formData.get('cohort_id') as string;
+  const classId = formData.get('class_id') as string;
   const scheduledAtRaw = (formData.get('scheduled_at') as string) || '';
 
-  if (!cohortId) return { error: 'Cohort is required.' };
+  if (!classId) return { error: 'Class is required.' };
 
   const adminClient = createAdminClient();
 
-  // Verify cohort scope
-  const { data: cohort } = await adminClient
-    .from('cohorts')
-    .select('id, college_id, dept_id, name')
-    .eq('id', cohortId)
+  // Verify class scope
+  const { data: classRow } = await adminClient
+    .from('classes')
+    .select('id, dept_id, departments!dept_id(college_id)')
+    .eq('id', classId)
     .single();
-  if (!cohort) return { error: 'Cohort not found.' };
-  if (cohort.college_id !== scope.collegeId) return { error: 'Cohort outside your college.' };
-  if (scope.role === 'SUB_ADMIN' && cohort.dept_id !== scope.departmentId) {
-    return { error: 'Cohort outside your department.' };
+  if (!classRow) return { error: 'Class not found.' };
+  const classCollegeId = (classRow as any).departments?.college_id;
+  if (classCollegeId !== scope.collegeId) return { error: 'Class outside your college.' };
+  if (scope.role === 'SUB_ADMIN' && (classRow as any).dept_id !== scope.departmentId) {
+    return { error: 'Class outside your department.' };
   }
 
-  const { data: members } = await adminClient
-    .from('cohort_members')
-    .select('student_id')
-    .eq('cohort_id', cohortId);
+  const { data: students } = await adminClient
+    .from('users')
+    .select('id')
+    .eq('class_id', classId)
+    .eq('role', 'STUDENT');
 
-  const studentIds = (members ?? []).map((m: any) => m.student_id);
-  if (studentIds.length === 0) return { error: 'No students in this cohort.' };
+  const studentIds = (students ?? []).map((s: any) => s.id);
+  if (studentIds.length === 0) return { error: 'No students in this class.' };
 
   const scheduledAt = scheduledAtRaw ? new Date(scheduledAtRaw).toISOString() : new Date().toISOString();
   const rows = studentIds.map(id => ({
@@ -106,20 +107,21 @@ export async function scheduleFinalForCohort(formData: FormData) {
 
 export async function getScheduledFinals() {
   const scope = await getCallerScope();
-  if (!scope.userId || !scope.collegeId) return { finals: [], cohorts: [] };
+  if (!scope.userId || !scope.collegeId) return { finals: [], classes: [] };
 
   const adminClient = createAdminClient();
 
-  // Cohorts in scope
-  let cohortsQ = adminClient
-    .from('cohorts')
-    .select('id, name, dept_id')
-    .eq('college_id', scope.collegeId)
+  // Classes in scope
+  let classesQ = adminClient
+    .from('classes')
+    .select('id, name, dept_id, departments!dept_id(college_id)')
     .order('name');
-  if (scope.role === 'SUB_ADMIN' && scope.departmentId) {
-    cohortsQ = cohortsQ.eq('dept_id', scope.departmentId);
-  }
-  const { data: cohorts } = await cohortsQ;
+  const { data: allClasses } = await classesQ;
+  const classes = (allClasses ?? []).filter((c: any) => {
+    if (c.departments?.college_id !== scope.collegeId) return false;
+    if (scope.role === 'SUB_ADMIN' && c.dept_id !== scope.departmentId) return false;
+    return true;
+  }).map((c: any) => ({ id: c.id, name: c.name }));
 
   // Final tests in scope (aggregated by student)
   const { data: finals } = await adminClient
@@ -144,6 +146,6 @@ export async function getScheduledFinals() {
       completed_at: t.completed_at,
       studentName: (t.users as any)?.name ?? (t.users as any)?.email ?? 'Unknown',
     })),
-    cohorts: cohorts ?? [],
+    classes,
   };
 }

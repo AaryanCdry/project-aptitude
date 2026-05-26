@@ -390,7 +390,7 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
             <h2 className="font-metric-label text-primary uppercase tracking-wider text-xs">
               {isReviewing ? 'Review Mode' : 'Exam Mode'}
             </h2>
-            <h1 className="font-headline-md text-on-surface text-lg md:text-xl truncate max-w-[250px] md:max-w-md">
+            <h1 className="font-headline-md text-on-surface text-lg md:text-xl truncate max-w-62.5 md:max-w-md">
               {displayedQuestion.domain || 'Adaptive Test'}
             </h1>
           </div>
@@ -417,10 +417,10 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
         </div>
       </header>
 
-      <main className="flex-grow flex justify-center py-margin-desktop px-margin-mobile pb-24 md:pb-margin-desktop">
+      <main className="grow flex justify-center py-margin-desktop px-margin-mobile pb-24 md:pb-margin-desktop">
         <div className="w-full max-w-container-max-width flex flex-col lg:flex-row gap-gutter items-start">
 
-          <div key={displayedQuestion.id} className="animate-slide-up flex-grow w-full max-w-assessment-max-width bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-10 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.05)]">
+          <div key={displayedQuestion.id} className="animate-slide-up grow w-full max-w-assessment-max-width bg-surface-container-lowest border border-outline-variant rounded-xl p-6 md:p-10 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.05)]">
 
             {/* Review mode banner */}
             {isReviewing && (
@@ -521,7 +521,7 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
           </div>
 
           {/* Question map sidebar */}
-          <aside className="w-full lg:w-80 flex-shrink-0 hidden lg:flex flex-col gap-6">
+          <aside className="w-full lg:w-80 shrink-0 hidden lg:flex flex-col gap-6">
             <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 shadow-[0px_4px_6px_-1px_rgba(0,0,0,0.05)] sticky top-32">
               <h3 className="font-headline-md text-on-surface text-lg mb-4">Question Map</h3>
               <div className="flex items-center gap-3 mb-6 text-caption text-on-surface-variant flex-wrap">

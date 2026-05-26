@@ -53,8 +53,7 @@ type Question = {
 
 type DraftDTO = {
   id: string;
-  cohort_id: string;
-  cohort_name: string;
+  class_label: string;
   title: string;
   domain_quotas: Record<string, number>;
   question_ids: string[];
@@ -494,7 +493,7 @@ export default function QuestionsStepClient({ draft }: { draft: DraftDTO }) {
           <p className="font-metric-label text-on-surface-variant text-xs uppercase tracking-wider mb-1">Step 2 of 2</p>
           <h1 className="font-headline-md text-2xl text-on-surface">{draft.title}</h1>
           <p className="font-body-md text-on-surface-variant mt-1">
-            {draft.cohort_name} · author {totalTarget} question{totalTarget !== 1 ? 's' : ''} matching the quotas below.
+            {draft.class_label} · author {totalTarget} question{totalTarget !== 1 ? 's' : ''} matching the quotas below.
           </p>
         </div>
         <button

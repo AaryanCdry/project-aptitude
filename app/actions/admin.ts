@@ -333,18 +333,39 @@ Write the explanation directly without any preamble. Focus on the logical steps 
 }
 
 export async function getScheduledAssessments() {
-  const supabase = await createClient();
-  const { data: { user } } = await supabase.auth.getUser();
-  if (!user) throw new Error('Not authenticated');
+  const { getCallerScope } = await import('./scope');
+  const scope = await getCallerScope();
+  if (!scope.userId) throw new Error('Not authenticated');
 
   const now = new Date();
   const weekStart = new Date(now);
   weekStart.setDate(now.getDate() - now.getDay());
 
-  const { data: tests } = await supabase
+  const adminClient = createAdminClient();
+
+  // Resolve the set of student IDs visible to this caller based on their role.
+  // SUPER_ADMIN sees everything; ADMIN sees their college; SUB_ADMIN sees their
+  // department; MENTOR sees students in their assigned classes.
+  let studentIdFilter: string[] | null = null;
+  if (scope.role !== 'SUPER_ADMIN') {
+    let uq = adminClient.from('users').select('id').eq('role', 'STUDENT');
+    if (scope.collegeId) uq = (uq as any).eq('college_id', scope.collegeId);
+    if (scope.role === 'SUB_ADMIN' && scope.departmentId) uq = (uq as any).eq('department_id', scope.departmentId);
+    if (scope.role === 'MENTOR' && scope.classIds.length > 0) uq = (uq as any).in('class_id', scope.classIds);
+    const { data: scopedUsers } = await uq;
+    studentIdFilter = (scopedUsers ?? []).map((u: any) => u.id);
+    if (studentIdFilter.length === 0) {
+      return { totalThisWeek: 0, totalCandidates: 0, completionRate: 0, upcoming: [], recentCompleted: [], assessmentStats: [], totalScheduled: 0, totalCompleted: 0, totalTests: 0 };
+    }
+  }
+
+  let testsQuery = adminClient
     .from('tests')
-    .select('id, type, status, scheduled_at, created_at, completed_at, student_id, assessment_id, users!student_id(name, email), classes!class_id(name)')
+    .select('id, type, status, scheduled_at, created_at, completed_at, student_id, assessment_id, users!student_id(name, email), classes!class_id(name), cohort_assessments!assessment_id(title)')
     .order('scheduled_at', { ascending: true, nullsFirst: false });
+  if (studentIdFilter !== null) testsQuery = (testsQuery as any).in('student_id', studentIdFilter);
+
+  const { data: tests } = await testsQuery;
 
   const allTests = tests ?? [];
   const completed = allTests.filter((t: any) => t.status === 'COMPLETED');
@@ -361,10 +382,10 @@ export async function getScheduledAssessments() {
 
   const upcoming = allTests
     .filter((t: any) => t.status !== 'COMPLETED')
-    .slice(0, 10)
+    .slice(0, 200)
     .map((t: any) => ({
       id: t.id,
-      title: t.type === 'CENTER' ? 'Center Assessment' : 'Self Assessment',
+      title: (t.cohort_assessments as any)?.title ?? (t.type === 'CENTER' ? 'Center Assessment' : 'Self Assessment'),
       type: t.type,
       status: t.status,
       studentName: (t.users as any)?.name ?? (t.users as any)?.email ?? 'Unknown',
@@ -374,7 +395,7 @@ export async function getScheduledAssessments() {
 
   const recentCompleted = completed.slice(0, 5).map((t: any) => ({
     id: t.id,
-    title: t.type === 'CENTER' ? 'Center Assessment' : 'Self Assessment',
+    title: (t.cohort_assessments as any)?.title ?? (t.type === 'CENTER' ? 'Center Assessment' : 'Self Assessment'),
     type: t.type,
     studentName: (t.users as any)?.name ?? (t.users as any)?.email ?? 'Unknown',
     completedAt: t.completed_at,
@@ -382,7 +403,6 @@ export async function getScheduledAssessments() {
 
   // Per-assessment completion roll-up. Group CENTER tests by assessment_id and
   // pair with the cohort_assessments title/cohort/domain for the side panel.
-  const adminClient = createAdminClient();
   const assessmentBuckets: Record<string, { scheduled: number; inProgress: number; completed: number }> = {};
   for (const t of allTests) {
     const aId = (t as any).assessment_id as string | null;
@@ -397,7 +417,7 @@ export async function getScheduledAssessments() {
   let assessmentStats: Array<{
     id: string;
     title: string;
-    cohortName: string | null;
+    classLabel: string | null;
     domain: string | null;
     scheduledAt: string | null;
     dueDate: string | null;
@@ -408,16 +428,27 @@ export async function getScheduledAssessments() {
   if (assessmentIds.length > 0) {
     const { data: rows } = await adminClient
       .from('cohort_assessments')
-      .select('id, title, domain, scheduled_at, due_date, cohort_id, cohorts!cohort_id(name)')
+      .select('id, title, domain, scheduled_at, due_date, class_ids')
       .in('id', assessmentIds)
       .order('created_at', { ascending: false });
+
+    // Batch-fetch class names for all class_ids across all assessments
+    const allClassIds = [...new Set((rows ?? []).flatMap((a: any) => (a.class_ids ?? []) as string[]))];
+    const classNameMap: Record<string, string> = {};
+    if (allClassIds.length > 0) {
+      const { data: classRows } = await adminClient.from('classes').select('id, name').in('id', allClassIds);
+      (classRows ?? []).forEach((c: any) => { classNameMap[c.id] = c.name; });
+    }
+
     assessmentStats = (rows ?? []).map((a: any) => {
       const b = assessmentBuckets[a.id]!;
       const total = b.scheduled + b.inProgress + b.completed;
+      const classIds = (a.class_ids ?? []) as string[];
+      const classLabel = classIds.map((id: string) => classNameMap[id] ?? '').filter(Boolean).join(', ') || null;
       return {
         id: a.id,
         title: a.title,
-        cohortName: (a.cohorts as any)?.name ?? null,
+        classLabel,
         domain: a.domain ?? null,
         scheduledAt: a.scheduled_at ?? null,
         dueDate: a.due_date ?? null,
@@ -428,15 +459,130 @@ export async function getScheduledAssessments() {
     });
   }
 
+  // Count unique assessments (not per-student rows) for KPI and footer metrics
+  const thisWeekAssessmentIds = new Set(thisWeek.map((t: any) => t.assessment_id ?? t.id));
+  const totalThisWeek = thisWeekAssessmentIds.size;
+  const totalScheduled = assessmentStats.filter(a => a.completed < a.total || a.total === 0).length;
+  const totalCompleted = assessmentStats.filter(a => a.completed === a.total && a.total > 0).length;
+
   return {
-    totalThisWeek: thisWeek.length,
+    totalThisWeek,
     totalCandidates: uniqueCandidates,
     completionRate,
     upcoming,
     recentCompleted,
     assessmentStats,
-    totalScheduled: allTests.filter((t: any) => t.status !== 'COMPLETED').length,
-    totalCompleted: completed.length,
+    totalScheduled,
+    totalCompleted,
     totalTests: allTests.length,
+  };
+}
+
+export async function getAssessmentDetail(assessmentId: string) {
+  const { getCallerScope } = await import('./scope');
+  const scope = await getCallerScope();
+  if (!scope.userId) throw new Error('Not authenticated');
+
+  const adminClient = createAdminClient();
+
+  // Fetch assessment metadata (college_id is now a direct column)
+  const { data: assessment, error: aErr } = await adminClient
+    .from('cohort_assessments')
+    .select('id, title, domain, scheduled_at, due_date, instructions, college_id, class_ids')
+    .eq('id', assessmentId)
+    .single();
+
+  if (aErr || !assessment) throw new Error('Assessment not found');
+
+  // Scope check: non-SUPER_ADMIN must belong to same college
+  if (scope.role !== 'SUPER_ADMIN' && scope.collegeId && (assessment as any).college_id !== scope.collegeId) {
+    throw new Error('Not authorized');
+  }
+
+  // Resolve class names for display
+  const classIds = ((assessment as any).class_ids ?? []) as string[];
+  const classNameMap: Record<string, string> = {};
+  if (classIds.length > 0) {
+    const { data: classRows } = await adminClient.from('classes').select('id, name').in('id', classIds);
+    (classRows ?? []).forEach((c: any) => { classNameMap[c.id] = c.name; });
+  }
+  const classLabel = classIds.map((id) => classNameMap[id] ?? '').filter(Boolean).join(', ') || null;
+
+  // Fetch per-student tests for this assessment
+  const { data: tests } = await adminClient
+    .from('tests')
+    .select('id, status, completed_at, student_id, users!student_id(name, email), classes!class_id(name)')
+    .eq('assessment_id', assessmentId)
+    .order('status', { ascending: true });
+
+  const completedTests = (tests ?? []).filter((t: any) => t.status === 'COMPLETED');
+  const completedTestIds = completedTests.map((t: any) => t.id as string);
+
+  // Primary: accuracy from question_attempts (correct / total)
+  const accuracyMap: Record<string, { correct: number; total: number }> = {};
+  if (completedTestIds.length > 0) {
+    const { data: qAttempts } = await adminClient
+      .from('question_attempts')
+      .select('test_id, is_correct')
+      .in('test_id', completedTestIds);
+    for (const a of qAttempts ?? []) {
+      const tid = (a as any).test_id as string;
+      if (!tid) continue;
+      if (!accuracyMap[tid]) accuracyMap[tid] = { correct: 0, total: 0 };
+      accuracyMap[tid].total += 1;
+      if ((a as any).is_correct) accuracyMap[tid].correct += 1;
+    }
+  }
+
+  // Fallback: scores table keyed by test_id — prefer OVERALL domain row
+  const scoreByTestId: Record<string, number> = {};
+  if (completedTestIds.length > 0) {
+    const { data: scoreRows } = await adminClient
+      .from('scores')
+      .select('student_id, test_id, domain, score')
+      .in('test_id', completedTestIds);
+    for (const s of scoreRows ?? []) {
+      const tid = (s as any).test_id as string;
+      if (!(tid in scoreByTestId) || (s as any).domain === 'OVERALL') {
+        scoreByTestId[tid] = (s as any).score as number;
+      }
+    }
+  }
+
+  const students = (tests ?? []).map((t: any) => {
+    const acc = accuracyMap[t.id];
+    let scorePercent: number | null = null;
+    let correct: number | null = null;
+    let totalQ: number | null = null;
+    if (acc && acc.total > 0) {
+      scorePercent = Math.round((acc.correct / acc.total) * 100);
+      correct = acc.correct;
+      totalQ = acc.total;
+    } else if (t.status === 'COMPLETED' && scoreByTestId[t.id] !== undefined) {
+      scorePercent = scoreByTestId[t.id];
+    }
+    return {
+      testId: t.id,
+      studentId: t.student_id,
+      name: (t.users as any)?.name ?? (t.users as any)?.email ?? 'Unknown',
+      email: (t.users as any)?.email ?? '',
+      className: (t.classes as any)?.name ?? null,
+      status: t.status as string,
+      completedAt: t.completed_at as string | null,
+      score: scorePercent,
+      correct,
+      totalQ,
+    };
+  });
+
+  return {
+    id: assessment.id,
+    title: assessment.title,
+    classLabel,
+    domain: assessment.domain ?? null,
+    scheduledAt: assessment.scheduled_at ?? null,
+    dueDate: assessment.due_date ?? null,
+    instructions: (assessment as any).instructions ?? null,
+    students,
   };
 }

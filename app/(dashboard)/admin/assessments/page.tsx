@@ -1,31 +1,9 @@
 import React from 'react';
 import Link from 'next/link';
 import { getScheduledAssessments } from '@/app/actions/admin';
+import UpcomingTestsPanel from './UpcomingTestsPanel';
+import MiniCalendar from './MiniCalendar';
 
-function StatusBadge({ status }: { status: string }) {
-  if (status === 'IN_PROGRESS') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary-fixed text-on-primary-fixed text-[10px] font-bold uppercase tracking-wider">
-        <span className="w-1.5 h-1.5 rounded-full bg-primary animate-pulse" />
-        Active
-      </span>
-    );
-  }
-  if (status === 'COMPLETED') {
-    return (
-      <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary-fixed text-on-secondary-fixed-variant text-[10px] font-bold uppercase tracking-wider">
-        <span className="material-symbols-outlined text-[10px]">done</span>
-        Completed
-      </span>
-    );
-  }
-  return (
-    <span className="inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-surface-variant text-on-surface-variant text-[10px] font-bold uppercase tracking-wider">
-      <span className="w-1.5 h-1.5 rounded-full bg-outline" />
-      Scheduled
-    </span>
-  );
-}
 
 function formatScheduledTime(scheduledAt: string | null): string {
   if (!scheduledAt) return '—';
@@ -40,89 +18,11 @@ function formatScheduledTime(scheduledAt: string | null): string {
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
 
-// Static mini calendar for the current month
-function MiniCalendar() {
-  const now = new Date();
-  const year = now.getFullYear();
-  const month = now.getMonth();
-  const monthName = now.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
-  const today = now.getDate();
-
-  const firstDay = new Date(year, month, 1).getDay();
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const daysInPrevMonth = new Date(year, month, 0).getDate();
-
-  const cells: { day: number; current: boolean }[] = [];
-  const startOffset = firstDay === 0 ? 6 : firstDay - 1;
-
-  for (let i = startOffset - 1; i >= 0; i--) {
-    cells.push({ day: daysInPrevMonth - i, current: false });
-  }
-  for (let d = 1; d <= daysInMonth; d++) {
-    cells.push({ day: d, current: true });
-  }
-  while (cells.length % 7 !== 0) {
-    cells.push({ day: cells.length - daysInMonth - startOffset + 1, current: false });
-  }
-
-  const weeks = [];
-  for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));
-
-  // Dot indicators on a few days (hardcoded for visual, real data would need DB)
-  const dotDays = new Set([today, today + 3, today + 7].filter(d => d <= daysInMonth));
-
-  return (
-    <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm overflow-hidden">
-      <div className="p-6 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
-        <h2 className="font-headline-md text-on-surface">{monthName}</h2>
-        <div className="flex gap-1">
-          <button className="p-2 rounded hover:bg-surface-container-high transition-colors text-on-surface-variant">
-            <span className="material-symbols-outlined">chevron_left</span>
-          </button>
-          <button className="px-3 py-1 rounded border border-outline-variant font-metric-label text-metric-label hover:bg-surface-container-high transition-colors text-sm">Today</button>
-          <button className="p-2 rounded hover:bg-surface-container-high transition-colors text-on-surface-variant">
-            <span className="material-symbols-outlined">chevron_right</span>
-          </button>
-        </div>
-      </div>
-      <div className="p-6">
-        <div className="grid grid-cols-7 gap-1 mb-2 text-center font-metric-label text-on-surface-variant text-xs">
-          {['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su'].map(d => (
-            <div key={d}>{d}</div>
-          ))}
-        </div>
-        {weeks.map((week, wi) => (
-          <div key={wi} className="grid grid-cols-7 gap-1">
-            {week.map((cell, ci) => (
-              <div
-                key={ci}
-                className={`relative text-center p-2 rounded-lg text-sm transition-colors ${
-                  !cell.current
-                    ? 'text-outline-variant'
-                    : cell.day === today
-                    ? 'bg-primary text-on-primary font-bold shadow-sm cursor-pointer'
-                    : 'hover:bg-surface-container-high cursor-pointer text-on-surface'
-                }`}
-              >
-                {cell.day}
-                {cell.current && dotDays.has(cell.day) && cell.day !== today && (
-                  <span className="absolute bottom-1 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-secondary block" />
-                )}
-              </div>
-            ))}
-          </div>
-        ))}
-      </div>
-    </div>
-  );
-}
-
 export default async function AdminAssessmentsPage() {
   const {
     totalThisWeek,
     totalCandidates,
     completionRate,
-    upcoming,
     recentCompleted,
     assessmentStats,
     totalScheduled,
@@ -138,11 +38,11 @@ export default async function AdminAssessmentsPage() {
           <p className="font-body-md text-on-surface-variant">Manage upcoming tests and monitor session activity.</p>
         </div>
         <Link
-          href="/admin/enrollment/new"
+          href="/schedule-test"
           className="bg-primary text-on-primary font-metric-label px-6 py-3 rounded-lg hover:bg-on-primary-fixed-variant transition-colors shadow-sm flex items-center gap-2 active:scale-95"
         >
           <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>add</span>
-          Enroll New Student
+          Schedule New Test
         </Link>
       </div>
 
@@ -182,7 +82,7 @@ export default async function AdminAssessmentsPage() {
           </div>
 
           {/* Calendar */}
-          <MiniCalendar />
+          <MiniCalendar scheduledDates={assessmentStats.flatMap(a => [a.scheduledAt, a.dueDate])} />
 
           {/* Scheduled assessments — per-assessment progress */}
           {assessmentStats.length > 0 && (
@@ -204,7 +104,7 @@ export default async function AdminAssessmentsPage() {
                         <div className="min-w-0">
                           <p className="font-body-md font-semibold text-on-surface truncate">{a.title}</p>
                           <p className="font-caption text-on-surface-variant flex items-center gap-2 flex-wrap mt-0.5">
-                            {a.cohortName && <span>{a.cohortName}</span>}
+                            {a.classLabel && <span>{a.classLabel}</span>}
                             {a.domain && <span className="px-1.5 py-0.5 rounded bg-surface-container text-[10px] font-metric-label">{a.domain}</span>}
                             {a.dueDate && (
                               <span className="text-on-surface-variant">
@@ -258,7 +158,7 @@ export default async function AdminAssessmentsPage() {
                           ? new Date(t.completedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
                           : '—'}
                       </p>
-                      <Link href={`/admin/cohorts`} className="font-caption text-primary hover:underline text-xs">View</Link>
+                      <Link href={`/admin/results/${t.id}`} className="font-caption text-primary hover:underline text-xs">View</Link>
                     </div>
                   </div>
                 ))}
@@ -269,51 +169,7 @@ export default async function AdminAssessmentsPage() {
 
         {/* Right: Upcoming Tests */}
         <div className="lg:col-span-1">
-          <div className="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm flex flex-col sticky top-8">
-            <div className="p-6 border-b border-outline-variant flex justify-between items-center bg-surface-bright">
-              <h2 className="font-headline-md text-on-surface">Upcoming Tests</h2>
-              <div className="flex items-center gap-1 text-on-surface-variant">
-                <span className="material-symbols-outlined text-lg">filter_list</span>
-              </div>
-            </div>
-            <div className="flex-1 overflow-y-auto p-4 space-y-3 max-h-[600px]">
-              {upcoming.length === 0 ? (
-                <div className="py-12 text-center">
-                  <span className="material-symbols-outlined text-4xl text-outline block mb-2">event_busy</span>
-                  <p className="font-body-md text-on-surface-variant">No upcoming tests.</p>
-                  <p className="font-caption text-outline mt-1">Enroll students to schedule assessments.</p>
-                </div>
-              ) : upcoming.map(t => (
-                <div
-                  key={t.id}
-                  className={`p-4 rounded-lg border cursor-pointer group transition-colors ${
-                    t.status === 'IN_PROGRESS'
-                      ? 'border-primary-fixed bg-surface-container-low hover:bg-surface-container-high'
-                      : 'border-outline-variant bg-surface-container-lowest hover:bg-surface-container-low'
-                  }`}
-                >
-                  <div className="flex justify-between items-start mb-2">
-                    <StatusBadge status={t.status} />
-                    <span className="font-caption text-on-surface-variant group-hover:text-primary transition-colors text-xs">
-                      {formatScheduledTime(t.scheduledAt)}
-                    </span>
-                  </div>
-                  <h3 className="font-body-md font-semibold text-on-surface mb-1">{t.studentName}</h3>
-                  <p className="font-caption text-on-surface-variant flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">quiz</span>
-                    {t.title}
-                    {t.className && <span className="ml-1">· {t.className}</span>}
-                  </p>
-                </div>
-              ))}
-            </div>
-            <div className="p-4 border-t border-outline-variant bg-surface-bright">
-              <div className="flex justify-between text-xs font-metric-label text-on-surface-variant">
-                <span>{totalScheduled} active/scheduled</span>
-                <span>{totalCompleted} completed</span>
-              </div>
-            </div>
-          </div>
+          <UpcomingTestsPanel assessments={assessmentStats} />
         </div>
       </div>
     </>

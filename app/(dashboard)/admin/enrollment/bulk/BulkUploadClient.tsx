@@ -4,8 +4,6 @@ import React, { useState, useRef, useTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { processBulkEnrollment, BulkRow, BulkResult } from '@/app/actions/enrollment';
 
-interface Cohort { id: string; name: string; }
-
 function parseCSV(text: string): BulkRow[] {
   const lines = text.trim().split('\n');
   if (lines.length === 0) return [];
@@ -17,12 +15,11 @@ function parseCSV(text: string): BulkRow[] {
   });
 }
 
-export default function BulkUploadClient({ cohorts }: { cohorts: Cohort[] }) {
+export default function BulkUploadClient() {
   const [isDragging, setIsDragging] = useState(false);
   const [rows, setRows] = useState<BulkRow[]>([]);
   const [results, setResults] = useState<BulkResult[] | null>(null);
   const [fileName, setFileName] = useState('');
-  const [selectedCohort, setSelectedCohort] = useState('');
   const [isPending, startTransition] = useTransition();
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -58,7 +55,7 @@ export default function BulkUploadClient({ cohorts }: { cohorts: Cohort[] }) {
     startTransition(async () => {
       // Simulate progress ticks while the action runs
       const timer = setInterval(() => setProgress((p) => Math.min(p + 12, 90)), 400);
-      const res = await processBulkEnrollment(rows, selectedCohort || undefined);
+      const res = await processBulkEnrollment(rows);
       clearInterval(timer);
       setProgress(100);
       setResults(res);
@@ -125,21 +122,6 @@ export default function BulkUploadClient({ cohorts }: { cohorts: Cohort[] }) {
           <div className="bg-surface rounded-xl border border-outline-variant p-6 shadow-sm">
             <h3 className="font-metric-label text-on-surface mb-4 pb-2 border-b border-outline-variant">Enrollment Settings</h3>
             <div className="space-y-4">
-              {/* Cohort selector */}
-              <div className="flex flex-col gap-2">
-                <label className="font-metric-label text-on-surface text-[12px]">Assign to Cohort</label>
-                <div className="relative">
-                  <select
-                    value={selectedCohort}
-                    onChange={(e) => setSelectedCohort(e.target.value)}
-                    className="w-full px-4 py-2.5 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary appearance-none"
-                  >
-                    <option value="">No cohort</option>
-                    {cohorts.map((c) => <option key={c.id} value={c.id}>{c.name}</option>)}
-                  </select>
-                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none text-xl">expand_more</span>
-                </div>
-              </div>
               {/* Toggles */}
               {[['Auto-Generate Credentials', 'Create User IDs and passwords'], ['Send via Email', 'Notify students instantly']].map(([label, sub]) => (
                 <div key={label} className="flex items-center justify-between">
@@ -149,7 +131,7 @@ export default function BulkUploadClient({ cohorts }: { cohorts: Cohort[] }) {
                   </div>
                   <div className="relative inline-flex items-center cursor-pointer">
                     <input defaultChecked className="sr-only peer" type="checkbox" />
-                    <div className="w-11 h-6 bg-surface-variant peer-checked:bg-primary rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
+                    <div className="w-11 h-6 bg-surface-variant peer-checked:bg-primary rounded-full peer peer-checked:after:translate-x-full after:content-[''] after:absolute after:top-0.5 after:left-0.5 after:bg-white after:rounded-full after:h-5 after:w-5 after:transition-all" />
                   </div>
                 </div>
               ))}

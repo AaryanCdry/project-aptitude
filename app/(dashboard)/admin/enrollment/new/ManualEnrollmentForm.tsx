@@ -5,7 +5,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { enrollStudent } from '@/app/actions/enrollment';
 
-interface Cohort { id: string; name: string; }
 interface Department { id: string; name: string; }
 interface ClassRow { id: string; name: string; dept_id: string; section?: string | null; }
 
@@ -14,13 +13,9 @@ type Result =
   | { error: string };
 
 export default function ManualEnrollmentForm({
-  cohorts,
-  preselectedCohortId,
   departments = [],
   classes = [],
 }: {
-  cohorts: Cohort[];
-  preselectedCohortId?: string | null;
   departments?: Department[];
   classes?: ClassRow[];
 }) {
@@ -53,7 +48,7 @@ export default function ManualEnrollmentForm({
   // ── Success screen ────────────────────────────────────────────────────────
   if (result && 'success' in result) {
     return (
-      <div className="max-w-[640px] mx-auto">
+      <div className="max-w-160 mx-auto">
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden">
           <div className="p-8 flex flex-col items-center text-center gap-4">
             <div className="w-16 h-16 rounded-full bg-secondary-fixed flex items-center justify-center">
@@ -127,14 +122,14 @@ export default function ManualEnrollmentForm({
 
   // ── Form ──────────────────────────────────────────────────────────────────
   return (
-    <div className="max-w-[640px] mx-auto">
+    <div className="max-w-160 mx-auto">
       <div className="flex items-center gap-3 mb-8">
         <Link href="/admin/enrollment" className="w-10 h-10 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant">
           <span className="material-symbols-outlined">arrow_back</span>
         </Link>
         <div>
           <h1 className="font-display-sm text-display-sm text-on-surface">Manual Enrollment</h1>
-          <p className="font-body-md text-on-surface-variant mt-0.5">Add a new student to an upcoming assessment cohort.</p>
+          <p className="font-body-md text-on-surface-variant mt-0.5">Add a new student to a class.</p>
         </div>
       </div>
 
@@ -251,27 +246,11 @@ export default function ManualEnrollmentForm({
               </div>
             </div>
 
-            {/* Cohort + Date row */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <div className="flex flex-col gap-2">
-                <label className="font-metric-label text-on-surface" htmlFor="cohortId">Cohort (optional)</label>
-                <div className="relative">
-                  <select id="cohortId" name="cohortId"
-                    defaultValue={preselectedCohortId ?? ''}
-                    className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors appearance-none">
-                    <option value="">No cohort</option>
-                    {cohorts.map((c) => (
-                      <option key={c.id} value={c.id}>{c.name}</option>
-                    ))}
-                  </select>
-                  <span className="material-symbols-outlined absolute right-4 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
-                </div>
-              </div>
-              <div className="flex flex-col gap-2">
-                <label className="font-metric-label text-on-surface" htmlFor="startDate">Start Date</label>
-                <input id="startDate" name="startDate" type="date"
-                  className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
-              </div>
+            {/* Start Date */}
+            <div className="flex flex-col gap-2">
+              <label className="font-metric-label text-on-surface" htmlFor="startDate">Start Date</label>
+              <input id="startDate" name="startDate" type="date"
+                className="w-full px-4 py-3 bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
             </div>
 
             {/* Send Invite toggle */}

@@ -8,7 +8,7 @@ interface Assignment {
   instructions: string | null;
   due_date: string | null;
   scheduled_at: string | null;
-  cohortName: string;
+  className: string;
   isOverdue: boolean;
   isOpenable: boolean;
   testId: string | null;

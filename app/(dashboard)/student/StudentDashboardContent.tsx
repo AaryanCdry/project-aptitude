@@ -1,7 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getStudentDashboardData } from '@/app/actions/dashboard';
-import { getStudentCohortData, getStudentAssignedAssessments } from '@/app/actions/cohorts';
+import { getStudentAssignedAssessments } from '@/app/actions/cohorts';
 import { getStudentFinalExams } from '@/app/actions/finals';
 import { createAdminClient } from '@/lib/supabase/admin';
 import PublicLearningPath from './PublicLearningPath';
@@ -68,16 +68,16 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
   const adminClient = createAdminClient();
   const [
     { tests, domainScores, averageScore, totalTests, scoreTrend, collegeId },
-    cohortData,
     assignedAssessments,
     finalExams,
     { data: profile },
+    { data: classInfo },
   ] = await Promise.all([
     getStudentDashboardData(studentId),
-    getStudentCohortData(studentId),
     getStudentAssignedAssessments(studentId),
     getStudentFinalExams(studentId),
     adminClient.from('users').select('name, email, student_level, total_points').eq('id', studentId).single(),
+    adminClient.from('users').select('class_id, classes!class_id(name, year, section, departments!dept_id(name, course_type))').eq('id', studentId).single(),
   ]);
 
   const recentTests = tests.slice(0, 5);
@@ -344,7 +344,7 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
 
           {/* ── Learning Path (public) or College Curriculum ─────────────── */}
           {collegeId
-            ? <CollegeCurriculumCard cohort={cohortData as any} hideActions={isViewer} />
+            ? <CollegeCurriculumCard classInfo={(classInfo?.classes as any) ?? null} hideActions={isViewer} />
             : <PublicLearningPath averageScore={averageScore} />
           }
 

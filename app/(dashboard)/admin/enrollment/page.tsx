@@ -36,8 +36,7 @@ export default async function EnrollmentPage() {
       </div>
 
       {/* Stats */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
-        {/* Total Enrolled */}
+      <div className="grid grid-cols-1 md:grid-cols-1 gap-5 mb-8 max-w-xs">
         <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
           <div className="w-12 h-12 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
             <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>group</span>
@@ -51,32 +50,6 @@ export default async function EnrollmentPage() {
                 active
               </span>
             </div>
-          </div>
-        </div>
-
-        {/* Active Cohorts */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
-            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>groups</span>
-          </div>
-          <div>
-            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Active Cohorts</p>
-            <span className="font-bold text-on-background text-[32px] leading-none">{stats.cohorts.length}</span>
-          </div>
-        </div>
-
-        {/* Latest Cohort */}
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5 shadow-sm flex items-center gap-4">
-          <div className="w-12 h-12 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
-            <span className="material-symbols-outlined text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>recent_actors</span>
-          </div>
-          <div className="min-w-0 flex-1">
-            <p className="font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider mb-0.5">Latest Cohort</p>
-            {stats.cohorts[0] ? (
-              <p className="font-semibold text-on-surface text-[15px] truncate">{stats.cohorts[0].name}</p>
-            ) : (
-              <p className="font-body-md text-on-surface-variant/60 italic text-sm">No cohorts yet</p>
-            )}
           </div>
         </div>
       </div>
