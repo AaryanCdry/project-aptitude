@@ -5,7 +5,7 @@ import { getExportData, type ExportData } from '@/app/actions/reports';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function triggerDownload(content: string | Uint8Array, mime: string, filename: string) {
+function triggerDownload(content: BlobPart, mime: string, filename: string) {
   const blob = new Blob([content], { type: mime });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
@@ -342,10 +342,10 @@ export default function ExportButton() {
         triggerDownload(html, 'text/html;charset=utf-8', `aptitudepro-report-${date}.html`);
       } else if (format === 'xlsx') {
         const buf = await generateXLSX(data);
-        triggerDownload(buf, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', `aptitudepro-report-${date}.xlsx`);
+        triggerDownload(buf.buffer as ArrayBuffer, 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet', `aptitudepro-report-${date}.xlsx`);
       } else if (format === 'pdf') {
         const buf = await generatePDF(data);
-        triggerDownload(buf, 'application/pdf', `aptitudepro-report-${date}.pdf`);
+        triggerDownload(buf.buffer as ArrayBuffer, 'application/pdf', `aptitudepro-report-${date}.pdf`);
       }
     } finally {
       setLoading(null);
