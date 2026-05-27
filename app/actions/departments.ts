@@ -38,6 +38,37 @@ export async function getDepartments() {
   }));
 }
 
+// ─── Update department ────────────────────────────────────────────────────────
+export async function updateDepartment(
+  id: string,
+  data: { name: string; course_type: string | null; semester_count: number }
+) {
+  const collegeId = await getCallerCollegeId();
+  if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
+    .from('departments')
+    .update({ name: data.name, course_type: data.course_type || null, semester_count: data.semester_count })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/admin/departments');
+  return { success: true };
+}
+
+// ─── Delete department ────────────────────────────────────────────────────────
+export async function deleteDepartment(id: string) {
+  const collegeId = await getCallerCollegeId();
+  if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.from('departments').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/admin/departments');
+  return { success: true };
+}
+
 // ─── Create department ────────────────────────────────────────────────────────
 export async function createDepartment(formData: FormData) {
   const collegeId = await getCallerCollegeId();
@@ -105,6 +136,41 @@ export async function getClasses(deptId?: string) {
   }
 
   return data ?? [];
+}
+
+// ─── Update class ─────────────────────────────────────────────────────────────
+export async function updateClass(
+  id: string,
+  data: { name: string; dept_id: string; year: number | null; section: string | null }
+) {
+  const collegeId = await getCallerCollegeId();
+  if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
+
+  // Verify the new department still belongs to this college
+  const adminClient = createAdminClient();
+  const { data: dept } = await adminClient.from('departments').select('college_id').eq('id', data.dept_id).single();
+  if (!dept || dept.college_id !== collegeId) return { error: 'Department does not belong to your college.' };
+
+  const { error } = await adminClient
+    .from('classes')
+    .update({ name: data.name, dept_id: data.dept_id, year: data.year, section: data.section || null })
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+  revalidatePath('/admin/classes');
+  return { success: true };
+}
+
+// ─── Delete class ─────────────────────────────────────────────────────────────
+export async function deleteClass(id: string) {
+  const collegeId = await getCallerCollegeId();
+  if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient.from('classes').delete().eq('id', id);
+  if (error) return { error: error.message };
+  revalidatePath('/admin/classes');
+  return { success: true };
 }
 
 // ─── Create class ─────────────────────────────────────────────────────────────

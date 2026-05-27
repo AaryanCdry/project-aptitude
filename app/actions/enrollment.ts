@@ -18,7 +18,7 @@ export async function getEnrolledStudents() {
     .from('users')
     .select(`
       id, name, email, role, created_at, temp_password,
-      registration_id, section, semester,
+      registration_id, section, semester, department_id, class_id,
       departments!department_id(name),
       classes!class_id(name, year)
     `)
@@ -41,15 +41,38 @@ export async function getEnrolledStudents() {
     return [];
   }
 
+  // Fetch last_sign_in_at for all students from auth.users in one call
+  const adminClient = createAdminClient();
+  const authMap: Record<string, string | null> = {};
+  try {
+    const { data: { users: authUsers } } = await adminClient.auth.admin.listUsers({
+      page: 1,
+      perPage: 1000,
+    });
+    (authUsers ?? []).forEach((au: any) => {
+      authMap[au.id] = au.last_sign_in_at ?? null;
+    });
+  } catch {
+    // If auth fetch fails, fall through — status will degrade to INVITED/INACTIVE
+  }
+
+  const sevenDaysAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+
   return (data ?? []).map((u: any, i: number) => {
     const year = new Date(u.created_at).getFullYear();
+    const lastSignIn = authMap[u.id] ?? null;
+    const status = !lastSignIn
+      ? 'INVITED'
+      : new Date(lastSignIn).getTime() > sevenDaysAgo
+        ? 'ACTIVE'
+        : 'INACTIVE';
     return {
       ...u,
       platformId: `STU-${year}-${String(i + 1).padStart(3, '0')}`,
       departmentName: (u.departments as any)?.name ?? null,
       className: (u.classes as any)?.name ?? null,
       classYear: (u.classes as any)?.year ?? null,
-      status: 'ACTIVE',
+      status,
       dateEnrolled: new Date(u.created_at).toLocaleDateString('en-US', {
         month: 'short', day: 'numeric', year: 'numeric',
       }),
@@ -240,6 +263,62 @@ export async function processBulkEnrollment(
   revalidatePath('/admin/enrollment');
   return results;
 }
+// ─── Update student profile details ──────────────────────────────────────────
+
+export async function updateStudentDetails(
+  studentId: string,
+  data: {
+    name: string;
+    registration_id: string | null;
+    department_id: string | null;
+    class_id: string | null;
+    section: string | null;
+    semester: number | null;
+  }
+) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' };
+
+  const adminClient = createAdminClient();
+  const { error } = await adminClient
+    .from('users')
+    .update({
+      name: data.name,
+      registration_id: data.registration_id || null,
+      department_id: data.department_id || null,
+      class_id: data.class_id || null,
+      section: data.section || null,
+      semester: data.semester || null,
+    })
+    .eq('id', studentId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/admin/enrollment');
+  return { success: true as const };
+}
+
+// ─── Remove (delete) a student account ────────────────────────────────────────
+
+export async function removeStudent(studentId: string) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' };
+
+  const adminClient = createAdminClient();
+
+  const { error: userError } = await adminClient
+    .from('users')
+    .delete()
+    .eq('id', studentId);
+
+  if (userError) return { error: userError.message };
+
+  const { error: authError } = await adminClient.auth.admin.deleteUser(studentId);
+  if (authError) return { error: authError.message };
+
+  revalidatePath('/admin/enrollment');
+  return { success: true as const };
+}
+
 // ─── Reset a student's password (admin action) ────────────────────────────────
 
 export async function resetStudentPassword(studentId: string, sendEmail: boolean = true) {
@@ -273,7 +352,7 @@ export async function resetStudentPassword(studentId: string, sendEmail: boolean
   if (sendEmail && studentRow?.email) {
     const siteUrl = process.env.NEXT_PUBLIC_SITE_URL ?? 'http://localhost:3000';
     await supabase.auth.resetPasswordForEmail(studentRow.email, {
-      redirectTo: `${siteUrl}/login`,
+      redirectTo: `${siteUrl}/reset-password`,
     });
   }
 

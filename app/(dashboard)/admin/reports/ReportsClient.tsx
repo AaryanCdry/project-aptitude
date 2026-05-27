@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import ExportButton from '../_shared/ExportButton';
 
 type Row = {
   id: string;
@@ -31,20 +32,6 @@ export default function ReportsClient({ rows }: { rows: Row[] }) {
     return matchSearch && matchGrade;
   });
 
-  function downloadCSV() {
-    const header = 'Name,Email,Joined,Tests Completed,Avg Score,Grade';
-    const body = rows.map(r =>
-      `"${r.name}","${r.email}","${r.joined}",${r.testsCompleted},${r.avgScore},"${r.grade}"`
-    ).join('\n');
-    const blob = new Blob([header + '\n' + body], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = `student-report-${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
-  }
-
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
       {/* Toolbar */}
@@ -66,13 +53,7 @@ export default function ReportsClient({ rows }: { rows: Row[] }) {
         >
           {grades.map(g => <option key={g}>{g}</option>)}
         </select>
-        <button
-          onClick={downloadCSV}
-          className="inline-flex items-center gap-1.5 px-4 py-2 bg-primary text-on-primary rounded-lg font-metric-label text-sm hover:opacity-90 transition-opacity"
-        >
-          <span className="material-symbols-outlined text-sm">download</span>
-          Export CSV
-        </button>
+        <ExportButton />
       </div>
 
       {/* Table */}

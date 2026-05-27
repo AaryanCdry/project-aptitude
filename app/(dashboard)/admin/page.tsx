@@ -1,6 +1,7 @@
 import React from 'react';
 import { getAdminDashboardData } from '@/app/actions/dashboard';
 import { getCallerScope } from '@/app/actions/scope';
+import ExportButton from './_shared/ExportButton';
 
 export default async function AdminDashboard() {
   const [{
@@ -31,50 +32,54 @@ export default async function AdminDashboard() {
           <h1 className="font-display-sm text-display-sm text-on-surface">{overviewTitle}</h1>
           <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">{overviewSubtitle}</p>
         </div>
-        <button className="bg-primary text-on-primary px-6 py-3 rounded-lg font-metric-label text-metric-label hover:bg-primary-fixed-variant transition-colors flex items-center space-x-2">
-          <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>download</span>
-          <span>Export Report</span>
-        </button>
+        <ExportButton />
       </header>
 
       {/* ── KPI Cards ─────────────────────────────────────────────── */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-10">
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>group</span>
+        {/* Total Students */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-primary rounded-t-2xl" />
+          <div className="flex items-start justify-between mb-5">
+            <p className="font-caption text-on-surface-variant text-[11px] uppercase tracking-widest mt-0.5">Total Students</p>
+            <div className="w-11 h-11 rounded-xl bg-primary/10 flex items-center justify-center text-primary shrink-0">
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>group</span>
             </div>
-            <p className="font-metric-label text-metric-label text-on-surface-variant uppercase">Total Students</p>
           </div>
-          <div className="flex items-baseline space-x-3">
-            <span className="font-display-lg text-display-lg text-primary">{totalStudents}</span>
-          </div>
+          <p className="font-display-lg text-on-surface text-5xl font-bold tabular-nums leading-none mb-2">{totalStudents}</p>
+          <p className="font-caption text-on-surface-variant text-xs">enrolled in platform</p>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>analytics</span>
+        {/* Average Score */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-secondary rounded-t-2xl" />
+          <div className="flex items-start justify-between mb-5">
+            <p className="font-caption text-on-surface-variant text-[11px] uppercase tracking-widest mt-0.5">Average Score</p>
+            <div className="w-11 h-11 rounded-xl bg-secondary/10 flex items-center justify-center text-secondary shrink-0">
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>analytics</span>
             </div>
-            <p className="font-metric-label text-metric-label text-on-surface-variant uppercase">Average Score</p>
           </div>
-          <div className="flex items-baseline space-x-3">
-            <span className="font-display-lg text-display-lg text-primary">{averageScore}%</span>
-            <span className="font-caption text-caption text-on-surface-variant">{avgScopeLabel}</span>
+          <div className="flex items-baseline gap-1 mb-3">
+            <p className="font-display-lg text-on-surface text-5xl font-bold tabular-nums leading-none">{averageScore}</p>
+            <span className="font-headline-md text-on-surface-variant text-2xl font-semibold">%</span>
           </div>
+          <div className="h-1.5 w-full bg-surface-container-high rounded-full overflow-hidden">
+            <div className="h-full bg-secondary rounded-full transition-all duration-700" style={{ width: `${Math.min(100, averageScore)}%` }} />
+          </div>
+          <p className="font-caption text-on-surface-variant text-xs mt-2">{avgScopeLabel}</p>
         </div>
 
-        <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-6 hover:shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] transition-shadow">
-          <div className="flex items-center gap-3 mb-4">
-            <div className="w-10 h-10 rounded-full bg-surface-container flex items-center justify-center text-primary">
-              <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>task_alt</span>
+        {/* Tests Completed */}
+        <div className="bg-surface-container-lowest border border-outline-variant rounded-2xl p-6 hover:shadow-md transition-all hover:-translate-y-0.5 relative overflow-hidden">
+          <div className="absolute top-0 left-0 right-0 h-0.5 bg-tertiary rounded-t-2xl" />
+          <div className="flex items-start justify-between mb-5">
+            <p className="font-caption text-on-surface-variant text-[11px] uppercase tracking-widest mt-0.5">Tests Completed</p>
+            <div className="w-11 h-11 rounded-xl bg-tertiary/10 flex items-center justify-center text-tertiary shrink-0">
+              <span className="material-symbols-outlined text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>task_alt</span>
             </div>
-            <p className="font-metric-label text-metric-label text-on-surface-variant uppercase">Tests Completed</p>
           </div>
-          <div className="flex items-baseline space-x-3">
-            <span className="font-display-lg text-display-lg text-primary">{totalCompletedTests}</span>
-            <span className="font-caption text-caption text-on-surface-variant">all time</span>
-          </div>
+          <p className="font-display-lg text-on-surface text-5xl font-bold tabular-nums leading-none mb-2">{totalCompletedTests}</p>
+          <p className="font-caption text-on-surface-variant text-xs">all time</p>
         </div>
       </div>
 
@@ -93,32 +98,40 @@ export default async function AdminDashboard() {
               No score data available yet.
             </div>
           ) : (
-            <div className="h-64 relative flex items-end justify-around px-4 pb-8 border-b border-l border-outline-variant gap-4">
-              {/* Grid lines */}
-              <div className="absolute w-full border-t border-outline-variant/30 bottom-1/4 left-0"></div>
-              <div className="absolute w-full border-t border-outline-variant/30 bottom-2/4 left-0"></div>
-              <div className="absolute w-full border-t border-outline-variant/30 bottom-3/4 left-0"></div>
+            <div className="h-52 relative flex items-end justify-around px-2 pb-8 border-b border-l border-outline-variant gap-3">
+              {/* Y-axis grid lines at 25%, 50%, 75% */}
+              {[25, 50, 75].map(pct => (
+                <div key={pct} className="absolute w-full border-t border-outline-variant/30 left-0 pointer-events-none" style={{ bottom: `calc(${pct}% + 2rem)` }}>
+                  <span className="absolute -left-7 -translate-y-1/2 text-[9px] text-on-surface-variant/50 tabular-nums">{pct}</span>
+                </div>
+              ))}
 
               {weeklyTrend.map((week, i) => {
-                const pct = maxAvg > 0 ? (week.average / 100) * 100 : 0; // percentage of chart height
-                const barH = maxAvg > 0 ? `${Math.round((week.average / maxAvg) * 160)}px` : '4px';
+                // Both bars use the same 160px scale relative to maxAvg
+                const barH = maxAvg > 0 ? Math.round((week.average / maxAvg) * 160) : 0;
                 const isLatest = i === weeklyTrend.length - 1;
+                const hasData = week.average > 0;
+                const xLabel = week.label === 'W4' ? 'This Wk' : week.label === 'W0' ? '4w ago' : week.label;
                 return (
-                  <div key={week.label} className="flex-1 flex flex-col items-center justify-end relative group">
+                  <div key={week.label} className="flex-1 flex flex-col items-center justify-end relative group h-full">
                     {/* Tooltip */}
-                    <div className="absolute -top-7 bg-inverse-surface text-inverse-on-surface text-[10px] px-1.5 py-0.5 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap">
-                      {week.average > 0 ? `${week.average}%` : 'No data'}
+                    <div className="absolute bottom-full mb-2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap pointer-events-none z-20 font-metric-label">
+                      {hasData ? `${week.average}%` : 'No data'}
                     </div>
-                    {/* Pale background bar */}
-                    <div className="w-full bg-primary/10 rounded-t-sm absolute bottom-0" style={{ height: barH }}></div>
+                    {/* Ghost bar — always full 160px ceiling, very faint */}
+                    <div className="w-full bg-primary/8 rounded-t absolute bottom-0" style={{ height: '160px' }} />
                     {/* Filled bar */}
-                    <div
-                      className={`w-full rounded-t-sm z-10 relative transition-all duration-500 ${isLatest ? 'bg-secondary' : 'bg-primary'}`}
-                      style={{ height: week.average > 0 ? `${Math.round((week.average / maxAvg) * 100)}px` : '2px' }}
-                    ></div>
+                    {hasData ? (
+                      <div
+                        className={`w-full rounded-t z-10 relative transition-all duration-700 ease-out ${isLatest ? 'bg-secondary' : 'bg-primary/70'}`}
+                        style={{ height: `${barH}px` }}
+                      />
+                    ) : (
+                      <div className="w-full border-t-2 border-dashed border-outline-variant/40 z-10 relative" style={{ height: '2px' }} />
+                    )}
                     {/* X-axis label */}
-                    <span className="absolute -bottom-6 text-caption text-on-surface-variant">
-                      {week.label === 'W4' ? 'This Wk' : week.label === 'W0' ? '4w ago' : week.label}
+                    <span className={`absolute -bottom-6 text-[11px] font-caption whitespace-nowrap ${isLatest ? 'text-secondary font-semibold' : 'text-on-surface-variant'}`}>
+                      {xLabel}
                     </span>
                   </div>
                 );

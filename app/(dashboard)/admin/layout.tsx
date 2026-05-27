@@ -1,7 +1,7 @@
 import React from 'react';
-import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import LogoutButton from '@/components/LogoutButton';
+import NavLink from '@/components/NavLink';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -22,12 +22,16 @@ export default async function AdminLayout({ children }: { children: React.ReactN
 
   return (
     <div className="flex h-screen bg-background">
-      <nav className="hidden md:flex flex-col py-gutter px-4 space-y-2 docked h-screen left-0 w-64 border-r border-outline-variant bg-surface-container-low text-primary shrink-0 sticky top-0 overflow-y-auto">
-        <div className="mb-6 px-4 pt-6">
-          <span className="text-headline-md font-headline-md text-primary font-bold">AptitudePro</span>
+      <nav className="hidden md:flex flex-col w-64 border-r border-outline-variant bg-surface-container-lowest text-primary shrink-0 sticky top-0 h-screen overflow-y-auto">
+        {/* Wordmark */}
+        <div className="px-6 pt-5 pb-3 flex items-center gap-2 border-b border-outline-variant">
+          <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
+          <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptitudePro</span>
         </div>
-        <div className="flex items-center space-x-3 px-4 py-3 mb-4">
-          <div className="w-10 h-10 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-sm shrink-0">
+
+        {/* User info */}
+        <div className="px-5 py-4 flex items-center gap-3 border-b border-outline-variant">
+          <div className="w-9 h-9 rounded-full bg-primary-fixed text-on-primary-fixed flex items-center justify-center font-bold text-sm shrink-0">
             {initials}
           </div>
           <div className="min-w-0">
@@ -35,60 +39,30 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <p className="font-caption text-on-surface-variant text-xs">{roleLabel}</p>
           </div>
         </div>
-        <div className="flex-1 space-y-2">
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>dashboard</span>
-            <span>Overview</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/questions">
-            <span className="material-symbols-outlined">quiz</span>
-            <span>Questions</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/assessments">
-            <span className="material-symbols-outlined">calendar_month</span>
-            <span>Scheduling</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/finals">
-            <span className="material-symbols-outlined">workspace_premium</span>
-            <span>Final Exams</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/enrollment">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>group_add</span>
-            <span>Enrollment</span>
-          </Link>
+
+        <div className="flex-1 p-3 flex flex-col gap-0.5">
+          <NavLink href="/admin" icon="dashboard" label="Overview" exact />
+          <NavLink href="/admin/questions" icon="quiz" label="Questions" />
+          <NavLink href="/admin/assessments" icon="calendar_month" label="Scheduling" />
+          <NavLink href="/admin/finals" icon="workspace_premium" label="Final Exams" />
+          <NavLink href="/admin/enrollment" icon="group_add" label="Enrollment" />
           {!isHOD && (
-            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/departments">
-              <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>account_tree</span>
-              <span>Departments</span>
-            </Link>
+            <NavLink href="/admin/departments" icon="account_tree" label="Departments" />
           )}
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/classes">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>meeting_room</span>
-            <span>Classes</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/staff">
-            <span className="material-symbols-outlined" style={{fontVariationSettings: '"FILL" 1'}}>badge</span>
-            <span>Staff</span>
-          </Link>
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/reports">
-            <span className="material-symbols-outlined">assessment</span>
-            <span>Reports</span>
-          </Link>
+          <NavLink href="/admin/classes" icon="meeting_room" label="Classes" />
+          <NavLink href="/admin/staff" icon="badge" label="Staff" />
+          <NavLink href="/admin/reports" icon="assessment" label="Reports" />
           {!isHOD && (
-            <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/settings">
-              <span className="material-symbols-outlined">settings</span>
-              <span>Settings</span>
-            </Link>
+            <NavLink href="/admin/settings" icon="settings" label="Settings" />
           )}
-          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high transition-all rounded-lg" href="/admin/profile">
-            <span className="material-symbols-outlined">person</span>
-            <span>Profile</span>
-          </Link>
+          <NavLink href="/admin/profile" icon="person" label="Profile" />
         </div>
-        <div className="pt-4 border-t border-outline-variant">
+
+        <div className="p-3 border-t border-outline-variant">
           <LogoutButton />
         </div>
       </nav>
+
       <div className="flex-1 flex flex-col min-w-0 min-h-0 overflow-hidden">
         <main className="flex-1 overflow-y-auto min-h-0 p-8">
           {children}

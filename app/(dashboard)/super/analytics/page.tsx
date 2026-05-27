@@ -1,9 +1,9 @@
 import React from 'react';
 import { getSuperAdminData } from '@/app/actions/reports';
-import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 async function getGlobalAnalytics() {
-  const supabase = await createClient();
+  const supabase = createAdminClient();
 
   const { data: scores } = await supabase
     .from('scores')

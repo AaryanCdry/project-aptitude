@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { getGrade } from '@/lib/adaptive';
 
@@ -140,26 +141,19 @@ export async function getSuperAdminData() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data: colleges } = await supabase
-    .from('colleges')
-    .select('id, name, code, status, created_at')
-    .order('created_at', { ascending: false });
+  const adminClient = createAdminClient();
 
-  const { data: students } = await supabase
-    .from('users')
-    .select('id, created_at')
-    .eq('role', 'STUDENT');
-
-  const { data: tests } = await supabase
-    .from('tests')
-    .select('id, status')
-    .eq('status', 'COMPLETED');
+  const [{ data: colleges }, { count: totalStudents }, { count: totalTests }] = await Promise.all([
+    adminClient.from('colleges').select('id, name, code, status, created_at').order('created_at', { ascending: false }),
+    adminClient.from('users').select('*', { count: 'exact', head: true }).eq('role', 'STUDENT'),
+    adminClient.from('tests').select('*', { count: 'exact', head: true }).eq('status', 'COMPLETED'),
+  ]);
 
   return {
     colleges: colleges ?? [],
     totalColleges: (colleges ?? []).length,
-    totalStudents: (students ?? []).length,
-    totalTests: (tests ?? []).length,
+    totalStudents: totalStudents ?? 0,
+    totalTests: totalTests ?? 0,
   };
 }
 
@@ -207,3 +201,50 @@ export async function getSubAdminData() {
   return { students: rows };
 }
 
+export interface ExportData {
+  generatedAt: string;
+  summary: { totalStudents: number; totalTests: number; overallAvg: number };
+  domainAverages: { domain: string; average: number }[];
+  rows: { name: string; email: string; testsCompleted: number; avgScore: number; grade: string; joined: string }[];
+}
+
+export async function getExportData(): Promise<ExportData> {
+  const { rows, totalStudents, totalTests, overallAvg } = await getAdminReportData();
+
+  const adminClient = createAdminClient();
+  const studentIds = (rows as any[]).map(r => r.id);
+
+  let domainAverages: { domain: string; average: number }[] = [];
+  if (studentIds.length) {
+    const { data: scores } = await adminClient
+      .from('scores')
+      .select('domain, score')
+      .in('student_id', studentIds)
+      .neq('domain', 'OVERALL');
+
+    const totals: Record<string, { total: number; count: number }> = {};
+    (scores ?? []).forEach((s: any) => {
+      if (!totals[s.domain]) totals[s.domain] = { total: 0, count: 0 };
+      totals[s.domain].total += s.score;
+      totals[s.domain].count += 1;
+    });
+    domainAverages = Object.entries(totals).map(([domain, d]) => ({
+      domain: domain.charAt(0) + domain.slice(1).toLowerCase(),
+      average: Math.round((d.total / d.count) * 10) / 10,
+    })).sort((a, b) => b.average - a.average);
+  }
+
+  return {
+    generatedAt: new Date().toLocaleString('en-US', { dateStyle: 'long', timeStyle: 'short' }),
+    summary: { totalStudents, totalTests, overallAvg },
+    domainAverages,
+    rows: (rows as any[]).map(r => ({
+      name: r.name,
+      email: r.email,
+      testsCompleted: r.testsCompleted,
+      avgScore: r.avgScore,
+      grade: r.grade,
+      joined: r.joined,
+    })),
+  };
+}

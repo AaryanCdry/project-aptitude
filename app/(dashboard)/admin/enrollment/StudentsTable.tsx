@@ -21,6 +21,8 @@ type Student = {
   semester: number | null;
   temp_password: string | null;
   created_at: string;
+  department_id: string | null;
+  class_id: string | null;
   departmentName: string | null;
   className: string | null;
   classYear: number | null;
@@ -28,6 +30,9 @@ type Student = {
   dateEnrolled: string;
   platformId: string;
 };
+
+type Department = { id: string; name: string; };
+type ClassRow = { id: string; name: string; dept_id: string; };
 
 type SortKey =
   | 'name'
@@ -41,12 +46,14 @@ type SortKey =
 interface Props {
   students: Student[];
   totalEnrolled: number;
+  departments: Department[];
+  classes: ClassRow[];
 }
 
 const cmpStr = (a: string | null | undefined, b: string | null | undefined) =>
   (a ?? '').localeCompare(b ?? '', undefined, { sensitivity: 'base' });
 
-export default function StudentsTable({ students, totalEnrolled }: Props) {
+export default function StudentsTable({ students, totalEnrolled, departments, classes }: Props) {
   const [query, setQuery] = useState('');
   const [tab, setTab] = useState<'all' | 'active' | 'invited'>('all');
   const [deptSel, setDeptSel] = useState<string[]>([]);
@@ -96,8 +103,8 @@ export default function StudentsTable({ students, totalEnrolled }: Props) {
         (s.platformId ?? '').toLowerCase().includes(q)
       );
     }
-    if (tab === 'active') rows = rows.filter(s => !s.temp_password);
-    if (tab === 'invited') rows = rows.filter(s => !!s.temp_password);
+    if (tab === 'active') rows = rows.filter(s => s.status === 'ACTIVE');
+    if (tab === 'invited') rows = rows.filter(s => s.status === 'INVITED');
 
     if (deptSel.length > 0)   rows = rows.filter(s => s.departmentName != null && deptSel.includes(s.departmentName));
     if (classSel.length > 0)  rows = rows.filter(s => s.className != null && classSel.includes(s.className));
@@ -108,11 +115,7 @@ export default function StudentsTable({ students, totalEnrolled }: Props) {
     if (yearSel.length > 0)    rows = rows.filter(s => s.classYear != null && yearSel.includes(String(s.classYear)));
     if (semesterSel.length > 0) rows = rows.filter(s => s.semester != null && semesterSel.includes(String(s.semester)));
     if (statusSel.length > 0) {
-      rows = rows.filter(s => {
-        const isInvited = !!s.temp_password;
-        return (statusSel.includes('ACTIVE') && !isInvited)
-            || (statusSel.includes('INVITED') && isInvited);
-      });
+      rows = rows.filter(s => statusSel.includes(s.status));
     }
 
     const dir = sortDir === 'asc' ? 1 : -1;
@@ -123,10 +126,7 @@ export default function StudentsTable({ students, totalEnrolled }: Props) {
         case 'department':      return dir * cmpStr(a.departmentName, b.departmentName);
         case 'class':           return dir * cmpStr(a.className, b.className);
         case 'section':         return dir * cmpStr(a.section, b.section);
-        case 'status':          return dir * cmpStr(
-          a.temp_password ? 'INVITED' : 'ACTIVE',
-          b.temp_password ? 'INVITED' : 'ACTIVE',
-        );
+        case 'status':          return dir * cmpStr(a.status, b.status);
         case 'enrolled':
         default:
           return dir * (new Date(a.created_at).getTime() - new Date(b.created_at).getTime());
@@ -239,7 +239,11 @@ export default function StudentsTable({ students, totalEnrolled }: Props) {
         <MultiSelectDropdown label="Semester" options={semesterOptions} selected={semesterSel} onChange={v => { setSemesterSel(v); setPage(1); }} emptyOptionsLabel="No semester data" />
         <MultiSelectDropdown
           label="Status"
-          options={[{ value: 'ACTIVE', label: 'Active' }, { value: 'INVITED', label: 'Invited' }]}
+          options={[
+            { value: 'ACTIVE', label: 'Active' },
+            { value: 'INACTIVE', label: 'Inactive' },
+            { value: 'INVITED', label: 'Invited' },
+          ]}
           selected={statusSel}
           onChange={v => { setStatusSel(v); setPage(1); }}
         />
@@ -296,8 +300,6 @@ export default function StudentsTable({ students, totalEnrolled }: Props) {
                 .substring(0, 2)
                 .toUpperCase();
               const ci = (student.name?.charCodeAt(0) ?? (pageStart + idx)) % 3;
-              const isInvited = !!student.temp_password;
-
               return (
                 <tr key={student.id} className="hover:bg-surface-container/40 transition-colors group">
                   <td className="py-3 px-4">
@@ -348,23 +350,29 @@ export default function StudentsTable({ students, totalEnrolled }: Props) {
                   </td>
 
                   <td className="py-3 px-4">
-                    {isInvited ? (
+                    {student.status === 'ACTIVE' ? (
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-secondary-fixed/60 text-on-secondary-fixed-variant border border-secondary-fixed-dim">
+                        <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
+                        ACTIVE
+                      </span>
+                    ) : student.status === 'INVITED' ? (
                       <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-tertiary-fixed text-on-tertiary-fixed-variant border border-tertiary/30">
                         <span className="w-1.5 h-1.5 rounded-full bg-tertiary" />
                         INVITED
                       </span>
                     ) : (
-                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-secondary-fixed/60 text-on-secondary-fixed-variant border border-secondary-fixed-dim">
-                        <span className="w-1.5 h-1.5 rounded-full bg-secondary" />
-                        ACTIVE
+                      <span className="inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-[11px] font-medium bg-surface-container-high text-on-surface-variant border border-outline-variant">
+                        <span className="w-1.5 h-1.5 rounded-full bg-outline" />
+                        INACTIVE
                       </span>
                     )}
                   </td>
 
                   <td className="py-3 px-4">
                     <StudentActions
-                      studentId={student.id}
-                      tempPassword={student.temp_password ?? null}
+                      student={student}
+                      departments={departments}
+                      classes={classes}
                     />
                   </td>
                 </tr>

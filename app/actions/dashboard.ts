@@ -139,28 +139,25 @@ export async function getAdminDashboardData() {
   const now = new Date();
 
   if (scores && scores.length > 0) {
+    const domainScores = scores.filter((s: any) => s.domain !== 'OVERALL');
+    const overallScores = scores.filter((s: any) => s.domain === 'OVERALL');
+
+    // Overall platform average: use OVERALL domain rows if present, else all scores
+    const avgSource = overallScores.length ? overallScores : domainScores;
     let totalScore = 0;
+    avgSource.forEach((s: any) => { totalScore += s.score; });
+    averageScore = avgSource.length ? Math.round(totalScore / avgSource.length) : 0;
 
-    scores.forEach((s: any) => {
-      totalScore += s.score;
-
-      // Domain aggregation
+    domainScores.forEach((s: any) => {
+      // Domain aggregation (non-OVERALL only)
       if (!domainTotals[s.domain]) domainTotals[s.domain] = { total: 0, count: 0 };
       domainTotals[s.domain].total += s.score;
       domainTotals[s.domain].count += 1;
 
-      // Student aggregation
-      if (s.users) {
-        const sid = s.users.id;
-        if (!studentTotals[sid]) studentTotals[sid] = { name: s.users.name || 'Unknown', total: 0, count: 0 };
-        studentTotals[sid].total += s.score;
-        studentTotals[sid].count += 1;
-      }
-
-      // Weekly aggregation
+      // Weekly aggregation (domain scores)
       const createdAt = new Date(s.created_at);
       const diffDays = Math.floor((now.getTime() - createdAt.getTime()) / (1000 * 60 * 60 * 24));
-      const weekNum = Math.floor(diffDays / 7); // 0 = this week, 1 = last week…
+      const weekNum = Math.floor(diffDays / 7);
       if (weekNum < 5) {
         const key = `W${4 - weekNum}`;
         if (!weeklyTotals[key]) weeklyTotals[key] = { total: 0, count: 0 };
@@ -169,13 +166,23 @@ export async function getAdminDashboardData() {
       }
     });
 
-    averageScore = Math.round(totalScore / scores.length);
+    // Student averages: use OVERALL scores per student when available
+    (overallScores.length ? overallScores : domainScores).forEach((s: any) => {
+      if (s.users) {
+        const sid = s.users.id;
+        if (!studentTotals[sid]) studentTotals[sid] = { name: s.users.name || 'Unknown', total: 0, count: 0 };
+        studentTotals[sid].total += s.score;
+        studentTotals[sid].count += 1;
+      }
+    });
   }
 
-  const domainAverages = Object.entries(domainTotals).map(([domain, data]) => ({
-    domain,
-    average: Math.round((data.total / data.count) * 10) / 10,
-  }));
+  const domainAverages = Object.entries(domainTotals)
+    .filter(([domain]) => domain !== 'OVERALL')
+    .map(([domain, data]) => ({
+      domain,
+      average: Math.round((data.total / data.count) * 10) / 10,
+    }));
 
   const studentAverages = Object.entries(studentTotals)
     .map(([id, data]) => ({
@@ -185,8 +192,9 @@ export async function getAdminDashboardData() {
     }))
     .sort((a, b) => a.average - b.average);
 
-  const studentsAtRisk = studentAverages.slice(0, 3);
-  const topPerformers = studentAverages.slice(-3).reverse();
+  // At-risk: only students genuinely below 50% average
+  const studentsAtRisk = studentAverages.filter(s => s.average < 50).slice(0, 5);
+  const topPerformers = studentAverages.slice(-5).reverse();
 
   // Produce sorted weekly trend array (W0 → W4)
   const weeklyTrend = ['W0', 'W1', 'W2', 'W3', 'W4'].map((key) => ({
