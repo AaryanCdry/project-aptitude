@@ -1,9 +1,19 @@
 'use client';
 
 import { useState } from 'react';
+import dynamic from 'next/dynamic';
 import ExportButton from '../_shared/ExportButton';
-import ExamAnalyticsTable from './ExamAnalyticsTable';
 import type { ExamRow } from '@/app/actions/reports';
+
+const ExamAnalyticsTable = dynamic(() => import('./ExamAnalyticsTable'), {
+  loading: () => (
+    <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-12 text-center shadow-sm animate-pulse">
+      <div className="h-4 bg-surface-container-high rounded w-48 mx-auto mb-3" />
+      <div className="h-3 bg-surface-container-high rounded w-32 mx-auto" />
+    </div>
+  ),
+  ssr: false,
+});
 
 type Row = {
   id: string;
