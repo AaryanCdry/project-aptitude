@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { Bricolage_Grotesque, DM_Sans } from "next/font/google";
 import { SpeedInsights } from "@vercel/speed-insights/next";
+import { Analytics } from "@vercel/analytics/next";
 import "./globals.css";
 
 const bricolage = Bricolage_Grotesque({
@@ -36,6 +37,7 @@ export default function RootLayout({
       <body suppressHydrationWarning className="bg-background text-on-background font-body-md min-h-screen antialiased flex flex-col w-full selection:bg-primary-container selection:text-on-primary-container">
         {children}
         <SpeedInsights />
+        <Analytics />
       </body>
     </html>
   );
