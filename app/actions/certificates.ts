@@ -62,21 +62,27 @@ export async function getMentorCertificates() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data: mentorProfile } = await supabase
-    .from('users')
-    .select('college_id')
-    .eq('id', user.id)
-    .single();
-  const collegeId = mentorProfile?.college_id;
+  // Use cached scope — avoids a redundant auth+DB round-trip
+  const { getCallerScope } = await import('./scope');
+  const scope = await getCallerScope();
 
-  let studentsQ = supabase.from('users').select('id, name, email').eq('role', 'STUDENT');
-  if (collegeId) studentsQ = (studentsQ as any).eq('college_id', collegeId);
+  const adminClient = createAdminClient();
+
+  // Scope students to the mentor's classes (not the whole college)
+  let studentsQ = adminClient.from('users').select('id, name, email').eq('role', 'STUDENT');
+  if (scope.role === 'MENTOR' && scope.classIds.length > 0) {
+    studentsQ = studentsQ.in('class_id', scope.classIds);
+  } else if (scope.collegeId) {
+    studentsQ = (studentsQ as any).eq('college_id', scope.collegeId);
+  } else {
+    return [];
+  }
+
   const { data: students } = await studentsQ;
-
-  const studentIds = (students ?? []).map((s: any) => s.id);
+  const studentIds = (students ?? []).map((s: any) => s.id as string);
   if (studentIds.length === 0) return [];
 
-  const { data: certs } = await supabase
+  const { data: certs } = await adminClient
     .from('certificates')
     .select('id, student_id, qr_code, issued_at, revoked, tier')
     .in('student_id', studentIds)

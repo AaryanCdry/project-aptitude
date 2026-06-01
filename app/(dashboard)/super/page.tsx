@@ -2,6 +2,14 @@ import React from 'react';
 import Link from 'next/link';
 import { getSuperAdminData } from '@/app/actions/reports';
 
+interface CollegeRow {
+  id: string;
+  name: string;
+  code: string;
+  status: string;
+  created_at: string;
+}
+
 export default async function SuperDashboard() {
   const { colleges, totalColleges, totalStudents, totalTests } = await getSuperAdminData();
 
@@ -77,7 +85,7 @@ export default async function SuperDashboard() {
               </tr>
             </thead>
             <tbody className="divide-y divide-outline-variant">
-              {recentColleges.map((c: any) => (
+              {(recentColleges as unknown as CollegeRow[]).map((c) => (
                 <tr key={c.id} className="hover:bg-surface-container transition-colors">
                   <td className="py-3 px-5 font-body-md text-on-surface font-medium">{c.name}</td>
                   <td className="py-3 px-5 font-mono text-sm text-on-surface-variant">{c.code}</td>

@@ -171,7 +171,7 @@ function CertificateCard({ cert, revoked = false }: { cert: any; revoked?: boole
         </div>
         <div className="flex-1 min-w-0">
           <p className="font-caption text-on-surface-variant mb-1">Verification ID</p>
-          <p className="font-body-md text-on-surface font-mono text-xs truncate mb-3">{cert.qrCode}</p>
+          <p className="font-mono text-on-surface text-xs truncate mb-3">{cert.qrCode}</p>
           {!revoked && (
             <div className="flex gap-2 flex-wrap">
               <a

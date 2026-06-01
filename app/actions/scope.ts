@@ -1,5 +1,6 @@
 'use server';
 
+import { cache } from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 
@@ -21,7 +22,7 @@ const EMPTY: CallerScope = {
   classIds: [],
 };
 
-export async function getCallerScope(): Promise<CallerScope> {
+export const getCallerScope = cache(async (): Promise<CallerScope> => {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) return EMPTY;
@@ -55,7 +56,7 @@ export async function getCallerScope(): Promise<CallerScope> {
     departmentId: profile.department_id ?? null,
     classIds,
   };
-}
+});
 
 // Resolve which class IDs the caller may operate on, given their scope.
 // - SUPER_ADMIN: no restriction (returns null → "all")

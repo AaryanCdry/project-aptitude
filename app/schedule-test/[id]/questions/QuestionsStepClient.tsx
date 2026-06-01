@@ -2,6 +2,7 @@
 
 import { useMemo, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
+import * as xlsx from 'xlsx';
 import {
   addQuestion,
   bulkAddQuestions,
@@ -103,36 +104,53 @@ function parseCSVLine(line: string): string[] {
   return fields;
 }
 
+function validateRow(row: Record<string, string>, rowNum: number): ParsedRow {
+  const domain = (row.domain ?? '').trim().toUpperCase();
+  const blank: ParsedRow = { rowNum, domain, difficulty: 0, text: '', options: [], correct_index: 0, time_suggestion_sec: 90 };
+  if (!VALID_DOMAINS.includes(domain)) return { ...blank, error: `Invalid domain "${row.domain}"` };
+  const difficulty = parseInt(row.difficulty ?? '');
+  if (isNaN(difficulty) || difficulty < 1 || difficulty > 10) return { ...blank, error: 'Difficulty must be 1–10' };
+  const text2 = (row.text ?? '').trim();
+  if (!text2) return { ...blank, difficulty, error: 'Question text is required' };
+  const optA = (row.option_a ?? '').trim();
+  const optB = (row.option_b ?? '').trim();
+  if (!optA || !optB) return { ...blank, difficulty, text: text2, error: 'At least options A and B are required' };
+  const correctKey = (row.correct ?? '').trim().toUpperCase();
+  if (!['A', 'B', 'C', 'D'].includes(correctKey)) return { ...blank, difficulty, text: text2, error: 'Correct must be A, B, C, or D' };
+  const options = [optA, optB, (row.option_c ?? '').trim(), (row.option_d ?? '').trim()].filter(Boolean);
+  const correct_index = CORRECT_MAP[correctKey];
+  if (correct_index >= options.length) return { ...blank, difficulty, text: text2, options, error: `Option ${correctKey} is empty` };
+  return {
+    rowNum, domain,
+    sub_type: (row.sub_type ?? '').trim() || undefined,
+    difficulty, text: text2, options, correct_index,
+    time_suggestion_sec: parseInt(row.time_sec ?? '') || 90,
+    explanation: (row.explanation ?? '').trim() || undefined,
+  };
+}
+
 function parseAndValidateCSV(text: string): ParsedRow[] {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return [];
   const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
   return lines.slice(1).map((line, i) => {
-    const rowNum = i + 2;
     const values = parseCSVLine(line);
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => { row[h] = values[idx] ?? ''; });
-    const domain = (row.domain ?? '').trim().toUpperCase();
-    if (!VALID_DOMAINS.includes(domain)) return { rowNum, domain, difficulty: 0, text: '', options: [], correct_index: 0, time_suggestion_sec: 90, error: `Invalid domain "${row.domain}"` };
-    const difficulty = parseInt(row.difficulty ?? '');
-    if (isNaN(difficulty) || difficulty < 1 || difficulty > 10) return { rowNum, domain, difficulty: 0, text: '', options: [], correct_index: 0, time_suggestion_sec: 90, error: 'Difficulty must be 1–10' };
-    const text2 = (row.text ?? '').trim();
-    if (!text2) return { rowNum, domain, difficulty, text: '', options: [], correct_index: 0, time_suggestion_sec: 90, error: 'Question text is required' };
-    const optA = (row.option_a ?? '').trim();
-    const optB = (row.option_b ?? '').trim();
-    if (!optA || !optB) return { rowNum, domain, difficulty, text: text2, options: [], correct_index: 0, time_suggestion_sec: 90, error: 'At least options A and B are required' };
-    const correctKey = (row.correct ?? '').trim().toUpperCase();
-    if (!['A', 'B', 'C', 'D'].includes(correctKey)) return { rowNum, domain, difficulty, text: text2, options: [], correct_index: 0, time_suggestion_sec: 90, error: 'Correct must be A, B, C, or D' };
-    const options = [optA, optB, (row.option_c ?? '').trim(), (row.option_d ?? '').trim()].filter(Boolean);
-    const correct_index = CORRECT_MAP[correctKey];
-    if (correct_index >= options.length) return { rowNum, domain, difficulty, text: text2, options, correct_index: 0, time_suggestion_sec: 90, error: `Option ${correctKey} is empty` };
-    return {
-      rowNum, domain,
-      sub_type: (row.sub_type ?? '').trim() || undefined,
-      difficulty, text: text2, options, correct_index,
-      time_suggestion_sec: parseInt(row.time_sec ?? '') || 90,
-      explanation: (row.explanation ?? '').trim() || undefined,
-    };
+    return validateRow(row, i + 2);
+  });
+}
+
+function parseAndValidateExcel(buffer: ArrayBuffer): ParsedRow[] {
+  const workbook = xlsx.read(buffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawRows = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+  return rawRows.map((raw, i) => {
+    const row: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      row[k.toLowerCase().replace(/\s+/g, '_')] = String(v ?? '').trim();
+    }
+    return validateRow(row, i + 2);
   });
 }
 
@@ -427,6 +445,16 @@ export default function QuestionsStepClient({ draft, returnTo }: { draft: DraftD
     URL.revokeObjectURL(url);
   }
 
+  function downloadExcelTemplate() {
+    const ws = xlsx.utils.aoa_to_sheet([
+      ['domain', 'sub_type', 'difficulty', 'text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct', 'time_sec', 'explanation'],
+      ['QUANTITATIVE', 'Arithmetic', 3, 'What is 25% of 200?', '25', '50', '75', '100', 'B', 60, '25% of 200 = 50'],
+    ]);
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, 'Questions');
+    xlsx.writeFile(wb, 'questions_template.xlsx');
+  }
+
   async function handleCsvUpload() {
     const valid = csvRows.filter((r) => !r.error && activeDomains.includes(r.domain as Domain));
     if (valid.length === 0) return;
@@ -485,7 +513,7 @@ export default function QuestionsStepClient({ draft, returnTo }: { draft: DraftD
     { id: 'add', label: 'Add manually', icon: 'edit_note' },
     { id: 'generate', label: 'Generate with AI', icon: 'auto_awesome' },
     { id: 'pdf', label: 'Upload PDF', icon: 'picture_as_pdf' },
-    { id: 'csv', label: 'CSV import', icon: 'upload_file' },
+    { id: 'csv', label: 'CSV / Excel', icon: 'upload_file' },
     { id: 'bank', label: 'Pick from bank', icon: 'inventory_2' },
   ];
 
@@ -884,32 +912,51 @@ export default function QuestionsStepClient({ draft, returnTo }: { draft: DraftD
             </div>
           )}
 
-          {/* ─── CSV ─────────────────────────────────────────────────────── */}
+          {/* ─── CSV / Excel ──────────────────────────────────────────────── */}
           {tab === 'csv' && (
             <div className="space-y-4">
               <div className="bg-surface-container-lowest border border-outline-variant rounded-xl p-5">
-                <p className="font-body-md text-on-surface-variant text-sm mb-3">
-                  Upload a CSV with columns: <code className="px-1 py-0.5 rounded bg-surface-container text-xs">domain, sub_type, difficulty, text, option_a–d, correct (A/B/C/D), time_sec, explanation</code>.
-                  Rows outside an active domain or over a quota are skipped on save.
+                <p className="font-body-md text-on-surface-variant text-sm mb-1">
+                  Upload a <strong>.csv</strong> or <strong>.xlsx</strong> file with columns:
                 </p>
+                <code className="block px-2 py-1.5 rounded bg-surface-container text-xs mb-3 text-on-surface-variant">
+                  domain · sub_type · difficulty · text · option_a · option_b · option_c · option_d · correct (A/B/C/D) · time_sec · explanation
+                </code>
+                <p className="font-caption text-on-surface-variant text-xs mb-3">Rows outside an active domain or over a quota are skipped on save.</p>
                 <div className="flex flex-wrap gap-3 items-center">
                   <button
                     onClick={downloadCsvTemplate}
                     className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-metric-label text-sm hover:bg-surface-container"
                   >
                     <span className="material-symbols-outlined text-sm">download</span>
-                    Template
+                    CSV template
+                  </button>
+                  <button
+                    onClick={downloadExcelTemplate}
+                    className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-metric-label text-sm hover:bg-surface-container"
+                  >
+                    <span className="material-symbols-outlined text-sm">download</span>
+                    Excel template
                   </button>
                   <label className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-primary text-on-primary font-metric-label text-sm hover:bg-primary/90 cursor-pointer">
                     <span className="material-symbols-outlined text-sm">upload_file</span>
-                    Choose CSV
+                    Choose file
                     <input
-                      type="file" accept=".csv,text/csv" className="hidden"
+                      type="file"
+                      accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
+                      className="hidden"
                       onChange={(e) => {
                         const file = e.target.files?.[0]; if (!file) return;
-                        const reader = new FileReader();
-                        reader.onload = (ev) => { setCsvRows(parseAndValidateCSV(ev.target?.result as string)); };
-                        reader.readAsText(file);
+                        const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
+                        if (isExcel) {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => { setCsvRows(parseAndValidateExcel(ev.target?.result as ArrayBuffer)); };
+                          reader.readAsArrayBuffer(file);
+                        } else {
+                          const reader = new FileReader();
+                          reader.onload = (ev) => { setCsvRows(parseAndValidateCSV(ev.target?.result as string)); };
+                          reader.readAsText(file);
+                        }
                         e.target.value = '';
                       }}
                     />

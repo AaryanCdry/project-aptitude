@@ -1,16 +1,19 @@
 import React from 'react';
-import { getAdminReportData } from '@/app/actions/reports';
+import { getAdminReportData, getExamAnalytics } from '@/app/actions/reports';
 import ReportsClient from './ReportsClient';
 
 export default async function AdminReportsPage() {
-  const data = await getAdminReportData();
+  const [data, examRows] = await Promise.all([
+    getAdminReportData(),
+    getExamAnalytics(),
+  ]);
 
   return (
-    <div className="max-w-5xl mx-auto">
+    <div className="max-w-6xl mx-auto">
       <div className="flex items-center justify-between mb-8">
         <div>
           <h1 className="font-display-sm text-on-surface text-2xl font-bold mb-1">Reports & Export</h1>
-          <p className="font-body-md text-on-surface-variant">View student performance and export data.</p>
+          <p className="font-body-md text-on-surface-variant">View student performance and detailed exam analytics.</p>
         </div>
       </div>
 
@@ -31,7 +34,7 @@ export default async function AdminReportsPage() {
         ))}
       </div>
 
-      <ReportsClient rows={data.rows} />
+      <ReportsClient rows={data.rows} examRows={examRows} />
     </div>
   );
 }

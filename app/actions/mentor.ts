@@ -34,20 +34,20 @@ export async function getMentorDashboard() {
   const studentIds = (students ?? []).map((s: any) => s.id);
   if (studentIds.length === 0) return emptyResult;
 
-  // Latest scores per student — exclude synthetic OVERALL rows
-  const { data: scores } = await adminClient
-    .from('scores')
-    .select('student_id, score, domain, created_at')
-    .in('student_id', studentIds)
-    .neq('domain', 'OVERALL')
-    .order('created_at', { ascending: false });
-
-  // Tests completed count per student
-  const { data: tests } = await adminClient
-    .from('tests')
-    .select('student_id, id, status, type, created_at')
-    .in('student_id', studentIds)
-    .eq('status', 'COMPLETED');
+  // Scores and tests are independent — run in parallel
+  const [{ data: scores }, { data: tests }] = await Promise.all([
+    adminClient
+      .from('scores')
+      .select('student_id, score, domain, created_at')
+      .in('student_id', studentIds)
+      .neq('domain', 'OVERALL')
+      .order('created_at', { ascending: false }),
+    adminClient
+      .from('tests')
+      .select('student_id, id, status, type, created_at')
+      .in('student_id', studentIds)
+      .eq('status', 'COMPLETED'),
+  ]);
 
   // Aggregate per student
   const scoreMap: Record<string, number[]> = {};
@@ -113,19 +113,19 @@ export async function getStudentDetail(studentId: string) {
 
   const adminClient = createAdminClient();
 
-  const { data: student } = await adminClient
-    .from('users')
-    .select('id, name, email, created_at')
-    .eq('id', studentId)
-    .single();
-
-  // Pull all score rows including the synthetic OVERALL — we filter in JS so
-  // we can build both the domain aggregation AND a per-test history.
-  const { data: rawScores } = await adminClient
-    .from('scores')
-    .select('test_id, domain, score, percentile, created_at, tests!test_id(type, completed_at)')
-    .eq('student_id', studentId)
-    .order('created_at', { ascending: true });
+  // Student profile and scores are independent — run in parallel
+  const [{ data: student }, { data: rawScores }] = await Promise.all([
+    adminClient
+      .from('users')
+      .select('id, name, email, created_at')
+      .eq('id', studentId)
+      .single(),
+    adminClient
+      .from('scores')
+      .select('test_id, domain, score, percentile, created_at, tests!test_id(type, completed_at)')
+      .eq('student_id', studentId)
+      .order('created_at', { ascending: true }),
+  ]);
 
   const allScores = rawScores ?? [];
   const domainOnly = allScores.filter((s: any) => s.domain !== 'OVERALL');

@@ -11,28 +11,26 @@ export async function getStudentProgress() {
 
   const adminClient = createAdminClient();
 
-  // All scores grouped by domain + time (use admin client — RLS may block student reads)
-  const { data: scores } = await adminClient
-    .from('scores')
-    .select('domain, score, percentile, created_at')
-    .eq('student_id', user.id)
-    .neq('domain', 'OVERALL')
-    .order('created_at', { ascending: true });
-
-  // Domain progress levels
-  const { data: domainLevels } = await adminClient
-    .from('domain_progress')
-    .select('domain, level, updated_at')
-    .eq('student_id', user.id);
-
-  // Full test history
-  const { data: tests } = await adminClient
-    .from('tests')
-    .select('id, type, status, created_at, completed_at, assessment_id, scores(domain, score, percentile), cohort_assessments!assessment_id(title)')
-    .eq('student_id', user.id)
-    .eq('status', 'COMPLETED')
-    .order('created_at', { ascending: false })
-    .limit(50);
+  // All 3 queries are independent — run in parallel
+  const [{ data: scores }, { data: domainLevels }, { data: tests }] = await Promise.all([
+    adminClient
+      .from('scores')
+      .select('domain, score, percentile, created_at')
+      .eq('student_id', user.id)
+      .neq('domain', 'OVERALL')
+      .order('created_at', { ascending: true }),
+    adminClient
+      .from('domain_progress')
+      .select('domain, level, updated_at')
+      .eq('student_id', user.id),
+    adminClient
+      .from('tests')
+      .select('id, type, status, created_at, completed_at, assessment_id, scores(domain, score, percentile), cohort_assessments!assessment_id(title)')
+      .eq('student_id', user.id)
+      .eq('status', 'COMPLETED')
+      .order('created_at', { ascending: false })
+      .limit(50),
+  ]);
 
   // Build domain summary
   const domainMap: Record<string, { scores: number[]; percentiles: number[] }> = {};

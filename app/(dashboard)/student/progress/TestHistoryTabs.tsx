@@ -125,7 +125,7 @@ export default function TestHistoryTabs({ tests }: { tests: TestRow[] }) {
                     )}
 
                     {(activeTab === 'CENTER' || activeTab === 'FINAL') && (
-                      <td className="py-3 px-5 font-body-md text-on-surface max-w-[200px]">
+                      <td className="py-3 px-5 font-body-md text-on-surface max-w-50">
                         <span className="truncate block">{t.assessmentTitle ?? '—'}</span>
                       </td>
                     )}

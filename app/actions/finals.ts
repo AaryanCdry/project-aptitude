@@ -104,43 +104,7 @@ export async function getScheduledFinals() {
   const completedTestIds = completedTests.map((t: any) => t.id as string);
   const completedStudentIds = completedTests.map((t: any) => t.student_id as string);
 
-  // Batch-fetch OVERALL scores for completed tests
-  const scoreMap: Record<string, number> = {};
-  if (completedTestIds.length > 0) {
-    const { data: scoreRows } = await adminClient
-      .from('scores')
-      .select('test_id, score')
-      .in('test_id', completedTestIds)
-      .eq('domain', 'OVERALL');
-    for (const s of scoreRows ?? []) scoreMap[(s as any).test_id] = (s as any).score;
-  }
-
-  // Batch-fetch non-revoked certificates for completed students
-  // qr_code format: "CERT-{uuid_36}-{base36}" → testId = qr_code.substring(5, 41)
-  const certMap: Record<string, string> = {};
-  if (completedStudentIds.length > 0) {
-    const { data: certRows } = await adminClient
-      .from('certificates')
-      .select('student_id, tier, qr_code')
-      .in('student_id', completedStudentIds)
-      .eq('revoked', false);
-    for (const c of certRows ?? []) {
-      const testId = (c as any).qr_code?.substring(5, 41)?.toLowerCase();
-      if (testId) certMap[testId] = (c as any).tier;
-    }
-  }
-
-  // Batch-fetch badges for completed tests
-  const badgeMap: Record<string, string> = {};
-  if (completedTestIds.length > 0) {
-    const { data: badgeRows } = await adminClient
-      .from('badges')
-      .select('test_id, tier')
-      .in('test_id', completedTestIds);
-    for (const b of badgeRows ?? []) badgeMap[(b as any).test_id] = (b as any).tier;
-  }
-
-  // Fetch ACTIVE final assessments in scope
+  // Build the assessments query before Promise.all so it runs in parallel
   let assessmentsQuery = adminClient
     .from('cohort_assessments')
     .select('id, title, scheduled_at, due_date, class_ids, domain_quotas, created_at')
@@ -150,7 +114,35 @@ export async function getScheduledFinals() {
   if (scope.role !== 'SUPER_ADMIN') {
     assessmentsQuery = (assessmentsQuery as any).eq('college_id', scope.collegeId);
   }
-  const { data: rawAssessments } = await assessmentsQuery;
+
+  // All 4 batch-fetches are independent — run in parallel
+  const [scoreResult, certResult, badgeResult, assessmentsResult] = await Promise.all([
+    completedTestIds.length > 0
+      ? adminClient.from('scores').select('test_id, score').in('test_id', completedTestIds).eq('domain', 'OVERALL')
+      : Promise.resolve({ data: [] as any[] }),
+    completedStudentIds.length > 0
+      ? adminClient.from('certificates').select('student_id, tier, qr_code').in('student_id', completedStudentIds).eq('revoked', false)
+      : Promise.resolve({ data: [] as any[] }),
+    completedTestIds.length > 0
+      ? adminClient.from('badges').select('test_id, tier').in('test_id', completedTestIds)
+      : Promise.resolve({ data: [] as any[] }),
+    assessmentsQuery,
+  ]);
+
+  // qr_code format: "CERT-{uuid_36}-{base36}" → testId = qr_code.substring(5, 41)
+  const scoreMap: Record<string, number> = {};
+  for (const s of scoreResult.data ?? []) scoreMap[(s as any).test_id] = (s as any).score;
+
+  const certMap: Record<string, string> = {};
+  for (const c of certResult.data ?? []) {
+    const testId = (c as any).qr_code?.substring(5, 41)?.toLowerCase();
+    if (testId) certMap[testId] = (c as any).tier;
+  }
+
+  const badgeMap: Record<string, string> = {};
+  for (const b of badgeResult.data ?? []) badgeMap[(b as any).test_id] = (b as any).tier;
+
+  const rawAssessments = assessmentsResult.data;
 
   const classNameMap = Object.fromEntries(classes.map((c: any) => [c.id, c.name]));
 
