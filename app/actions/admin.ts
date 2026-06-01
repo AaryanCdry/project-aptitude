@@ -421,6 +421,7 @@ export async function getScheduledAssessments() {
     domain: string | null;
     scheduledAt: string | null;
     dueDate: string | null;
+    instructions: string | null;
     total: number;
     completed: number;
     inProgress: number;
