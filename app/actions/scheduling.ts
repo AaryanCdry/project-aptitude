@@ -21,6 +21,7 @@ type Draft = {
   domain_quotas: Record<string, number>;
   status: 'DRAFT' | 'ACTIVE';
   created_by: string;
+  test_type: 'CENTER' | 'FINAL';
 };
 
 async function assertCallerCanEditDraft(assessmentId: string) {
@@ -29,7 +30,7 @@ async function assertCallerCanEditDraft(assessmentId: string) {
   const adminClient = createAdminClient();
   const { data } = await adminClient
     .from('cohort_assessments')
-    .select('id, college_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by')
+    .select('id, college_id, title, instructions, due_date, scheduled_at, class_ids, question_ids, domain_quotas, status, created_by, test_type')
     .eq('id', assessmentId)
     .single();
   if (!data) return { error: 'Draft not found' as const };
@@ -51,6 +52,7 @@ export async function createTestDraft(formData: FormData) {
   const due_date = (formData.get('due_date') as string) || '';
   const scheduled_at_raw = (formData.get('scheduled_at') as string) || '';
   const class_ids_raw = (formData.get('class_ids') as string) || '';
+  const test_type = ((formData.get('test_type') as string) ?? 'CENTER') === 'FINAL' ? 'FINAL' : 'CENTER';
 
   if (!title) return { error: 'Title is required.' };
 
@@ -108,6 +110,7 @@ export async function createTestDraft(formData: FormData) {
       question_ids: [],
       domain_quotas,
       status: 'DRAFT',
+      test_type,
     })
     .select('id')
     .single();
@@ -302,9 +305,10 @@ export async function finalizeTest(assessmentId: string) {
 
   let scheduled = 0;
   if (studentIds.length > 0) {
+    const testType = (draft.test_type ?? 'CENTER') as 'CENTER' | 'FINAL';
     const rows = studentIds.map((id) => ({
       student_id: id,
-      type: 'CENTER' as const,
+      type: testType,
       status: 'SCHEDULED' as const,
       scheduled_at: draft.scheduled_at ?? new Date().toISOString(),
       assessment_id: assessmentId,
@@ -317,7 +321,11 @@ export async function finalizeTest(assessmentId: string) {
     scheduled = rows.length;
   }
 
-  revalidatePath('/admin/assessments');
+  if (draft.test_type === 'FINAL') {
+    revalidatePath('/admin/finals');
+  } else {
+    revalidatePath('/admin/assessments');
+  }
   return { success: true as const, scheduled };
 }
 
@@ -332,6 +340,147 @@ export async function discardDraft(assessmentId: string) {
     .eq('status', 'DRAFT');
   if (error) return { error: error.message };
   return { success: true as const };
+}
+
+export async function updateTestDraft(
+  assessmentId: string,
+  data: {
+    title: string;
+    instructions: string | null;
+    scheduled_at: string | null;
+    due_date: string | null;
+    class_ids: string[];
+    domain_quotas: Record<string, number>;
+  }
+) {
+  const gate = await assertCallerCanEditDraft(assessmentId);
+  if ('error' in gate) return gate;
+  const { adminClient, scope } = gate;
+
+  if (!data.title.trim()) return { error: 'Title is required.' };
+  if (data.class_ids.length === 0) return { error: 'Select at least one class.' };
+  const totalQuota = Object.values(data.domain_quotas).reduce((s, n) => s + n, 0);
+  if (totalQuota === 0) return { error: 'Set at least one domain quota.' };
+
+  const allowedClassIds = await resolveAllowedClassIds(scope);
+  if (allowedClassIds !== null) {
+    const allowedSet = new Set(allowedClassIds);
+    const bad = data.class_ids.find((id) => !allowedSet.has(id));
+    if (bad) return { error: 'One or more classes are outside your scope.' };
+  }
+
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .update({
+      title: data.title.trim(),
+      instructions: data.instructions || null,
+      scheduled_at: data.scheduled_at,
+      due_date: data.due_date,
+      class_ids: data.class_ids,
+      domain_quotas: data.domain_quotas,
+      question_ids: [],
+    })
+    .eq('id', assessmentId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/admin/assessments');
+  return { success: true as const };
+}
+
+export async function updateActiveAssessment(
+  assessmentId: string,
+  data: {
+    title: string;
+    instructions: string | null;
+    scheduled_at: string | null;
+    due_date: string | null;
+  }
+) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' };
+
+  if (!data.title.trim()) return { error: 'Title is required.' };
+
+  const adminClient = createAdminClient();
+  const { data: row } = await adminClient
+    .from('cohort_assessments')
+    .select('id, college_id, status, created_by')
+    .eq('id', assessmentId)
+    .single();
+
+  if (!row) return { error: 'Assessment not found.' };
+  if (row.status !== 'ACTIVE') return { error: 'Only finalized assessments can be edited here.' };
+
+  const isOwner = row.created_by === scope.userId;
+  const isPrincipal = scope.role === 'ADMIN' || scope.role === 'SUPER_ADMIN';
+  if (!isOwner && !isPrincipal) return { error: 'Not authorized to edit this assessment.' };
+
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .update({
+      title: data.title.trim(),
+      instructions: data.instructions || null,
+      scheduled_at: data.scheduled_at,
+      due_date: data.due_date,
+    })
+    .eq('id', assessmentId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/admin/assessments');
+  return { success: true as const };
+}
+
+export async function getDraftAssessments() {
+  const scope = await getCallerScope();
+  if (!scope.userId) return [];
+
+  const adminClient = createAdminClient();
+
+  let query = adminClient
+    .from('cohort_assessments')
+    .select('id, title, instructions, scheduled_at, due_date, class_ids, domain_quotas, question_ids, created_at, created_by')
+    .eq('status', 'DRAFT')
+    .eq('test_type', 'CENTER')
+    .order('created_at', { ascending: false });
+
+  if (scope.role !== 'SUPER_ADMIN') {
+    if (scope.collegeId) query = (query as any).eq('college_id', scope.collegeId);
+    if (scope.role !== 'ADMIN') {
+      query = (query as any).eq('created_by', scope.userId);
+    }
+  }
+
+  const { data, error } = await query;
+  if (error) return [];
+
+  const rows = data ?? [];
+  const allClassIds = [...new Set(rows.flatMap((a: any) => (a.class_ids ?? []) as string[]))];
+  const classNameMap: Record<string, string> = {};
+  if (allClassIds.length > 0) {
+    const { data: classRows } = await adminClient.from('classes').select('id, name').in('id', allClassIds);
+    (classRows ?? []).forEach((c: any) => { classNameMap[c.id] = c.name; });
+  }
+
+  return rows.map((a: any) => {
+    const classIds = (a.class_ids ?? []) as string[];
+    const classLabel = classIds.map((id: string) => classNameMap[id] ?? '').filter(Boolean).join(', ') || null;
+    const quotas = (a.domain_quotas ?? {}) as Record<string, number>;
+    const totalQuota = Object.values(quotas).reduce((s: number, n: number) => s + n, 0);
+    const attached = ((a.question_ids ?? []) as string[]).length;
+    return {
+      id: a.id as string,
+      title: a.title as string,
+      instructions: (a.instructions ?? null) as string | null,
+      scheduled_at: (a.scheduled_at ?? null) as string | null,
+      due_date: (a.due_date ?? null) as string | null,
+      class_ids: classIds,
+      class_label: classLabel,
+      domain_quotas: quotas,
+      total_quota: totalQuota,
+      attached,
+      created_at: a.created_at as string,
+    };
+  });
 }
 
 export async function searchBankQuestions(args: {

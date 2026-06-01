@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updateClass, deleteClass } from '@/app/actions/departments';
@@ -25,6 +26,24 @@ export default function ClassRowActions({
 
   // ── Edit state ────────────────────────────────────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // ── Body scroll lock when modal is open ──────────────────────────────────
+  useEffect(() => {
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (editOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [editOpen]);
   const [name, setName] = useState(cls.name);
   const [deptId, setDeptId] = useState(cls.dept_id);
   const [year, setYear] = useState(cls.year != null ? String(cls.year) : '');
@@ -110,8 +129,8 @@ export default function ClassRowActions({
         )}
       </div>
 
-      {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
-      {editOpen && (
+      {/* ── Edit Modal (portal — avoids transform contamination from row hover) */}
+      {mounted && createPortal(editOpen ? (
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setEditOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -127,7 +146,7 @@ export default function ClassRowActions({
                 </button>
               </div>
 
-              <form onSubmit={handleEdit}>
+              <form onSubmit={handleEdit} autoComplete="off">
                 <div className="px-6 py-5 space-y-4">
                   {editError && (
                     <div className="p-3 bg-error-container text-on-error-container rounded-lg text-sm flex items-center gap-2">
@@ -138,7 +157,7 @@ export default function ClassRowActions({
 
                   <div>
                     <label className="block font-metric-label text-on-surface text-[12px] mb-1.5">Class Name <span className="text-error">*</span></label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required className={inputCls} placeholder="e.g. BCA-2024-A" />
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required autoComplete="off" className={inputCls} placeholder="e.g. BCA-2024-A" />
                   </div>
 
                   <div>
@@ -152,11 +171,11 @@ export default function ClassRowActions({
                   <div className="grid grid-cols-2 gap-4">
                     <div>
                       <label className="block font-metric-label text-on-surface text-[12px] mb-1.5">Year</label>
-                      <input type="number" value={year} onChange={e => setYear(e.target.value)} min={1} max={6} className={inputCls} placeholder="e.g. 2" />
+                      <input type="number" value={year} onChange={e => setYear(e.target.value)} min={1} max={6} autoComplete="off" className={inputCls} placeholder="e.g. 2" />
                     </div>
                     <div>
                       <label className="block font-metric-label text-on-surface text-[12px] mb-1.5">Section</label>
-                      <input type="text" value={section} onChange={e => setSection(e.target.value)} className={inputCls} placeholder="e.g. A" />
+                      <input type="text" value={section} onChange={e => setSection(e.target.value)} autoComplete="off" className={inputCls} placeholder="e.g. A" />
                     </div>
                   </div>
                 </div>
@@ -177,7 +196,7 @@ export default function ClassRowActions({
             </div>
           </div>
         </>
-      )}
+      ) : null, document.body)}
     </>
   );
 }

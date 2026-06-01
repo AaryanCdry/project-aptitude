@@ -1,8 +1,13 @@
 import React from 'react';
 import Link from 'next/link';
 import { getScheduledAssessments } from '@/app/actions/admin';
+import { getDraftAssessments } from '@/app/actions/scheduling';
+import { getCallerScope, resolveAllowedClassIds } from '@/app/actions/scope';
+import { createAdminClient } from '@/lib/supabase/admin';
 import UpcomingTestsPanel from './UpcomingTestsPanel';
 import MiniCalendar from './MiniCalendar';
+import DraftTestsSection from './DraftTestsSection';
+import AssessmentRowActions from './AssessmentRowActions';
 
 
 function formatScheduledTime(scheduledAt: string | null): string {
@@ -19,15 +24,30 @@ function formatScheduledTime(scheduledAt: string | null): string {
 }
 
 export default async function AdminAssessmentsPage() {
-  const {
-    totalThisWeek,
-    totalCandidates,
-    completionRate,
-    recentCompleted,
-    assessmentStats,
-    totalScheduled,
-    totalCompleted,
-  } = await getScheduledAssessments();
+  const [
+    { totalThisWeek, totalCandidates, completionRate, recentCompleted, assessmentStats, totalScheduled, totalCompleted },
+    drafts,
+    scope,
+  ] = await Promise.all([
+    getScheduledAssessments(),
+    getDraftAssessments(),
+    getCallerScope(),
+  ]);
+
+  // Fetch classes scoped to this caller for the Edit modal
+  const allowedClassIds = await resolveAllowedClassIds(scope);
+  const adminClient = createAdminClient();
+  let classesQ = adminClient
+    .from('classes')
+    .select('id, name, section')
+    .order('name');
+  if (allowedClassIds !== null && allowedClassIds.length > 0) {
+    classesQ = classesQ.in('id', allowedClassIds);
+  } else if (allowedClassIds !== null && allowedClassIds.length === 0) {
+    classesQ = classesQ.in('id', ['__none__']);
+  }
+  const { data: classRows } = await classesQ;
+  const classes = (classRows ?? []) as { id: string; name: string; section: string | null }[];
 
   return (
     <>
@@ -45,6 +65,9 @@ export default async function AdminAssessmentsPage() {
           Schedule New Test
         </Link>
       </div>
+
+      {/* Draft Tests */}
+      <DraftTestsSection drafts={drafts as any} classes={classes} />
 
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
@@ -113,9 +136,18 @@ export default async function AdminAssessmentsPage() {
                             )}
                           </p>
                         </div>
-                        <div className="text-right shrink-0">
-                          <p className="font-metric-label text-on-surface text-sm">{a.completed} / {a.total}</p>
-                          <p className="font-caption text-on-surface-variant text-[10px]">completed</p>
+                        <div className="flex items-center gap-2 shrink-0">
+                          <div className="text-right">
+                            <p className="font-metric-label text-on-surface text-sm">{a.completed} / {a.total}</p>
+                            <p className="font-caption text-on-surface-variant text-[10px]">completed</p>
+                          </div>
+                          <AssessmentRowActions assessment={{
+                            id: a.id,
+                            title: a.title,
+                            instructions: a.instructions,
+                            scheduledAt: a.scheduledAt,
+                            dueDate: a.dueDate,
+                          }} />
                         </div>
                       </div>
                       <div className="w-full h-1.5 bg-surface-container-high rounded-full overflow-hidden">

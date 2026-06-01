@@ -136,7 +136,7 @@ function parseAndValidateCSV(text: string): ParsedRow[] {
   });
 }
 
-export default function QuestionsStepClient({ draft }: { draft: DraftDTO }) {
+export default function QuestionsStepClient({ draft, returnTo }: { draft: DraftDTO; returnTo: string | null }) {
   const router = useRouter();
   const [questions, setQuestions] = useState<Question[]>(draft.questions);
   const [tab, setTab] = useState<Tab>('add');
@@ -180,7 +180,7 @@ export default function QuestionsStepClient({ draft }: { draft: DraftDTO }) {
       showFlash('err', res.error);
       return false;
     }
-    setQuestions((qs) => [...qs, q]);
+    setQuestions((qs) => qs.some((x) => x.id === q.id) ? qs : [...qs, q]);
     return true;
   }
 
@@ -205,7 +205,10 @@ export default function QuestionsStepClient({ draft }: { draft: DraftDTO }) {
       next.push(q);
       if (next.length >= attached) break;
     }
-    setQuestions((prev) => [...prev, ...next]);
+    setQuestions((prev) => {
+      const existingIds = new Set(prev.map((q) => q.id));
+      return [...prev, ...next.filter((q) => !existingIds.has(q.id))];
+    });
     showFlash('ok', `${attached} question${attached !== 1 ? 's' : ''} added.`);
   }
 
@@ -225,7 +228,7 @@ export default function QuestionsStepClient({ draft }: { draft: DraftDTO }) {
         showFlash('err', res.error);
         return;
       }
-      router.push('/admin/assessments');
+      router.push(returnTo ?? '/admin/assessments');
       router.refresh();
     });
   }

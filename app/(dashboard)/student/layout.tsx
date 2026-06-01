@@ -63,6 +63,7 @@ export default async function StudentLayout({ children }: { children: React.Reac
           <NavLink href="/assessment" icon="quiz" label="Take Test" />
           <NavLink href="/student/progress" icon="analytics" label="My Progress" />
           <NavLink href="/student/leaderboard" icon="leaderboard" label="Leaderboard" />
+          <NavLink href="/student/finals" icon="military_tech" label="Final Exams" />
           <NavLink href="/student/certificates" icon="workspace_premium" label="Certificates" />
           <NavLink href="/student/profile" icon="person" label="Profile" />
         </nav>

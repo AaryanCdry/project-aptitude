@@ -5,6 +5,24 @@ import { getCallerScope } from '@/app/actions/scope';
 import CreateClassForm from './CreateClassForm';
 import ClassRowActions from './ClassRowActions';
 
+interface ClassRow {
+  id: string;
+  name: string;
+  dept_id: string;
+  year: number | null;
+  section: string | null;
+  created_at: string;
+  // Supabase infers joined rows as arrays even for many-to-one FKs
+  departments: Array<{ name: string; course_type: string | null }> | null;
+  sub_admin: Array<{ id: string; name: string | null; email: string }> | null;
+}
+
+interface DeptRow {
+  id: string;
+  name: string;
+  course_type: string | null;
+}
+
 export default async function ClassesPage({
   searchParams,
 }: {
@@ -19,7 +37,10 @@ export default async function ClassesPage({
   ]);
   const isHOD = scope.role === 'SUB_ADMIN';
 
-  const classIds = classes.map((c: any) => c.id);
+  const typedClasses = classes as unknown as ClassRow[];
+  const typedDepts = departments as unknown as DeptRow[];
+
+  const classIds = typedClasses.map((c) => c.id);
   const [studentCounts, mentorsByClass] = await Promise.all([
     getClassStudentCounts(classIds),
     getClassMentors(classIds),
@@ -27,14 +48,14 @@ export default async function ClassesPage({
 
   const totalStudents = Object.values(studentCounts).reduce((a: number, b: number) => a + b, 0);
 
-  const grouped: Record<string, any[]> = {};
-  (classes as any[]).forEach((cls) => {
-    const deptName = cls.departments?.name ?? 'Unassigned';
+  const grouped: Record<string, ClassRow[]> = {};
+  typedClasses.forEach((cls) => {
+    const deptName = cls.departments?.[0]?.name ?? 'Unassigned';
     if (!grouped[deptName]) grouped[deptName] = [];
     grouped[deptName].push(cls);
   });
 
-  const deptList = (departments as any[]).map((d: any) => ({ id: d.id, name: d.name }));
+  const deptList = typedDepts.map((d) => ({ id: d.id, name: d.name }));
 
   return (
     <div className="max-w-container-max-width mx-auto pb-24">
@@ -56,7 +77,7 @@ export default async function ClassesPage({
             </Link>
           )}
           <CreateClassForm
-            departments={(departments as any[]).map((d: any) => ({ id: d.id, name: d.name, course_type: d.course_type ?? '' }))}
+            departments={typedDepts.map((d) => ({ id: d.id, name: d.name, course_type: d.course_type ?? '' }))}
             defaultDeptId={deptFilter}
           />
         </div>
@@ -70,7 +91,7 @@ export default async function ClassesPage({
         >
           All Departments
         </Link>
-        {(departments as any[]).map((d: any) => (
+        {typedDepts.map((d) => (
           <Link
             key={d.id}
             href={`/admin/classes?dept=${d.id}`}
@@ -156,7 +177,7 @@ export default async function ClassesPage({
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-outline-variant/60">
-                    {cls.map((c: any) => {
+                    {cls.map((c) => {
                       const mentors = mentorsByClass[c.id] ?? [];
                       const count = studentCounts[c.id] ?? 0;
                       return (

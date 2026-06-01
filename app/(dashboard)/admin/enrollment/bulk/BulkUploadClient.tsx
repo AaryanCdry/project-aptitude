@@ -4,15 +4,48 @@ import React, { useState, useRef, useTransition, useCallback } from 'react';
 import Link from 'next/link';
 import { processBulkEnrollment, BulkRow, BulkResult } from '@/app/actions/enrollment';
 
+function parseCSVLine(line: string): string[] {
+  const fields: string[] = [];
+  let current = '';
+  let inQuotes = false;
+  for (let i = 0; i < line.length; i++) {
+    const ch = line[i];
+    if (ch === '"') {
+      if (inQuotes && line[i + 1] === '"') { current += '"'; i++; }
+      else inQuotes = !inQuotes;
+    } else if (ch === ',' && !inQuotes) {
+      fields.push(current.trim());
+      current = '';
+    } else {
+      current += ch;
+    }
+  }
+  fields.push(current.trim());
+  return fields;
+}
+
 function parseCSV(text: string): BulkRow[] {
-  const lines = text.trim().split('\n');
+  const lines = text.trim().split('\n').filter(Boolean);
   if (lines.length === 0) return [];
-  // Skip header row if it looks like a header
-  const start = lines[0].toLowerCase().includes('name') ? 1 : 0;
-  return lines.slice(start).map((line) => {
-    const [name = '', email = ''] = line.split(',').map((s) => s.trim().replace(/^"|"$/g, ''));
-    return { name, email };
-  });
+  const firstLower = lines[0].toLowerCase();
+  const hasHeader = firstLower.includes('name') || firstLower.includes('email');
+  const headers = hasHeader
+    ? parseCSVLine(lines[0]).map(h => h.toLowerCase().trim())
+    : ['name', 'email', 'registration_id', 'department', 'class', 'section', 'semester'];
+  const dataLines = hasHeader ? lines.slice(1) : lines;
+  return dataLines.map((line) => {
+    const values = parseCSVLine(line);
+    const get = (key: string) => values[headers.indexOf(key)]?.trim() || undefined;
+    return {
+      name: get('name') ?? '',
+      email: get('email') ?? '',
+      registration_id: get('registration_id'),
+      department: get('department'),
+      class: get('class'),
+      section: get('section'),
+      semester: get('semester'),
+    };
+  }).filter(r => r.name || r.email);
 }
 
 export default function BulkUploadClient() {
@@ -65,9 +98,79 @@ export default function BulkUploadClient() {
   const valid = results?.filter((r) => r.status === 'valid') ?? [];
   const errors = results?.filter((r) => r.status === 'error') ?? [];
 
+  const printCredentials = () => {
+    const validRows = results?.filter(r => r.status === 'valid') ?? [];
+    if (!validRows.length) return;
+
+    const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const cards = validRows.map(r => [
+      '<div class="card">',
+      '  <div class="card-header">',
+      `    <div class="card-name">${escHtml(r.name)}</div>`,
+      `    <div class="card-email">${escHtml(r.email)}</div>`,
+      '  </div>',
+      '  <div class="card-body">',
+      `    <div class="field"><span class="label">Reg ID</span><span class="value">${escHtml(r.registration_id || '—')}</span></div>`,
+      `    <div class="field"><span class="label">Department</span><span class="value">${escHtml(r.department || '—')}</span></div>`,
+      `    <div class="field"><span class="label">Class</span><span class="value">${escHtml(r.class || '—')}${r.section ? ' · ' + escHtml(r.section) : ''}</span></div>`,
+      `    <div class="field"><span class="label">Semester</span><span class="value">${escHtml(r.semester || '—')}</span></div>`,
+      '  </div>',
+      '  <div class="card-footer">',
+      '    <div class="cred-label">Temporary Password</div>',
+      `    <div class="cred-value">${escHtml(r.tempPassword ?? '—')}</div>`,
+      '    <div class="cred-note">Change password on first login</div>',
+      '  </div>',
+      '</div>',
+    ].join('\n')).join('\n');
+
+    const styles = [
+      '* { box-sizing: border-box; margin: 0; padding: 0; }',
+      "body { font-family: 'Segoe UI', sans-serif; background: #fff; color: #1a1a2e; padding: 24px; }",
+      'h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }',
+      '.meta { font-size: 12px; color: #666; margin-bottom: 20px; }',
+      '.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }',
+      '.card { border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; break-inside: avoid; }',
+      '.card-header { background: #f1f5ff; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; }',
+      '.card-name { font-size: 14px; font-weight: 700; }',
+      '.card-email { font-size: 11px; color: #555; margin-top: 2px; }',
+      '.card-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 5px; }',
+      '.field { display: flex; justify-content: space-between; font-size: 11px; }',
+      '.label { color: #888; }',
+      '.value { font-weight: 600; }',
+      '.card-footer { background: #1e293b; color: #fff; padding: 10px 14px; }',
+      '.cred-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 3px; }',
+      ".cred-value { font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; letter-spacing: 2px; color: #fbbf24; }",
+      '.cred-note { font-size: 9px; color: #94a3b8; margin-top: 5px; }',
+      '@media print { body { padding: 12px; } @page { margin: 12mm; size: A4; } }',
+    ].join('\n');
+
+    const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const parts = [
+      '<!DOCTYPE html><html><head><meta charset="utf-8">',
+      '<title>Student Credentials</title>',
+      `<style>${styles}</style>`,
+      '</head><body>',
+      '<h1>Student Login Credentials</h1>',
+      `<p class="meta">Generated ${date} &middot; ${validRows.length} students &middot; Keep this sheet confidential</p>`,
+      `<div class="grid">${cards}</div>`,
+      '</body></html>',
+    ];
+
+    const blob = new Blob(parts, { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) setTimeout(() => URL.revokeObjectURL(url), 30000);
+  };
+
   // Download template CSV
   const downloadTemplate = () => {
-    const csv = 'name,email\nJane Doe,jane.doe@university.edu\nJohn Smith,john.smith@university.edu';
+    const csv = [
+      'name,email,registration_id,department,class,section,semester',
+      'Jane Doe,jane.doe@university.edu,REG-2024-001,Computer Science,BCA-24-25-A,A,3',
+      'John Smith,john.smith@university.edu,REG-2024-002,Commerce,BCom-24-25-B,,',
+    ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -115,7 +218,7 @@ export default function BulkUploadClient() {
             <p className="font-caption text-on-surface-variant">
               {fileName ? `${rows.length} rows parsed` : <>or <span className="text-primary font-semibold">browse files</span> to upload</>}
             </p>
-            <p className="font-caption text-outline mt-4 text-xs">Required columns: name, email</p>
+            <p className="font-caption text-outline mt-4 text-xs">Required: name, email · Optional: registration_id, department, class, section, semester</p>
           </div>
 
           {/* Settings */}
@@ -191,7 +294,10 @@ export default function BulkUploadClient() {
                 {results ? 'Credential Preview' : rows.length > 0 ? `Parsed Rows (${rows.length})` : 'Preview'}
               </h3>
               {results && valid.length > 0 && (
-                <button className="flex items-center text-primary font-metric-label bg-primary-fixed/20 px-3 py-1.5 rounded-lg text-sm hover:bg-primary-fixed/40 transition-colors">
+                <button
+                  onClick={printCredentials}
+                  className="flex items-center text-primary font-metric-label bg-primary-fixed/20 px-3 py-1.5 rounded-lg text-sm hover:bg-primary-fixed/40 transition-colors"
+                >
                   <span className="material-symbols-outlined mr-2 text-sm">print</span>
                   Print Credentials
                 </button>
@@ -202,10 +308,10 @@ export default function BulkUploadClient() {
                 <thead>
                   <tr className="border-b border-outline-variant bg-surface-container-low">
                     {(results
-                      ? ['Student Name', 'Email', 'Generated ID', 'Temp Password', 'Status']
-                      : ['Name', 'Email']
+                      ? ['Student Name', 'Email', 'Reg ID', 'Dept', 'Class', 'Sec', 'Sem', 'Temp Password', 'Status']
+                      : ['Name', 'Email', 'Reg ID', 'Department', 'Class', 'Section', 'Semester']
                     ).map((h) => (
-                      <th key={h} className="py-3 px-4 font-caption text-on-surface-variant font-semibold">{h}</th>
+                      <th key={h} className="py-3 px-4 font-caption text-on-surface-variant font-semibold whitespace-nowrap">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -214,7 +320,11 @@ export default function BulkUploadClient() {
                     <tr key={i} className={`hover:bg-surface-container-lowest transition-colors ${r.status === 'error' ? 'bg-error-container/10' : ''}`}>
                       <td className="py-3 px-4">{r.name}</td>
                       <td className="py-3 px-4 text-on-surface-variant text-sm">{r.email}</td>
-                      <td className="py-3 px-4 font-mono text-sm">{r.studentId ?? '—'}</td>
+                      <td className="py-3 px-4 text-sm">{r.registration_id || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm">{r.department || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm">{r.class || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm">{r.section || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm">{r.semester || <span className="text-outline">—</span>}</td>
                       <td className="py-3 px-4 font-mono text-sm tracking-widest">{r.tempPassword ?? '—'}</td>
                       <td className="py-3 px-4">
                         {r.status === 'valid' ? (
@@ -228,6 +338,11 @@ export default function BulkUploadClient() {
                     <tr key={i} className="hover:bg-surface-container-lowest transition-colors">
                       <td className="py-3 px-4">{r.name || <span className="text-outline italic">empty</span>}</td>
                       <td className="py-3 px-4 text-on-surface-variant">{r.email || <span className="text-error italic">missing</span>}</td>
+                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.registration_id || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.department || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.class || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.section || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.semester || <span className="text-outline">—</span>}</td>
                     </tr>
                   ))}
                   {!results && rows.length === 0 && (

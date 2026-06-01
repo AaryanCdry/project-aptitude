@@ -21,8 +21,6 @@ export default async function AdminDashboard() {
   const overviewSubtitle = isHOD ? 'Department Assessment Cycle' : 'Platform Assessment Cycle';
   const avgScopeLabel = isHOD ? 'department-wide' : 'college-wide';
 
-  // Max bar height = 200px; scale bars relative to the highest weekly avg
-  const maxAvg = Math.max(...weeklyTrend.map(w => w.average), 1);
 
   return (
     <>
@@ -101,14 +99,13 @@ export default async function AdminDashboard() {
             <div className="h-52 relative flex items-end justify-around px-2 pb-8 border-b border-l border-outline-variant gap-3">
               {/* Y-axis grid lines at 25%, 50%, 75% */}
               {[25, 50, 75].map(pct => (
-                <div key={pct} className="absolute w-full border-t border-outline-variant/30 left-0 pointer-events-none" style={{ bottom: `calc(${pct}% + 2rem)` }}>
+                <div key={pct} className="absolute w-full border-t border-outline-variant/30 left-0 pointer-events-none" style={{ bottom: `calc(${pct * 1.6}px + 2rem)` }}>
                   <span className="absolute -left-7 -translate-y-1/2 text-[9px] text-on-surface-variant/50 tabular-nums">{pct}</span>
                 </div>
               ))}
 
               {weeklyTrend.map((week, i) => {
-                // Both bars use the same 160px scale relative to maxAvg
-                const barH = maxAvg > 0 ? Math.round((week.average / maxAvg) * 160) : 0;
+                const barH = Math.round((week.average / 100) * 160);
                 const isLatest = i === weeklyTrend.length - 1;
                 const hasData = week.average > 0;
                 const xLabel = week.label === 'W4' ? 'This Wk' : week.label === 'W0' ? '4w ago' : week.label;

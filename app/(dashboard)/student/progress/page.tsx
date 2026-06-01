@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getStudentProgress } from '@/app/actions/progress';
+import TestHistoryTabs from './TestHistoryTabs';
 
 const DOMAIN_COLORS: Record<string, { bar: string; badge: string; text: string }> = {
   REASONING:    { bar: 'bg-primary',   badge: 'bg-primary-fixed-dim text-on-primary-fixed',               text: 'text-primary' },
@@ -128,57 +129,9 @@ export default async function ProgressPage() {
         </div>
       )}
 
-      {/* Test History */}
+      {/* Test History with type tabs */}
       <h2 className="font-headline-md text-on-surface text-[18px] font-semibold mb-4">Test History</h2>
-      <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="border-b border-outline-variant bg-surface-bright">
-                {['Date', 'Type', 'Domains', 'Avg Score', ''].map((h, i) => (
-                  <th key={i} className="py-3 px-5 font-metric-label text-metric-label text-on-surface-variant">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-outline-variant">
-              {testHistory.length === 0 ? (
-                <tr>
-                  <td colSpan={5} className="py-12 text-center text-on-surface-variant">
-                    <span className="material-symbols-outlined text-3xl block mb-2 text-outline">history</span>
-                    No completed tests yet.
-                  </td>
-                </tr>
-              ) : testHistory.map((t: any) => (
-                <tr key={t.id} className="hover:bg-surface-container transition-colors">
-                  <td className="py-3 px-5 font-body-md text-on-surface">{t.date}</td>
-                  <td className="py-3 px-5">
-                    <span className={`text-xs px-2 py-0.5 rounded font-bold ${t.type === 'CENTER' ? 'bg-primary-fixed-dim text-on-primary-fixed' : 'bg-surface-container-high text-on-surface'}`}>
-                      {t.type}
-                    </span>
-                  </td>
-                  <td className="py-3 px-5">
-                    <div className="flex gap-1 flex-wrap">
-                      {t.scores.map((s: any) => (
-                        <span key={s.domain} className="text-[10px] px-1.5 py-0.5 bg-primary/10 text-primary rounded">{s.domain} {s.score}%</span>
-                      ))}
-                    </div>
-                  </td>
-                  <td className="py-3 px-5">
-                    <span className={`font-body-md font-bold ${t.avgScore >= 75 ? 'text-secondary' : t.avgScore >= 50 ? 'text-primary' : 'text-error'}`}>
-                      {t.avgScore}%
-                    </span>
-                  </td>
-                  <td className="py-3 px-5">
-                    <Link href={`/student/results/${t.id}`} className="font-caption text-primary hover:underline flex items-center gap-1">
-                      View <span className="material-symbols-outlined text-sm">chevron_right</span>
-                    </Link>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </div>
+      <TestHistoryTabs tests={testHistory} />
     </div>
   );
 }

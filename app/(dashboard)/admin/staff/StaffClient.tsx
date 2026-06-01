@@ -198,6 +198,7 @@ export default function StaffClient({ initialData, role }: { initialData: StaffD
                   <th className="px-5 py-3">Name</th>
                   <th className="px-5 py-3">Email</th>
                   <th className="px-5 py-3">Classes</th>
+                  <th className="px-5 py-3">Temp Password</th>
                   <th className="px-5 py-3"></th>
                 </tr>
               </thead>
@@ -251,6 +252,7 @@ export default function StaffClient({ initialData, role }: { initialData: StaffD
                         </div>
                       )}
                     </td>
+                    <td className="px-5 py-3 font-caption text-on-surface-variant">{m.temp_password ?? '—'}</td>
                     <td className="px-5 py-3 text-right space-x-3">
                       <button
                         onClick={() => {

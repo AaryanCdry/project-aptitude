@@ -368,14 +368,24 @@ export async function finishTest(testId: string) {
       const tier = tierFromScore(scorePercent);
       if (tier) {
         const qrCode = `CERT-${testId}-${Date.now().toString(36)}`.toUpperCase();
-        await adminClient.from('certificates').insert({
+        const gradeLabel = tier === 'ADVANCED' ? 'A' : tier === 'INTERMEDIATE' ? 'B' : 'C';
+        const { error: certErr } = await adminClient.from('certificates').insert({
           student_id: user.id,
-          issued_by: user.id,        // auto-issued (system) — no human approver
+          issued_by: user.id,
           qr_code: qrCode,
           tier,
+          grade: gradeLabel,
+          combined_score: scorePercent,
           revoked: false,
         });
-        certGranted = true;
+        if (!certErr) {
+          await adminClient.from('badges').insert({
+            student_id: user.id,
+            test_id: testId,
+            tier,
+          });
+          certGranted = true;
+        }
       }
     }
 

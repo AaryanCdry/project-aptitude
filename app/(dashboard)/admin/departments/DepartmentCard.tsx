@@ -1,6 +1,7 @@
 'use client';
 
-import React, { useState, useTransition } from 'react';
+import React, { useState, useTransition, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { updateDepartment, deleteDepartment } from '@/app/actions/departments';
@@ -36,6 +37,24 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
 
   // ── Edit modal state ──────────────────────────────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => { setMounted(true); }, []);
+
+  // ── Body scroll lock when modal is open ───────────────────────────────────
+  useEffect(() => {
+    const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
+    if (editOpen) {
+      document.body.style.overflow = 'hidden';
+      document.body.style.paddingRight = `${scrollbarWidth}px`;
+    } else {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    }
+    return () => {
+      document.body.style.overflow = '';
+      document.body.style.paddingRight = '';
+    };
+  }, [editOpen]);
   const [name, setName] = useState(dept.name);
   const [courseType, setCourseType] = useState(dept.course_type ?? '');
   const [semCount, setSemCount] = useState(String(dept.semester_count));
@@ -152,8 +171,8 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
         </div>
       </div>
 
-      {/* ── Edit Modal ─────────────────────────────────────────────────────── */}
-      {editOpen && (
+      {/* ── Edit Modal (portal — avoids transform contamination from card hover) */}
+      {mounted && createPortal(editOpen ? (
         <>
           <div className="fixed inset-0 z-40 bg-black/30" onClick={() => setEditOpen(false)} />
           <div className="fixed inset-0 z-50 flex items-center justify-center p-4 pointer-events-none">
@@ -169,7 +188,7 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
                 </button>
               </div>
 
-              <form onSubmit={handleEdit}>
+              <form onSubmit={handleEdit} autoComplete="off">
                 <div className="px-6 py-5 space-y-4">
                   {editError && (
                     <div className="p-3 bg-error-container text-on-error-container rounded-lg text-sm flex items-center gap-2">
@@ -180,7 +199,7 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
 
                   <div>
                     <label className="block font-metric-label text-on-surface text-[12px] mb-1.5">Department Name <span className="text-error">*</span></label>
-                    <input type="text" value={name} onChange={e => setName(e.target.value)} required className={inputCls} placeholder="e.g. Computer Science" />
+                    <input type="text" value={name} onChange={e => setName(e.target.value)} required autoComplete="off" className={inputCls} placeholder="e.g. Computer Science" />
                   </div>
 
                   <div className="grid grid-cols-2 gap-4">
@@ -193,7 +212,7 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
                     </div>
                     <div>
                       <label className="block font-metric-label text-on-surface text-[12px] mb-1.5">Semesters</label>
-                      <input type="number" value={semCount} onChange={e => setSemCount(e.target.value)} min={1} max={12} className={inputCls} />
+                      <input type="number" value={semCount} onChange={e => setSemCount(e.target.value)} min={1} max={12} autoComplete="off" className={inputCls} />
                     </div>
                   </div>
                 </div>
@@ -214,7 +233,7 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
             </div>
           </div>
         </>
-      )}
+      ) : null, document.body)}
     </>
   );
 }

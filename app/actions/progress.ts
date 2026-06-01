@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 
 // ─── Student domain progress over time ──────────────────────────────────────
 export async function getStudentProgress() {
@@ -8,27 +9,30 @@ export async function getStudentProgress() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  // All scores grouped by domain + time
-  const { data: scores } = await supabase
+  const adminClient = createAdminClient();
+
+  // All scores grouped by domain + time (use admin client — RLS may block student reads)
+  const { data: scores } = await adminClient
     .from('scores')
-    .select('domain, score, percentile, created_at, tests!student_id(type)')
+    .select('domain, score, percentile, created_at')
     .eq('student_id', user.id)
+    .neq('domain', 'OVERALL')
     .order('created_at', { ascending: true });
 
   // Domain progress levels
-  const { data: domainLevels } = await supabase
+  const { data: domainLevels } = await adminClient
     .from('domain_progress')
     .select('domain, level, updated_at')
     .eq('student_id', user.id);
 
   // Full test history
-  const { data: tests } = await supabase
+  const { data: tests } = await adminClient
     .from('tests')
-    .select('id, type, status, created_at, completed_at, scores(domain, score, percentile)')
+    .select('id, type, status, created_at, completed_at, assessment_id, scores(domain, score, percentile), cohort_assessments!assessment_id(title)')
     .eq('student_id', user.id)
     .eq('status', 'COMPLETED')
     .order('created_at', { ascending: false })
-    .limit(20);
+    .limit(50);
 
   // Build domain summary
   const domainMap: Record<string, { scores: number[]; percentiles: number[] }> = {};
@@ -60,15 +64,22 @@ export async function getStudentProgress() {
     domainSummary,
     overallAvg,
     totalTests: (tests ?? []).length,
-    testHistory: (tests ?? []).map((t: any) => ({
-      id: t.id,
-      type: t.type,
-      date: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
-      scores: t.scores ?? [],
-      avgScore: t.scores?.length
-        ? Math.round(t.scores.reduce((a: number, b: any) => a + b.score, 0) / t.scores.length)
-        : 0,
-    })),
+    testHistory: (tests ?? []).map((t: any) => {
+      const domainScores = (t.scores ?? []).filter((s: any) => s.domain !== 'OVERALL');
+      const overallScore = (t.scores ?? []).find((s: any) => s.domain === 'OVERALL')?.score ?? null;
+      return {
+        id: t.id as string,
+        type: t.type as 'SELF' | 'CENTER' | 'FINAL',
+        date: new Date(t.created_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }),
+        completedAt: t.completed_at as string | null,
+        scores: domainScores,
+        overallScore,
+        avgScore: domainScores.length
+          ? Math.round(domainScores.reduce((a: number, b: any) => a + b.score, 0) / domainScores.length)
+          : (overallScore ?? 0),
+        assessmentTitle: (t.cohort_assessments as any)?.title ?? null,
+      };
+    }),
   };
 }
 
@@ -90,22 +101,22 @@ export async function getLeaderboard(period: 'weekly' | 'monthly' | 'all' = 'all
     cutoff = d.toISOString();
   }
 
-  let query = supabase
+  let query = createAdminClient()
     .from('scores')
-    .select('student_id, score, domain, percentile, created_at, users!student_id(id, name, email)');
+    // email intentionally omitted — name is sufficient for leaderboard display
+    .select('student_id, score, domain, percentile, created_at, users!student_id(id, name)');
 
   if (cutoff) query = query.gte('created_at', cutoff);
 
   const { data: scores } = await query;
 
   // Aggregate by student
-  const studentMap: Record<string, { name: string; email: string; total: number; count: number; percentiles: number[] }> = {};
+  const studentMap: Record<string, { name: string; total: number; count: number; percentiles: number[] }> = {};
   (scores ?? []).forEach((s: any) => {
     const sid = s.student_id;
     if (!studentMap[sid]) {
       studentMap[sid] = {
-        name: s.users?.name ?? 'Unknown',
-        email: s.users?.email ?? '',
+        name: s.users?.name ?? 'Student',
         total: 0,
         count: 0,
         percentiles: [],
@@ -120,7 +131,6 @@ export async function getLeaderboard(period: 'weekly' | 'monthly' | 'all' = 'all
     .map(([id, data]) => ({
       id,
       name: data.name,
-      email: data.email,
       avgScore: Math.round(data.total / data.count),
       testsCount: data.count,
       avgPercentile: data.percentiles.length

@@ -1,6 +1,7 @@
 'use server';
 
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 
 // Certificates are now AUTO-ISSUED when a FINAL exam is completed with score ≥70.
@@ -12,21 +13,48 @@ export async function getStudentCertificates() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data: certs, error } = await supabase
+  const adminClient = createAdminClient();
+
+  // Use admin client to bypass RLS — we still scope by student_id
+  const { data: certs, error } = await adminClient
     .from('certificates')
-    .select('id, qr_code, issued_at, revoked, tier, users!issued_by(name, email)')
+    .select('id, qr_code, issued_at, revoked, tier')
     .eq('student_id', user.id)
     .order('issued_at', { ascending: false });
 
   if (error) throw error;
-  return (certs ?? []).map((c: any) => ({
-    id: c.id,
-    qrCode: c.qr_code,
-    issuedAt: c.issued_at,
-    revoked: c.revoked,
-    tier: c.tier ?? null,
-    issuedBy: c.users?.name ?? 'System',
-  }));
+  const rows = certs ?? [];
+
+  // test_id is encoded in qr_code: "CERT-{uuid36}-{base36}" (qr_code may be uppercased)
+  const testIds = rows.map((c: any) => (c.qr_code as string)?.substring(5, 41)?.toLowerCase()).filter(Boolean) as string[];
+  const infoMap: Record<string, { assessmentTitle: string | null; className: string | null }> = {};
+  if (testIds.length > 0) {
+    const { data: testRows } = await adminClient
+      .from('tests')
+      .select('id, cohort_assessments!assessment_id(title), users!student_id(classes!class_id(name))')
+      .in('id', testIds);
+    for (const t of testRows ?? []) {
+      infoMap[(t as any).id as string] = {
+        assessmentTitle: (t as any).cohort_assessments?.title ?? null,
+        className: (t as any).users?.classes?.name ?? null,
+      };
+    }
+  }
+
+  return rows.map((c: any) => {
+    const testId = (c.qr_code as string)?.substring(5, 41)?.toLowerCase();
+    const info = (testId && infoMap[testId]) ? infoMap[testId] : { assessmentTitle: null, className: null };
+    return {
+      id: c.id as string,
+      qrCode: c.qr_code as string,
+      issuedAt: c.issued_at as string,
+      revoked: c.revoked as boolean,
+      tier: (c.tier ?? null) as string | null,
+      issuedBy: 'System',
+      assessmentTitle: info.assessmentTitle,
+      className: info.className,
+    };
+  });
 }
 
 export async function getMentorCertificates() {

@@ -184,11 +184,14 @@ export async function enrollStudent(formData: FormData) {
 export interface BulkRow {
   name: string;
   email: string;
+  registration_id?: string;
+  department?: string;   // name — resolved to ID on server
+  class?: string;        // name — resolved to ID on server
+  section?: string;
+  semester?: string;     // numeric string 1-12
 }
 
-export interface BulkResult {
-  name: string;
-  email: string;
+export interface BulkResult extends BulkRow {
   studentId?: string;
   tempPassword?: string;
   status: 'valid' | 'error';
@@ -214,11 +217,51 @@ export async function processBulkEnrollment(
   const adminClient = createAdminClient();
   const results: BulkResult[] = [];
 
+  // Batch-resolve department names → IDs for this college
+  const deptNameMap: Record<string, string> = {};
+  if (collegeId) {
+    const deptNames = [...new Set(rows.map(r => r.department?.trim()).filter(Boolean))] as string[];
+    if (deptNames.length > 0) {
+      const { data: deptRows } = await adminClient
+        .from('departments')
+        .select('id, name')
+        .eq('college_id', collegeId)
+        .in('name', deptNames);
+      (deptRows ?? []).forEach((d: any) => { deptNameMap[d.name.toLowerCase()] = d.id; });
+    }
+  }
+
+  // Batch-resolve class names → IDs for this college
+  const classNameMap: Record<string, string> = {};
+  if (collegeId) {
+    const classNames = [...new Set(rows.map(r => r.class?.trim()).filter(Boolean))] as string[];
+    if (classNames.length > 0) {
+      const deptIds = Object.values(deptNameMap);
+      let classQ = adminClient.from('classes').select('id, name, dept_id, departments!dept_id(college_id)').in('name', classNames);
+      const { data: classRows } = await classQ;
+      (classRows ?? []).forEach((c: any) => {
+        if ((c.departments as any)?.college_id === collegeId) {
+          classNameMap[c.name.toLowerCase()] = c.id;
+        }
+      });
+    }
+  }
+
   for (const row of rows) {
     if (!row.name || !row.email || !row.email.includes('@')) {
       results.push({ ...row, status: 'error', message: 'Invalid email or name' });
       continue;
     }
+
+    const semesterRaw = row.semester?.trim() ?? '';
+    const semesterNum = semesterRaw ? parseInt(semesterRaw, 10) : null;
+    if (semesterRaw && (isNaN(semesterNum!) || semesterNum! < 1 || semesterNum! > 12)) {
+      results.push({ ...row, status: 'error', message: 'Semester must be 1–12' });
+      continue;
+    }
+
+    const departmentId = row.department ? (deptNameMap[row.department.trim().toLowerCase()] ?? null) : null;
+    const classId = row.class ? (classNameMap[row.class.trim().toLowerCase()] ?? null) : null;
 
     const tempPassword = Math.random().toString(36).slice(-8) + 'A1!';
 
@@ -247,6 +290,11 @@ export async function processBulkEnrollment(
         role: 'STUDENT',
         college_id: collegeId,
         temp_password: tempPassword,
+        registration_id: row.registration_id?.trim() || null,
+        department_id: departmentId,
+        class_id: classId,
+        section: row.section?.trim() || null,
+        semester: semesterNum,
       });
 
       results.push({

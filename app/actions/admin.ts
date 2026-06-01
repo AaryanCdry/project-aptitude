@@ -428,7 +428,7 @@ export async function getScheduledAssessments() {
   if (assessmentIds.length > 0) {
     const { data: rows } = await adminClient
       .from('cohort_assessments')
-      .select('id, title, domain, scheduled_at, due_date, class_ids')
+      .select('id, title, domain, scheduled_at, due_date, class_ids, instructions')
       .in('id', assessmentIds)
       .order('created_at', { ascending: false });
 
@@ -452,6 +452,7 @@ export async function getScheduledAssessments() {
         domain: a.domain ?? null,
         scheduledAt: a.scheduled_at ?? null,
         dueDate: a.due_date ?? null,
+        instructions: (a.instructions ?? null) as string | null,
         total,
         completed: b.completed,
         inProgress: b.inProgress,

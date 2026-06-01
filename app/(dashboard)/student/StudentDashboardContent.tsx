@@ -377,11 +377,26 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
                       className={`flex items-center justify-between p-4 hover:bg-surface-container transition-colors ${index < recentTests.length - 1 ? 'border-b border-outline-variant' : ''}`}
                     >
                       <div className="flex items-center gap-4">
-                        <div className="bg-surface-container-high p-2 rounded-full text-on-surface">
-                          <span className="material-symbols-outlined">{test.type === 'SELF' ? 'quiz' : 'assignment'}</span>
+                        <div className={`p-2 rounded-full ${test.type === 'FINAL' ? 'bg-error-container/30 text-on-error-container' : test.type === 'CENTER' ? 'bg-primary/10 text-primary' : 'bg-surface-container-high text-on-surface'}`}>
+                          <span className="material-symbols-outlined">
+                            {test.type === 'FINAL' ? 'military_tech' : test.type === 'CENTER' ? 'assignment' : 'quiz'}
+                          </span>
                         </div>
                         <div>
-                          <p className="font-metric-label text-on-surface">Adaptive Mock Test</p>
+                          <div className="flex items-center gap-2 mb-0.5">
+                            <p className="font-metric-label text-on-surface">
+                              {test.type === 'FINAL' ? 'Final Exam' : test.type === 'CENTER' ? 'Assigned Test' : 'Self Practice'}
+                            </p>
+                            <span className={`text-[10px] px-1.5 py-0.5 rounded-full font-bold ${
+                              test.type === 'FINAL'
+                                ? 'bg-error-container/30 text-on-error-container'
+                                : test.type === 'CENTER'
+                                ? 'bg-primary/10 text-primary'
+                                : 'bg-surface-container-high text-on-surface-variant'
+                            }`}>
+                              {test.type === 'FINAL' ? 'Final' : test.type === 'CENTER' ? 'Assigned' : 'Self'}
+                            </span>
+                          </div>
                           <p className="font-caption text-on-surface-variant">
                             Completed {new Date(test.completed_at).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
                           </p>
