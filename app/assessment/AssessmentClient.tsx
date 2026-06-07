@@ -32,15 +32,15 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
   const [allAttemptsComplete, setAllAttemptsComplete] = useState(false);
   const [showFinishWarning, setShowFinishWarning] = useState(false);
 
-  // Timer
-  const [timerSeconds, setTimerSeconds] = useState<number>(60);
-  const [timeLeft, setTimeLeft] = useState<number>(60);
+  // Timer — overall countdown for the entire test
+  const [expiresAt, setExpiresAt] = useState<string | null>(null);
+  const [timeLeft, setTimeLeft] = useState<number>(0);
+  const questionStartRef = useRef<number>(Date.now());
+  const isFinishingRef = useRef(false);
   const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const questionRef = useRef<any>(null);
-  const timerSecondsRef = useRef<number>(60);
   const jumpToPosRef = useRef<number | null>(null);
   useEffect(() => { questionRef.current = question; }, [question]);
-  useEffect(() => { timerSecondsRef.current = timerSeconds; }, [timerSeconds]);
   useEffect(() => { jumpToPosRef.current = jumpToPos; }, [jumpToPos]);
 
   // Proctoring
@@ -74,35 +74,40 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
     };
   }, []);
 
-  // Timer — restarts whenever the displayed question changes
+  // Overall test countdown — starts when expiresAt is first received, auto-finishes test on expiry
   useEffect(() => {
+    if (!expiresAt) return;
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-    if (!displayedQuestion) return;
-    setTimeLeft(timerSeconds);
+
+    const computeRemaining = () =>
+      Math.max(0, Math.floor((new Date(expiresAt).getTime() - Date.now()) / 1000));
+
+    setTimeLeft(computeRemaining());
+
     intervalRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        if (prev <= 1) {
-          clearInterval(intervalRef.current!);
-          intervalRef.current = null;
-          setTimeout(() => {
-            if (jumpToPosRef.current !== null) return; // no auto-submit while reviewing
-            const q = questionRef.current;
-            const ts = timerSecondsRef.current ?? 30;
-            if (q) {
-              questionTimingsRef.current.push(ts * 1000);
-              submitAnswer(testId, q.id, '__TIMEOUT__', ts * 1000)
-                .then(() => loadNextQuestion())
-                .catch(console.error);
-            }
-          }, 0);
-          return 0;
-        }
-        return prev - 1;
-      });
+      const remaining = computeRemaining();
+      setTimeLeft(remaining);
+      if (remaining <= 0 && !isFinishingRef.current) {
+        clearInterval(intervalRef.current!);
+        intervalRef.current = null;
+        isFinishingRef.current = true;
+        setTestFinished(true);
+        finishTest(testId)
+          .then(res => {
+            setScore(res.score);
+            const timings = questionTimingsRef.current;
+            const avgTimeMs = timings.length > 0
+              ? Math.round(timings.reduce((a, b) => a + b, 0) / timings.length)
+              : 0;
+            submitProctoringLog(buildLogPayload(proctorRef.current, avgTimeMs)).catch(console.error);
+          })
+          .catch(console.error);
+      }
     }, 1000);
+
     return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [displayedQuestion?.id, timerSeconds]);
+  }, [expiresAt]);
 
   const loadNextQuestion = async () => {
     setLoading(true);
@@ -117,7 +122,8 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
         setHistory(prev => ({ ...prev, [newPos]: { question: res.question } }));
         setProgress(res.progress || 0);
         setTotal(res.total || 25);
-        setTimerSeconds((res as any).timerSeconds ?? 60);
+        if ((res as any).expiresAt) setExpiresAt((res as any).expiresAt);
+        questionStartRef.current = Date.now();
         setSelectedOption(null);
       }
     } catch (err) {
@@ -144,7 +150,8 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     setIsSubmitting(true);
     try {
-      const elapsed = (timerSeconds - timeLeft) * 1000;
+      const elapsed = Date.now() - questionStartRef.current;
+      questionStartRef.current = Date.now();
       questionTimingsRef.current.push(elapsed);
       if (isReviewing && jumpToPos !== null) {
         await updateAnswer(testId, displayedQuestion.id, selectedOption, elapsed);
@@ -169,7 +176,8 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
     setIsSubmitting(true);
     try {
       const currentPos = progress + 1;
-      const elapsed = (timerSeconds - timeLeft) * 1000;
+      const elapsed = Date.now() - questionStartRef.current;
+      questionStartRef.current = Date.now();
       questionTimingsRef.current.push(elapsed);
       await submitAnswer(testId, question.id, '__SKIP__', elapsed);
       setSkippedPositions(prev => { const n = new Set(prev); n.add(currentPos); return n; });
@@ -194,7 +202,6 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
   const handleJumpToQuestion = (pos: number) => {
     if (!history[pos]) return;
     setSelectedOption(null);
-    setTimerSeconds(60);
     setJumpToPos(pos);
   };
 
@@ -408,7 +415,7 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
             </div>
           </div>
 
-          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-metric-label transition-colors ${timeLeft <= 10 ? 'bg-error-container border-error text-on-error-container' : 'bg-surface-container-low border-outline-variant text-on-surface'}`}>
+          <div className={`flex items-center gap-2 px-4 py-2 rounded-lg border font-metric-label transition-colors ${timeLeft <= 300 ? 'bg-error-container border-error text-on-error-container' : 'bg-surface-container-low border-outline-variant text-on-surface'}`}>
             <span className="material-symbols-outlined text-sm">timer</span>
             <span className="text-lg tabular-nums">
               {String(Math.floor(timeLeft / 60)).padStart(2, '0')}:{String(timeLeft % 60).padStart(2, '0')}

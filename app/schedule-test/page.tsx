@@ -1,6 +1,7 @@
 import { redirect } from 'next/navigation';
 import { getCallerScope, resolveAllowedClassIds } from '../actions/scope';
 import { createAdminClient } from '@/lib/supabase/admin';
+import { getBatchesForScheduling } from '../actions/batches';
 import ScheduleFormClient from './ScheduleFormClient';
 
 const STAFF_ROLES = ['ADMIN', 'SUB_ADMIN', 'MENTOR', 'SUPER_ADMIN'];
@@ -36,12 +37,16 @@ export default async function ScheduleTestPage() {
     }
     classesQ = classesQ.in('id', allowedClassIds);
   }
-  const { data: classes } = await classesQ;
+  const [{ data: classes }, batches] = await Promise.all([
+    classesQ,
+    getBatchesForScheduling(),
+  ]);
 
   return (
     <ScheduleFormClient
       role={scope.role}
       classes={(classes ?? []) as any}
+      batches={batches}
     />
   );
 }

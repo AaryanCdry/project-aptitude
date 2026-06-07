@@ -5,6 +5,7 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { revalidatePath } from 'next/cache';
 import { getCallerScope } from './scope';
 import { createTestDraft } from './scheduling';
+import { getBatchesForScheduling } from './batches';
 
 // ─── Student-facing: pending final exams ─────────────────────────────────────
 
@@ -37,7 +38,7 @@ export async function startFinalExam(testId: string) {
   const adminClient = createAdminClient();
   const { data: test } = await adminClient
     .from('tests')
-    .select('id, student_id, type, status')
+    .select('id, student_id, type, status, assessment_id, expires_at')
     .eq('id', testId)
     .single();
 
@@ -48,7 +49,20 @@ export async function startFinalExam(testId: string) {
     return { error: 'This final exam is already completed.' };
   }
   if (test.status !== 'IN_PROGRESS') {
-    await adminClient.from('tests').update({ status: 'IN_PROGRESS' }).eq('id', testId);
+    let expiresAt = (test as any).expires_at as string | null;
+    if (!expiresAt) {
+      let durationMinutes = 45;
+      if ((test as any).assessment_id) {
+        const { data: ass } = await adminClient
+          .from('cohort_assessments')
+          .select('duration_minutes')
+          .eq('id', (test as any).assessment_id)
+          .single();
+        durationMinutes = (ass as any)?.duration_minutes ?? 45;
+      }
+      expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
+    }
+    await adminClient.from('tests').update({ status: 'IN_PROGRESS', expires_at: expiresAt }).eq('id', testId);
   }
   return { success: true as const, testId };
 }
@@ -67,7 +81,7 @@ export async function createFinalDraft(formData: FormData) {
 
 export async function getScheduledFinals() {
   const scope = await getCallerScope();
-  if (!scope.userId || !scope.collegeId) return { finals: [], classes: [], assessments: [] };
+  if (!scope.userId || !scope.collegeId) return { finals: [], classes: [], assessments: [], batches: [] };
 
   const adminClient = createAdminClient();
 
@@ -97,7 +111,10 @@ export async function getScheduledFinals() {
     return true;
   });
 
-  if (filtered.length === 0) return { finals: [], classes, assessments: [] };
+  if (filtered.length === 0) {
+    const batches = await getBatchesForScheduling();
+    return { finals: [], classes, assessments: [], batches };
+  }
 
   const testIds = filtered.map((t: any) => t.id as string);
   const completedTests = filtered.filter((t: any) => t.status === 'COMPLETED');
@@ -115,8 +132,8 @@ export async function getScheduledFinals() {
     assessmentsQuery = (assessmentsQuery as any).eq('college_id', scope.collegeId);
   }
 
-  // All 4 batch-fetches are independent — run in parallel
-  const [scoreResult, certResult, badgeResult, assessmentsResult] = await Promise.all([
+  // All fetches are independent — run in parallel
+  const [scoreResult, certResult, badgeResult, assessmentsResult, batches] = await Promise.all([
     completedTestIds.length > 0
       ? adminClient.from('scores').select('test_id, score').in('test_id', completedTestIds).eq('domain', 'OVERALL')
       : Promise.resolve({ data: [] as any[] }),
@@ -127,6 +144,7 @@ export async function getScheduledFinals() {
       ? adminClient.from('badges').select('test_id, tier').in('test_id', completedTestIds)
       : Promise.resolve({ data: [] as any[] }),
     assessmentsQuery,
+    getBatchesForScheduling(),
   ]);
 
   // qr_code format: "CERT-{uuid_36}-{base36}" → testId = qr_code.substring(5, 41)
@@ -173,6 +191,7 @@ export async function getScheduledFinals() {
   });
 
   return {
+    batches,
     finals: filtered.map((t: any) => ({
       id: t.id as string,
       scheduled_at: t.scheduled_at as string | null,

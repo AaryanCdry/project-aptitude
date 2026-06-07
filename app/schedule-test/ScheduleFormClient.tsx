@@ -5,10 +5,12 @@ import { useRouter } from 'next/navigation';
 import { createTestDraft } from '@/app/actions/scheduling';
 
 interface ClassRow { id: string; name: string; year: number | null; section: string | null; dept_id: string; departments?: { name?: string } }
+interface BatchOption { id: string; name: string; classes: Array<{ id: string; name: string }> }
 
 interface Props {
   role: string | null;
   classes: ClassRow[];
+  batches: BatchOption[];
 }
 
 const QUOTA_DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'] as const;
@@ -28,7 +30,7 @@ const DOMAIN_ICON: Record<QuotaDomain, string> = {
   SPATIAL: 'view_in_ar',
 };
 
-export default function ScheduleFormClient({ role, classes }: Props) {
+export default function ScheduleFormClient({ role, classes, batches }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
   const [classIds, setClassIds] = useState<Set<string>>(new Set());
@@ -36,6 +38,19 @@ export default function ScheduleFormClient({ role, classes }: Props) {
     QUANTITATIVE: 0, LOGICAL: 0, VERBAL: 0, SPATIAL: 0,
   });
   const [flash, setFlash] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState('');
+
+  function handleBatchChange(batchId: string) {
+    setSelectedBatchId(batchId);
+    if (!batchId) return;
+    const batch = batches.find(b => b.id === batchId);
+    if (!batch) return;
+    setClassIds(prev => {
+      const next = new Set(prev);
+      batch.classes.forEach(c => next.add(c.id));
+      return next;
+    });
+  }
 
   const total = useMemo(
     () => QUOTA_DOMAINS.reduce((s, d) => s + (quotas[d] || 0), 0),
@@ -47,6 +62,7 @@ export default function ScheduleFormClient({ role, classes }: Props) {
     setFlash(null);
     const fd = new FormData(e.currentTarget);
     fd.set('class_ids', [...classIds].join(','));
+    if (selectedBatchId) fd.set('batch_id', selectedBatchId);
     for (const d of QUOTA_DOMAINS) fd.set(`quota_${d}`, String(quotas[d] || 0));
 
     startTransition(async () => {
@@ -163,8 +179,45 @@ export default function ScheduleFormClient({ role, classes }: Props) {
 
         <div>
           <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">
+            Duration (minutes) <span className="text-error">*</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input
+              name="duration_minutes"
+              type="number"
+              min={5}
+              max={180}
+              step={5}
+              defaultValue={45}
+              required
+              className="w-28 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface"
+            />
+            <span className="font-caption text-on-surface-variant">minutes for the entire test (5–180)</span>
+          </div>
+        </div>
+
+        <div>
+          <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">
             Target classes <span className="text-error">*</span>
           </label>
+
+          {/* Batch shortcut */}
+          {batches.length > 0 && (
+            <div className="mb-2 flex items-center gap-2">
+              <span className="material-symbols-outlined text-primary text-sm" style={{ fontVariationSettings: '"FILL" 1' }}>groups</span>
+              <select
+                value={selectedBatchId}
+                onChange={e => handleBatchChange(e.target.value)}
+                className="flex-1 px-3 py-1.5 rounded-lg border border-outline-variant bg-surface-container-lowest text-sm text-on-surface focus:outline-none focus:border-primary"
+              >
+                <option value="">Select batch to auto-check all its classes…</option>
+                {batches.map(b => (
+                  <option key={b.id} value={b.id}>{b.name} ({b.classes.length} classes)</option>
+                ))}
+              </select>
+            </div>
+          )}
+
           <div className="grid grid-cols-2 md:grid-cols-3 gap-1 max-h-48 overflow-y-auto p-3 rounded-lg border border-outline-variant bg-surface-container-lowest">
             {classes.length === 0 ? (
               <span className="font-body-md text-on-surface-variant col-span-3">No classes available.</span>

@@ -52,7 +52,9 @@ export async function createTestDraft(formData: FormData) {
   const due_date = (formData.get('due_date') as string) || '';
   const scheduled_at_raw = (formData.get('scheduled_at') as string) || '';
   const class_ids_raw = (formData.get('class_ids') as string) || '';
+  const batch_id = (formData.get('batch_id') as string) || null;
   const test_type = ((formData.get('test_type') as string) ?? 'CENTER') === 'FINAL' ? 'FINAL' : 'CENTER';
+  const duration_minutes = Math.max(5, Math.min(180, parseInt((formData.get('duration_minutes') as string) || '45', 10) || 45));
 
   if (!title) return { error: 'Title is required.' };
 
@@ -68,7 +70,28 @@ export async function createTestDraft(formData: FormData) {
   }
   if (totalQuota === 0) return { error: 'Set at least one domain quota.' };
 
-  const class_ids = class_ids_raw.split(',').map((s) => s.trim()).filter(Boolean);
+  let class_ids = class_ids_raw.split(',').map((s) => s.trim()).filter(Boolean);
+
+  // If a batch was selected, merge its class IDs — but first verify the batch belongs to the caller's college
+  if (batch_id) {
+    const adminClient2 = createAdminClient();
+    const { data: batchRow } = await adminClient2
+      .from('batches')
+      .select('id, college_id')
+      .eq('id', batch_id)
+      .single();
+    if (!batchRow) return { error: 'Batch not found.' };
+    if (scope.role !== 'SUPER_ADMIN' && (batchRow as any).college_id !== scope.collegeId) {
+      return { error: 'Batch is outside your college scope.' };
+    }
+    const { data: batchClasses } = await adminClient2
+      .from('classes')
+      .select('id')
+      .eq('batch_id', batch_id);
+    const batchClassIds = (batchClasses ?? []).map((c: any) => c.id as string);
+    class_ids = [...new Set([...class_ids, ...batchClassIds])];
+  }
+
   if (class_ids.length === 0) return { error: 'Select at least one class.' };
 
   const scheduledAtIso = scheduled_at_raw ? new Date(scheduled_at_raw).toISOString() : null;
@@ -111,6 +134,8 @@ export async function createTestDraft(formData: FormData) {
       domain_quotas,
       status: 'DRAFT',
       test_type,
+      batch_id,
+      duration_minutes,
     })
     .select('id')
     .single();
@@ -351,6 +376,7 @@ export async function updateTestDraft(
     due_date: string | null;
     class_ids: string[];
     domain_quotas: Record<string, number>;
+    duration_minutes: number;
   }
 ) {
   const gate = await assertCallerCanEditDraft(assessmentId);
@@ -379,6 +405,7 @@ export async function updateTestDraft(
       class_ids: data.class_ids,
       domain_quotas: data.domain_quotas,
       question_ids: [],
+      duration_minutes: Math.max(5, Math.min(180, data.duration_minutes || 45)),
     })
     .eq('id', assessmentId);
 

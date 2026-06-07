@@ -28,10 +28,17 @@ interface Assessment {
   completedStudents: number;
 }
 
+interface BatchOption {
+  id: string;
+  name: string;
+  classes: Array<{ id: string; name: string }>;
+}
+
 interface Data {
   finals: FinalRow[];
   classes: Array<{ id: string; name: string }>;
   assessments: Assessment[];
+  batches: BatchOption[];
 }
 
 const STATUS_CHIP: Record<string, string> = {
@@ -88,10 +95,32 @@ export default function FinalsClient({ initialData }: { initialData: Data }) {
   // ── Schedule form state ───────────────────────────────────────────────────
   const [formPending, startForm] = useTransition();
   const [formError, setFormError] = useState<string | null>(null);
+  const [selectedBatchId, setSelectedBatchId] = useState('');
+  const [selectedClassIds, setSelectedClassIds] = useState<string[]>([]);
+  const [addClassId, setAddClassId] = useState('');
 
   function toDatetimeLocal(iso: string | null) {
     if (!iso) return '';
     return new Date(iso).toISOString().slice(0, 16);
+  }
+
+  function handleBatchChange(batchId: string) {
+    setSelectedBatchId(batchId);
+    if (!batchId) return;
+    const batch = initialData.batches.find(b => b.id === batchId);
+    if (!batch) return;
+    const batchClassIds = batch.classes.map(c => c.id);
+    setSelectedClassIds(prev => [...new Set([...prev, ...batchClassIds])]);
+  }
+
+  function handleAddClass() {
+    if (!addClassId || selectedClassIds.includes(addClassId)) return;
+    setSelectedClassIds(prev => [...prev, addClassId]);
+    setAddClassId('');
+  }
+
+  function handleRemoveClass(classId: string) {
+    setSelectedClassIds(prev => prev.filter(id => id !== classId));
   }
 
   function handleScheduleSubmit(e: React.FormEvent<HTMLFormElement>) {
@@ -200,23 +229,62 @@ export default function FinalsClient({ initialData }: { initialData: Data }) {
           <input name="title" required type="text" placeholder="e.g. BCA Final Exam 2026" autoComplete="off" className={inputCls} />
         </div>
 
-        {/* Class */}
+        {/* Batch selector (optional) */}
+        {initialData.batches.length > 0 && (
+          <div>
+            <label className="block font-metric-label text-on-surface text-xs uppercase tracking-wider mb-1.5">
+              <span className="material-symbols-outlined text-[13px] align-middle mr-1" style={{ fontVariationSettings: '"FILL" 1' }}>groups</span>
+              Fill from Batch <span className="text-on-surface-variant font-normal normal-case">(optional)</span>
+            </label>
+            <select value={selectedBatchId} onChange={e => handleBatchChange(e.target.value)} className={inputCls}>
+              <option value="">Select a batch to auto-fill classes…</option>
+              {initialData.batches.map(b => (
+                <option key={b.id} value={b.id}>{b.name} ({b.classes.length} classes)</option>
+              ))}
+            </select>
+          </div>
+        )}
+
+        {/* Class multi-picker */}
         <div>
           <label className="block font-metric-label text-on-surface text-xs uppercase tracking-wider mb-1.5">
-            Target Class <span className="text-error">*</span>
+            Target Classes <span className="text-error">*</span>
           </label>
-          <input type="hidden" name="class_ids" id="class_ids_hidden" />
-          <select
-            required
-            className={inputCls}
-            onChange={e => {
-              const el = document.getElementById('class_ids_hidden') as HTMLInputElement;
-              if (el) el.value = e.target.value;
-            }}
-          >
-            <option value="">Select class…</option>
-            {initialData.classes.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
-          </select>
+          <input type="hidden" name="class_ids" value={selectedClassIds.join(',')} readOnly />
+
+          {/* Selected class chips */}
+          {selectedClassIds.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-2">
+              {selectedClassIds.map(id => {
+                const cls = initialData.classes.find(c => c.id === id);
+                return (
+                  <div key={id} className="flex items-center gap-1.5 bg-primary/10 text-primary border border-primary/20 rounded-lg px-2.5 py-1 text-sm">
+                    <span className="material-symbols-outlined text-[13px]" style={{ fontVariationSettings: '"FILL" 1' }}>meeting_room</span>
+                    {cls?.name ?? id}
+                    <button type="button" onClick={() => handleRemoveClass(id)} className="ml-0.5 hover:text-error transition-colors">
+                      <span className="material-symbols-outlined text-[13px]">close</span>
+                    </button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {/* Add individual class */}
+          <div className="flex gap-2">
+            <select value={addClassId} onChange={e => setAddClassId(e.target.value)} className={`flex-1 ${inputCls}`}>
+              <option value="">Add individual class…</option>
+              {initialData.classes.filter(c => !selectedClassIds.includes(c.id)).map(c => (
+                <option key={c.id} value={c.id}>{c.name}</option>
+              ))}
+            </select>
+            <button type="button" onClick={handleAddClass} disabled={!addClassId} className="px-3 py-2 border border-outline-variant rounded-lg text-sm text-on-surface-variant hover:bg-surface-container disabled:opacity-40 transition-colors">
+              <span className="material-symbols-outlined text-sm">add</span>
+            </button>
+          </div>
+          {selectedClassIds.length === 0 && (
+            <p className="font-caption text-on-surface-variant text-xs mt-1">Select a batch above or add classes individually.</p>
+          )}
         </div>
 
         {/* Domain quotas */}
@@ -244,12 +312,24 @@ export default function FinalsClient({ initialData }: { initialData: Data }) {
           </div>
         </div>
 
+        {/* Duration */}
+        <div>
+          <label className="block font-metric-label text-on-surface text-xs uppercase tracking-wider mb-1.5">
+            Duration (minutes) <span className="text-error">*</span>
+          </label>
+          <div className="flex items-center gap-3">
+            <input name="duration_minutes" type="number" min={5} max={180} step={5} defaultValue={45} required className={`${inputCls} w-28`} />
+            <span className="font-caption text-on-surface-variant">minutes for the entire exam (5–180)</span>
+          </div>
+        </div>
+
         <input type="hidden" name="test_type" value="FINAL" />
+        {selectedBatchId && <input type="hidden" name="batch_id" value={selectedBatchId} />}
 
         <div className="flex justify-end pt-2 border-t border-outline-variant">
           <button
             type="submit"
-            disabled={formPending}
+            disabled={formPending || selectedClassIds.length === 0}
             className="px-6 py-2.5 rounded-lg bg-primary text-on-primary font-metric-label hover:bg-primary/90 transition-colors disabled:opacity-50 flex items-center gap-2"
           >
             {formPending ? (

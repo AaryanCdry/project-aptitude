@@ -52,6 +52,7 @@ export default function StudentShell({ children, name, initials, streak, totalPo
         <NavLink href="/student/leaderboard" icon="leaderboard" label="Leaderboard" />
         <NavLink href="/student/finals" icon="military_tech" label="Final Exams" />
         <NavLink href="/student/certificates" icon="workspace_premium" label="Certificates" />
+        <NavLink href="/student/jobs" icon="work" label="Jobs" />
         <NavLink href="/student/profile" icon="person" label="Profile" />
       </nav>
 

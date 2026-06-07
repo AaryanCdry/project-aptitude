@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { getClasses, getDepartments, getClassStudentCounts, getClassMentors } from '@/app/actions/departments';
 import { getCallerScope } from '@/app/actions/scope';
+import { getBatches } from '@/app/actions/batches';
 import CreateClassForm from './CreateClassForm';
 import ClassRowActions from './ClassRowActions';
 
@@ -11,6 +12,7 @@ interface ClassRow {
   dept_id: string;
   year: number | null;
   section: string | null;
+  batch_id: string | null;
   created_at: string;
   // Supabase infers joined rows as arrays even for many-to-one FKs
   departments: Array<{ name: string; course_type: string | null }> | null;
@@ -30,10 +32,11 @@ export default async function ClassesPage({
 }) {
   const { dept: deptFilter } = await searchParams;
 
-  const [classes, departments, scope] = await Promise.all([
+  const [classes, departments, scope, batches] = await Promise.all([
     getClasses(deptFilter),
     getDepartments(),
     getCallerScope(),
+    getBatches(),
   ]);
   const isHOD = scope.role === 'SUB_ADMIN';
 
@@ -56,6 +59,9 @@ export default async function ClassesPage({
   });
 
   const deptList = typedDepts.map((d) => ({ id: d.id, name: d.name }));
+  const batchNameMap: Record<string, string> = Object.fromEntries(
+    batches.map((b) => [b.id, b.name])
+  );
 
   return (
     <div className="max-w-container-max-width mx-auto pb-24">
@@ -171,8 +177,8 @@ export default async function ClassesPage({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-outline-variant bg-surface-container-low/40">
-                      {['Class Name', 'Year / Section', 'Students', 'Mentor', 'Created', 'Actions'].map((h, i) => (
-                        <th key={h} className={`py-3 px-5 font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider ${i === 5 ? 'text-right' : ''}`}>{h}</th>
+                      {['Class Name', 'Year / Section', 'Batch', 'Students', 'Mentor', 'Created', 'Actions'].map((h, i) => (
+                        <th key={h} className={`py-3 px-5 font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider ${i === 6 ? 'text-right' : ''}`}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -194,6 +200,16 @@ export default async function ClassesPage({
                             <span className="font-body-md text-on-surface-variant text-[13px]">
                               {c.year ? `Year ${c.year}` : '—'}{c.section ? ` · Section ${c.section}` : ''}
                             </span>
+                          </td>
+                          <td className="py-3.5 px-5">
+                            {c.batch_id && batchNameMap[c.batch_id] ? (
+                              <Link href="/admin/batches" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-primary/10 text-primary border border-primary/20 hover:bg-primary/20 transition-colors font-medium">
+                                <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: '"FILL" 1' }}>groups</span>
+                                {batchNameMap[c.batch_id]}
+                              </Link>
+                            ) : (
+                              <span className="text-outline text-[12px] italic">No batch</span>
+                            )}
                           </td>
                           <td className="py-3.5 px-5">
                             <span className="inline-flex items-center gap-1.5 text-[13px]">

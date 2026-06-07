@@ -3,6 +3,8 @@ import Link from 'next/link';
 import { getStudentDashboardData } from '@/app/actions/dashboard';
 import { getStudentAssignedAssessments } from '@/app/actions/cohorts';
 import { getStudentFinalExams } from '@/app/actions/finals';
+import { getStudentDegreeJobs } from '@/app/actions/jobs';
+import type { Job } from '@/lib/jobs/providers/base';
 import { createAdminClient } from '@/lib/supabase/admin';
 import PublicLearningPath from './PublicLearningPath';
 import CollegeCurriculumCard from './CollegeCurriculumCard';
@@ -72,12 +74,14 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
     finalExams,
     { data: profile },
     { data: classInfo },
+    { jobs: degreeJobs },
   ] = await Promise.all([
     getStudentDashboardData(studentId),
     getStudentAssignedAssessments(studentId),
     getStudentFinalExams(studentId),
     adminClient.from('users').select('name, email, student_level, total_points').eq('id', studentId).single(),
     adminClient.from('users').select('class_id, classes!class_id(name, year, section, departments!dept_id(name, course_type))').eq('id', studentId).single(),
+    isViewer ? Promise.resolve({ jobs: [] as Job[], courseType: null }) : getStudentDegreeJobs(),
   ]);
 
   const recentTests = tests.slice(0, 5);
@@ -350,6 +354,44 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
 
           {/* ── Assigned Assessments (college students only) ─────────────── */}
           {collegeId && <AssignedAssessments assignments={assignedAssessments as any} />}
+
+          {/* ── Jobs for Your Degree ─────────────────────────────────────── */}
+          {!isViewer && degreeJobs.length > 0 && (
+            <section>
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-headline-md text-on-surface flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: '"FILL" 1' }}>work</span>
+                  Jobs for Your Degree
+                </h4>
+                <Link href="/student/jobs" className="font-metric-label text-primary text-sm hover:underline flex items-center gap-1">
+                  View all <span className="material-symbols-outlined text-sm">arrow_forward</span>
+                </Link>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                {degreeJobs.slice(0, 3).map((job) => (
+                  <div key={job.id} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col gap-3 hover:shadow-md transition-shadow">
+                    <div>
+                      <p className="font-metric-label text-on-surface font-semibold line-clamp-1">{job.title}</p>
+                      <p className="font-body-md text-on-surface-variant text-sm mt-0.5">{job.company}</p>
+                    </div>
+                    <div className="flex items-center gap-1 text-xs text-on-surface-variant font-caption">
+                      <span className="material-symbols-outlined text-sm">location_on</span>
+                      {job.location}
+                    </div>
+                    <a
+                      href={job.applyUrl}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="mt-auto inline-flex items-center justify-center gap-1 px-3 py-1.5 rounded-lg bg-primary text-on-primary font-metric-label text-xs hover:bg-primary/90 transition-colors"
+                    >
+                      Apply Now
+                      <span className="material-symbols-outlined text-xs">open_in_new</span>
+                    </a>
+                  </div>
+                ))}
+              </div>
+            </section>
+          )}
 
           {/* ── Recent Activity ───────────────────────────────────────────── */}
           <section>

@@ -50,6 +50,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
             <NavLink href="/admin/departments" icon="account_tree" label="Departments" />
           )}
           <NavLink href="/admin/classes" icon="meeting_room" label="Classes" />
+          <NavLink href="/admin/batches" icon="groups" label="Batches" />
           <NavLink href="/admin/staff" icon="badge" label="Staff" />
           <NavLink href="/admin/reports" icon="assessment" label="Reports" />
           {!isHOD && (

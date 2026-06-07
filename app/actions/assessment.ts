@@ -2,7 +2,7 @@
 
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
-import { stepLevel, questionTimer, testTotalPoints } from '@/lib/adaptive';
+import { stepLevel, testTotalPoints } from '@/lib/adaptive';
 
 const TOTAL_QUESTIONS_PER_TEST = 25;
 
@@ -30,6 +30,7 @@ export async function getOrCreateActiveTest() {
       student_id: user.id,
       type: 'SELF',
       status: 'IN_PROGRESS',
+      expires_at: new Date(Date.now() + 45 * 60 * 1000).toISOString(),
     })
     .select()
     .single();
@@ -66,12 +67,42 @@ export async function fetchNextQuestion(testId: string, domainFilter?: string | 
   // Resolve the curated pool (if any) before the exit check so we can use the
   // pool size as the effective total instead of the global TOTAL_QUESTIONS_PER_TEST.
   let curatedQuestionIds: string[] | null = null;
+  let testExpiresAt: string | null = null;
+  let recentlyCorrectIds: string[] = [];
   {
     const { data: testRow } = await adminClient
       .from('tests')
-      .select('assessment_id')
+      .select('assessment_id, expires_at, student_id, type')
       .eq('id', testId)
       .single();
+    testExpiresAt = (testRow as any)?.expires_at ?? null;
+    if (testExpiresAt && new Date(testExpiresAt) < new Date()) {
+      return { finished: true };
+    }
+
+    // For SELF tests: collect question IDs the student got correct in the last 10
+    // completed SELF tests so we can deprioritise repeating them.
+    if ((testRow as any)?.type === 'SELF' && (testRow as any)?.student_id) {
+      const { data: recentTests } = await adminClient
+        .from('tests')
+        .select('id')
+        .eq('student_id', (testRow as any).student_id)
+        .eq('type', 'SELF')
+        .eq('status', 'COMPLETED')
+        .order('completed_at', { ascending: false })
+        .limit(10);
+
+      if (recentTests && recentTests.length > 0) {
+        const recentIds = recentTests.map((t: any) => t.id);
+        const { data: correctAttempts } = await adminClient
+          .from('test_attempts')
+          .select('question_id')
+          .in('test_id', recentIds)
+          .eq('is_correct', true);
+        recentlyCorrectIds = [...new Set((correctAttempts ?? []).map((a: any) => a.question_id as string))];
+      }
+    }
+
     if (testRow?.assessment_id) {
       const { data: ass } = await adminClient
         .from('cohort_assessments')
@@ -149,24 +180,35 @@ export async function fetchNextQuestion(testId: string, domainFilter?: string | 
     return list.filter(q => Math.abs((q.difficulty ?? 3) - level) === best);
   };
 
-  // Primary: unanswered questions in the target domain, narrowed to nearest difficulty
-  let pool: any[] = [];
-  if (targetDomain) {
-    let dq = supabase.from('questions').select('*').eq('domain', targetDomain).limit(300);
-    if (curatedQuestionIds) dq = (dq as any).in('id', curatedQuestionIds);
-    if (answeredIds.length > 0) dq = (dq as any).not('id', 'in', `(${answeredIds.join(',')})`);
-    const { data: domainQuestions } = await dq;
-    pool = nearestDifficulty(domainQuestions ?? [], targetLevel);
-  }
-
-  // Fallback: domain exhausted (or no domain) → any unanswered question, nearest difficulty.
-  // When the assessment curated a question set, the fallback also stays inside it.
-  if (pool.length === 0) {
+  // Build candidate pool for a given exclusion list, trying target domain first then any domain.
+  const buildPool = async (excludeIds: string[]): Promise<any[]> => {
+    if (targetDomain) {
+      let dq = supabase.from('questions').select('*').eq('domain', targetDomain).limit(300);
+      if (curatedQuestionIds) dq = (dq as any).in('id', curatedQuestionIds);
+      if (excludeIds.length > 0) dq = (dq as any).not('id', 'in', `(${excludeIds.join(',')})`);
+      const { data } = await dq;
+      const p = nearestDifficulty(data ?? [], targetLevel);
+      if (p.length > 0) return p;
+    }
+    // Fallback: any domain
     let aq = supabase.from('questions').select('*').limit(300);
     if (curatedQuestionIds) aq = (aq as any).in('id', curatedQuestionIds);
-    if (answeredIds.length > 0) aq = (aq as any).not('id', 'in', `(${answeredIds.join(',')})`);
-    const { data: anyQuestions } = await aq;
-    pool = nearestDifficulty(anyQuestions ?? [], targetLevel);
+    if (excludeIds.length > 0) aq = (aq as any).not('id', 'in', `(${excludeIds.join(',')})`);
+    const { data } = await aq;
+    return nearestDifficulty(data ?? [], targetLevel);
+  };
+
+  // Prefer questions not seen correctly in the last 10 SELF tests.
+  // If the question bank is too small to satisfy that constraint, fall back to
+  // only excluding the current test's already-answered questions.
+  const fullExclude = recentlyCorrectIds.length > 0
+    ? [...new Set([...answeredIds, ...recentlyCorrectIds])]
+    : answeredIds;
+
+  let pool = await buildPool(fullExclude);
+
+  if (pool.length === 0 && recentlyCorrectIds.length > 0) {
+    pool = await buildPool(answeredIds);
   }
 
   if (pool.length === 0) return { finished: true };
@@ -177,7 +219,7 @@ export async function fetchNextQuestion(testId: string, domainFilter?: string | 
     question: picked,
     progress: attempts?.length ?? 0,
     total: effectiveTotal,
-    timerSeconds: questionTimer(picked.difficulty),
+    expiresAt: testExpiresAt,
   };
 }
 

@@ -54,8 +54,8 @@ export async function startScheduledTest(testId: string) {
   const { data: test } = await adminClient
     .from('tests')
     .select(`
-      id, student_id, type, status, scheduled_at, assessment_id,
-      cohort_assessments!assessment_id(scheduled_at, due_date)
+      id, student_id, type, status, scheduled_at, assessment_id, expires_at,
+      cohort_assessments!assessment_id(scheduled_at, due_date, duration_minutes)
     `)
     .eq('id', testId)
     .single();
@@ -79,7 +79,12 @@ export async function startScheduledTest(testId: string) {
   }
 
   if (test.status !== 'IN_PROGRESS') {
-    await adminClient.from('tests').update({ status: 'IN_PROGRESS' }).eq('id', testId);
+    let expiresAt = (test as any).expires_at as string | null;
+    if (!expiresAt) {
+      const durationMinutes = (a as any)?.duration_minutes ?? 45;
+      expiresAt = new Date(Date.now() + durationMinutes * 60 * 1000).toISOString();
+    }
+    await adminClient.from('tests').update({ status: 'IN_PROGRESS', expires_at: expiresAt }).eq('id', testId);
   }
   return { success: true as const, testId };
 }
