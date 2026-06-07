@@ -25,7 +25,7 @@ export default async function AdminDashboard() {
   return (
     <>
       {/* ── Page Header ───────────────────────────────────────────── */}
-      <header className="mb-10 flex justify-between items-end">
+      <header className="mb-10 flex flex-wrap justify-between items-end gap-4">
         <div>
           <h1 className="font-display-sm text-display-sm text-on-surface">{overviewTitle}</h1>
           <p className="font-body-lg text-body-lg text-on-surface-variant mt-2">{overviewSubtitle}</p>

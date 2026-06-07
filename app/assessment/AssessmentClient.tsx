@@ -487,22 +487,23 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
             <div className="mt-10 pt-6 border-t border-outline-variant flex justify-between items-center gap-3">
               <button
                 onClick={handleMarkForReview}
-                className={`px-5 py-3 rounded-lg border font-metric-label transition-colors flex items-center gap-2 ${
+                className={`px-3 sm:px-5 py-3 rounded-lg border font-metric-label transition-colors flex items-center gap-2 ${
                   isCurrentMarked
                     ? 'border-tertiary bg-tertiary/10 text-tertiary'
                     : 'border-outline-variant text-on-surface-variant hover:bg-surface-container-high'
                 }`}
               >
                 <span className="material-symbols-outlined text-sm">flag</span>
-                {isCurrentMarked ? 'Marked' : 'Mark for Review'}
+                <span className="hidden sm:inline">{isCurrentMarked ? 'Marked' : 'Mark for Review'}</span>
+                <span className="sm:hidden">{isCurrentMarked ? 'Marked' : 'Flag'}</span>
               </button>
 
-              <div className="flex items-center gap-3">
+              <div className="flex items-center gap-2 sm:gap-3">
                 {isReviewing ? (
                   <button
                     onClick={() => { setJumpToPos(null); setSelectedOption(null); }}
                     disabled={isSubmitting}
-                    className="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant font-metric-label hover:bg-surface-container-high transition-colors disabled:opacity-50"
+                    className="px-4 sm:px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant font-metric-label hover:bg-surface-container-high transition-colors disabled:opacity-50"
                   >
                     Cancel
                   </button>
@@ -510,7 +511,7 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
                   <button
                     onClick={handleSkip}
                     disabled={isSubmitting}
-                    className="px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant font-metric-label hover:bg-surface-container-high transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="px-4 sm:px-6 py-3 rounded-lg border border-outline-variant text-on-surface-variant font-metric-label hover:bg-surface-container-high transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Skip
                   </button>
@@ -518,9 +519,13 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
                 <button
                   onClick={handleSubmit}
                   disabled={!selectedOption || isSubmitting}
-                  className="px-8 py-3 rounded-lg bg-primary text-on-primary font-metric-label hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="px-5 sm:px-8 py-3 rounded-lg bg-primary text-on-primary font-metric-label hover:bg-primary/90 transition-colors shadow-sm flex items-center gap-2 disabled:opacity-50 disabled:cursor-not-allowed whitespace-nowrap"
                 >
-                  {isSubmitting ? 'Saving...' : isReviewing ? 'Update Answer' : 'Submit & Next'}
+                  {isSubmitting ? 'Saving…' : isReviewing ? (
+                    <><span className="hidden sm:inline">Update Answer</span><span className="sm:hidden">Update</span></>
+                  ) : (
+                    <><span className="hidden sm:inline">Submit & Next</span><span className="sm:hidden">Submit</span></>
+                  )}
                   <span className="material-symbols-outlined text-sm">arrow_forward</span>
                 </button>
               </div>
