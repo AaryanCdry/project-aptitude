@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">AptitudePro</string>
+    <string name="title_activity_main">AptitudePro</string>
+    <string name="package_name">com.bigimpact.aptitudepro</string>
+    <string name="custom_url_scheme">com.bigimpact.aptitudepro</string>
+</resources>
