@@ -18,6 +18,7 @@ interface DraftRow {
   total_quota: number;
   attached: number;
   created_at: string;
+  duration_minutes: number;
 }
 
 interface ClassRow {

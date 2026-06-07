@@ -465,7 +465,7 @@ export async function getDraftAssessments() {
 
   let query = adminClient
     .from('cohort_assessments')
-    .select('id, title, instructions, scheduled_at, due_date, class_ids, domain_quotas, question_ids, created_at, created_by')
+    .select('id, title, instructions, scheduled_at, due_date, class_ids, domain_quotas, question_ids, created_at, created_by, duration_minutes')
     .eq('status', 'DRAFT')
     .eq('test_type', 'CENTER')
     .order('created_at', { ascending: false });
@@ -506,6 +506,7 @@ export async function getDraftAssessments() {
       total_quota: totalQuota,
       attached,
       created_at: a.created_at as string,
+      duration_minutes: (a.duration_minutes ?? 45) as number,
     };
   });
 }

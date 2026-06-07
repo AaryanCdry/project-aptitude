@@ -35,6 +35,7 @@ interface Draft {
   due_date: string | null;
   class_ids: string[];
   domain_quotas: Record<string, number>;
+  duration_minutes: number;
 }
 
 interface Props {
@@ -65,6 +66,7 @@ export default function EditDraftModal({ draft, classes, onClose }: Props) {
     VERBAL: draft.domain_quotas['VERBAL'] ?? 0,
     SPATIAL: draft.domain_quotas['SPATIAL'] ?? 0,
   });
+  const [durationMinutes, setDurationMinutes] = useState(draft.duration_minutes ?? 45);
   const [flash, setFlash] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const totalQuota = useMemo(
@@ -98,6 +100,7 @@ export default function EditDraftModal({ draft, classes, onClose }: Props) {
         domain_quotas: Object.fromEntries(
           QUOTA_DOMAINS.filter(d => quotas[d] > 0).map(d => [d, quotas[d]])
         ),
+        duration_minutes: Math.max(5, Math.min(180, durationMinutes || 45)),
       });
 
       if ('error' in res && res.error) {
@@ -203,6 +206,23 @@ export default function EditDraftModal({ draft, classes, onClose }: Props) {
                 onChange={e => setDueDate(e.target.value)}
                 className="w-full px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
               />
+            </div>
+          </div>
+
+          {/* Duration */}
+          <div>
+            <label className="font-metric-label text-on-surface text-xs uppercase tracking-wider block mb-1.5">Duration (minutes)</label>
+            <div className="flex items-center gap-3">
+              <input
+                type="number"
+                min={5}
+                max={180}
+                step={5}
+                value={durationMinutes}
+                onChange={e => setDurationMinutes(Math.max(5, Math.min(180, parseInt(e.target.value) || 45)))}
+                className="w-28 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+              <span className="font-caption text-on-surface-variant text-xs">minutes for the entire test</span>
             </div>
           </div>
 
