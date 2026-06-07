@@ -68,12 +68,20 @@ export default function JobsClient({ initialJobs, studentDegree, isConfigured, a
   const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
   const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
   const fetchJobs = useCallback((q: string, deg: string, loc: string, pg: number) => {
     const searchQuery = q.trim() || buildSearchQuery(deg) || 'fresher jobs India';
+    setRateLimitError(null);
     startTransition(async () => {
-      const results = await searchJobsAction({ query: searchQuery, location: loc || undefined, page: pg });
-      setJobs(results);
+      try {
+        const results = await searchJobsAction({ query: searchQuery, location: loc || undefined, page: pg });
+        setJobs(results);
+      } catch (err: any) {
+        if (err?.message?.includes('Rate limit')) {
+          setRateLimitError('Too many searches. Please wait a moment before trying again.');
+        }
+      }
     });
   }, []);
 
@@ -148,6 +156,14 @@ export default function JobsClient({ initialJobs, studentDegree, isConfigured, a
           />
         </div>
       </div>
+
+      {/* Rate limit error */}
+      {rateLimitError && (
+        <div className="flex items-center gap-3 px-4 py-3 rounded-xl bg-error-container text-on-error-container text-sm font-body-md border border-error/20">
+          <span className="material-symbols-outlined text-base shrink-0">timer_off</span>
+          {rateLimitError}
+        </div>
+      )}
 
       {/* Results */}
       {isPending ? (

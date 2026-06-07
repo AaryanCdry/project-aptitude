@@ -346,6 +346,62 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
             </div>
           </section>
 
+          {/* ── Employability Indicators ─────────────────────────────────── */}
+          <section className="relative">
+            {/* Lock overlay */}
+            <div className="absolute inset-0 z-10 rounded-xl bg-surface/60 backdrop-blur-[2px] flex flex-col items-center justify-center gap-3 border border-outline-variant">
+              <div className="flex items-center justify-center w-12 h-12 rounded-full bg-surface-container border border-outline-variant shadow-sm">
+                <span className="material-symbols-outlined text-on-surface-variant text-2xl">lock</span>
+              </div>
+              <div className="text-center px-4">
+                <p className="font-headline-md text-on-surface text-base">Coming Soon</p>
+                <p className="font-body-md text-on-surface-variant text-sm mt-1">Employability Indicators will be available in the next release.</p>
+              </div>
+            </div>
+
+            {/* Section content (blurred behind overlay) */}
+            <div className="select-none pointer-events-none">
+              <div className="flex items-center justify-between mb-4">
+                <h4 className="font-headline-md text-on-surface flex items-center gap-2">
+                  <span className="material-symbols-outlined text-primary" style={{ fontVariationSettings: '"FILL" 1' }}>workspace_premium</span>
+                  Employability Indicators
+                </h4>
+                <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-surface-container border border-outline-variant text-on-surface-variant font-metric-label text-xs">
+                  <span className="material-symbols-outlined text-sm">lock</span>
+                  Locked
+                </span>
+              </div>
+              <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
+                {[
+                  { label: 'Campus Readiness',    icon: 'school',           score: 72, color: 'text-primary' },
+                  { label: 'Communication',        icon: 'record_voice_over', score: 65, color: 'text-secondary' },
+                  { label: 'Logical Reasoning',    icon: 'psychology',       score: 81, color: 'text-primary' },
+                  { label: 'Quantitative Apt.',    icon: 'functions',        score: 58, color: 'text-secondary' },
+                  { label: 'Problem Solving',      icon: 'extension',        score: 74, color: 'text-primary' },
+                  { label: 'Interview Confidence', icon: 'handshake',        score: 63, color: 'text-secondary' },
+                ].map(({ label, icon, score, color }) => (
+                  <div key={label} className="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex flex-col items-center gap-3 shadow-sm">
+                    <div className="relative w-14 h-14">
+                      <svg className="w-full h-full -rotate-90" viewBox="0 0 36 36">
+                        <circle cx="18" cy="18" r="15.9" fill="none" stroke="currentColor" strokeWidth="2.5" className="text-surface-container-high" />
+                        <circle
+                          cx="18" cy="18" r="15.9" fill="none" strokeWidth="2.5"
+                          stroke="currentColor" className={color}
+                          strokeDasharray={`${score} 100`} strokeLinecap="round"
+                        />
+                      </svg>
+                      <span className="absolute inset-0 flex items-center justify-center font-metric-label text-on-surface text-sm">{score}</span>
+                    </div>
+                    <div className="text-center">
+                      <span className="material-symbols-outlined text-on-surface-variant text-lg block mb-1">{icon}</span>
+                      <p className="font-caption text-on-surface text-xs leading-tight">{label}</p>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </section>
+
           {/* ── Learning Path (public) or College Curriculum ─────────────── */}
           {collegeId
             ? <CollegeCurriculumCard classInfo={(classInfo?.classes as any) ?? null} hideActions={isViewer} />

@@ -4,11 +4,16 @@ import { createAdminClient } from '@/lib/supabase/admin';
 import { getCallerScope } from './scope';
 import { searchJobs } from '@/lib/jobs/jobService';
 import { buildSearchQuery } from '@/lib/jobs/degreeJobMappings';
+import { checkRateLimit } from '@/lib/rate-limit';
 import type { Job, JobSearchParams } from '@/lib/jobs/providers/base';
 
 export async function searchJobsAction(params: JobSearchParams): Promise<Job[]> {
   const scope = await getCallerScope();
   if (!scope.userId) return [];
+
+  const allowed = await checkRateLimit(scope.userId, 'jobs_search', 5, 60);
+  if (!allowed) throw new Error('Rate limit exceeded. Please wait a moment before searching again.');
+
   return searchJobs(params);
 }
 
