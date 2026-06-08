@@ -2,6 +2,7 @@
 
 import { useState, useTransition } from 'react';
 import { addQuestion, bulkAddQuestions, extractQuestionsFromPdf, generateBatchQuestions, toggleQuestionActive, deleteQuestion, generateExplanation } from '@/app/actions/admin';
+import { uploadQuestionImage } from '@/lib/uploadQuestionImage';
 
 const DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'] as const;
 
@@ -46,6 +47,8 @@ type Question = {
   active?: boolean;
   time_suggestion_sec?: number | null;
   source?: string | null;
+  image_url?: string | null;
+  options_images?: (string | null)[] | null;
 };
 
 type DraftQuestion = {
@@ -175,6 +178,12 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
   const [addOptions, setAddOptions] = useState(['', '', '', '']);
   const [addCorrectIndex, setAddCorrectIndex] = useState(0);
   const [addError, setAddError] = useState('');
+  const [addImageUrl, setAddImageUrl] = useState<string | null>(null);
+  const [addImagePreview, setAddImagePreview] = useState<string | null>(null);
+  const [addImageUploading, setAddImageUploading] = useState(false);
+  const [addOptionImages, setAddOptionImages] = useState<(string | null)[]>([null, null, null, null]);
+  const [addOptionImagePreviews, setAddOptionImagePreviews] = useState<(string | null)[]>([null, null, null, null]);
+  const [showOptionImages, setShowOptionImages] = useState(false);
 
   // AI Generate
   const [genDomain, setGenDomain] = useState('QUANTITATIVE');
@@ -334,11 +343,18 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
           correct_index: newCorrectIndex,
           time_suggestion_sec: addTimeSec,
           source: 'manual',
+          image_url: addImageUrl,
+          options_images: addOptionImages.every(u => u === null) ? null : addOptionImages,
         });
         setQuestions(qs => [q as Question, ...qs]);
         setAddText('');
         setAddOptions(['', '', '', '']);
         setAddCorrectIndex(0);
+        setAddImageUrl(null);
+        setAddImagePreview(null);
+        setAddOptionImages([null, null, null, null]);
+        setAddOptionImagePreviews([null, null, null, null]);
+        setShowOptionImages(false);
         setTab('browse');
       } catch (err: any) {
         setAddError(err.message ?? 'Failed to add question');
@@ -539,6 +555,10 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                       <span className="material-symbols-outlined text-sm text-primary opacity-70 shrink-0" title="AI Generated">auto_awesome</span>
                     )}
 
+                    {q.image_url && (
+                      <span className="material-symbols-outlined text-sm text-secondary shrink-0" title="Has image">image</span>
+                    )}
+
                     {/* Active toggle */}
                     <button
                       onClick={e => { e.stopPropagation(); handleToggleActive(q.id, q.active); }}
@@ -567,6 +587,12 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                     <div className="px-10 pb-5 pt-1 bg-surface-container-low/30 border-t border-outline-variant/30">
                       <p className="font-body-md text-on-surface mt-3 mb-3 leading-relaxed">{q.text}</p>
 
+                      {q.image_url && (
+                        <div className="mb-3 rounded-xl overflow-hidden border border-outline-variant bg-surface-container-low inline-block max-w-full">
+                          <img src={q.image_url} alt="Question diagram" className="max-h-56 object-contain p-2" />
+                        </div>
+                      )}
+
                       <div className="grid grid-cols-2 gap-2 mb-4">
                         {q.options.map((opt, i) => (
                           <div
@@ -578,7 +604,10 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                             }`}
                           >
                             <span className="font-bold shrink-0">{String.fromCharCode(65 + i)}.</span>
-                            <span className="flex-1">{opt}</span>
+                            {q.options_images?.[i]
+                              ? <img src={q.options_images[i]!} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-20 object-contain rounded" />
+                              : <span className="flex-1">{opt}</span>
+                            }
                             {i === correctIdx && <span className="material-symbols-outlined text-green-600 text-sm shrink-0">check_circle</span>}
                           </div>
                         ))}
@@ -685,34 +714,129 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
             />
           </div>
 
-          <div className="mb-5">
-            <label className="block font-metric-label text-on-surface-variant text-sm mb-2">
-              Options <span className="font-normal">(click the radio to mark the correct answer)</span>
+          {/* Question image (optional) */}
+          <div className="mb-4">
+            <label className="block font-metric-label text-on-surface-variant text-sm mb-1.5">
+              Question Image <span className="font-normal text-on-surface-variant/60">(optional — for spatial/visual questions)</span>
             </label>
+            {addImagePreview && (
+              <div className="relative mb-2 inline-block">
+                <img src={addImagePreview} alt="Question preview" className="max-h-48 rounded-lg border border-outline-variant object-contain bg-surface-container-low" />
+                <button
+                  type="button"
+                  onClick={() => { setAddImageUrl(null); setAddImagePreview(null); }}
+                  className="absolute -top-2 -right-2 w-6 h-6 bg-error text-on-error rounded-full flex items-center justify-center text-xs hover:opacity-90"
+                >
+                  <span className="material-symbols-outlined text-[14px]">close</span>
+                </button>
+              </div>
+            )}
+            <label className={`inline-flex items-center gap-2 px-3 py-2 border border-outline-variant rounded-lg cursor-pointer text-sm font-metric-label transition-colors ${addImageUploading ? 'opacity-50 pointer-events-none' : 'hover:bg-surface-container-low text-on-surface-variant'}`}>
+              <span className="material-symbols-outlined text-sm">{addImageUploading ? 'hourglass_empty' : 'image'}</span>
+              {addImageUploading ? 'Uploading…' : addImagePreview ? 'Replace Image' : 'Attach Image'}
+              <input
+                type="file"
+                accept="image/*"
+                className="sr-only"
+                onChange={async e => {
+                  const file = e.target.files?.[0];
+                  if (!file) return;
+                  setAddImageUploading(true);
+                  try {
+                    const url = await uploadQuestionImage(file);
+                    setAddImageUrl(url);
+                    setAddImagePreview(URL.createObjectURL(file));
+                  } catch (err: any) {
+                    setAddError(err.message ?? 'Image upload failed');
+                  } finally {
+                    setAddImageUploading(false);
+                    e.target.value = '';
+                  }
+                }}
+              />
+            </label>
+          </div>
+
+          <div className="mb-5">
+            <div className="flex items-center justify-between mb-2">
+              <label className="block font-metric-label text-on-surface-variant text-sm">
+                Options <span className="font-normal">(click the radio to mark the correct answer)</span>
+              </label>
+              <button
+                type="button"
+                onClick={() => setShowOptionImages(v => !v)}
+                className="inline-flex items-center gap-1 text-xs text-on-surface-variant hover:text-primary transition-colors font-metric-label"
+              >
+                <span className="material-symbols-outlined text-[14px]">{showOptionImages ? 'hide_image' : 'add_photo_alternate'}</span>
+                {showOptionImages ? 'Hide option images' : 'Add option images'}
+              </button>
+            </div>
             <div className="flex flex-col gap-2">
               {addOptions.map((opt, i) => (
-                <div
-                  key={i}
-                  className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${addCorrectIndex === i ? 'border-primary bg-primary/5' : 'border-outline-variant'}`}
-                >
-                  <input
-                    type="radio" name="correct"
-                    checked={addCorrectIndex === i}
-                    onChange={() => setAddCorrectIndex(i)}
-                    className="text-primary focus:ring-primary shrink-0"
-                  />
-                  <span className="font-bold text-on-surface-variant text-sm w-5 shrink-0">{String.fromCharCode(65 + i)}.</span>
-                  <input
-                    type="text" value={opt}
-                    onChange={e => {
-                      const next = [...addOptions];
-                      next[i] = e.target.value;
-                      setAddOptions(next);
-                    }}
-                    placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                    className="flex-1 bg-transparent border-none outline-none text-on-surface text-sm"
-                  />
-                  {addCorrectIndex === i && <span className="material-symbols-outlined text-primary text-sm shrink-0">check_circle</span>}
+                <div key={i} className="flex flex-col gap-1">
+                  <div
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${addCorrectIndex === i ? 'border-primary bg-primary/5' : 'border-outline-variant'}`}
+                  >
+                    <input
+                      type="radio" name="correct"
+                      checked={addCorrectIndex === i}
+                      onChange={() => setAddCorrectIndex(i)}
+                      className="text-primary focus:ring-primary shrink-0"
+                    />
+                    <span className="font-bold text-on-surface-variant text-sm w-5 shrink-0">{String.fromCharCode(65 + i)}.</span>
+                    <input
+                      type="text" value={opt}
+                      onChange={e => {
+                        const next = [...addOptions];
+                        next[i] = e.target.value;
+                        setAddOptions(next);
+                      }}
+                      placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                      className="flex-1 bg-transparent border-none outline-none text-on-surface text-sm"
+                    />
+                    {addCorrectIndex === i && <span className="material-symbols-outlined text-primary text-sm shrink-0">check_circle</span>}
+                  </div>
+                  {showOptionImages && (
+                    <div className="ml-9 flex items-center gap-2">
+                      {addOptionImagePreviews[i] && (
+                        <div className="relative inline-block">
+                          <img src={addOptionImagePreviews[i]!} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-16 rounded border border-outline-variant object-contain bg-surface-container-low" />
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const urls = [...addOptionImages]; urls[i] = null; setAddOptionImages(urls);
+                              const prev = [...addOptionImagePreviews]; prev[i] = null; setAddOptionImagePreviews(prev);
+                            }}
+                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-on-error rounded-full flex items-center justify-center hover:opacity-90"
+                          >
+                            <span className="material-symbols-outlined text-[12px]">close</span>
+                          </button>
+                        </div>
+                      )}
+                      <label className="inline-flex items-center gap-1 text-xs text-on-surface-variant border border-outline-variant rounded-lg px-2 py-1 cursor-pointer hover:bg-surface-container-low transition-colors font-metric-label">
+                        <span className="material-symbols-outlined text-[13px]">image</span>
+                        {addOptionImagePreviews[i] ? 'Replace' : 'Add image'}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          className="sr-only"
+                          onChange={async e => {
+                            const file = e.target.files?.[0];
+                            if (!file) return;
+                            try {
+                              const url = await uploadQuestionImage(file);
+                              const urls = [...addOptionImages]; urls[i] = url; setAddOptionImages(urls);
+                              const prev = [...addOptionImagePreviews]; prev[i] = URL.createObjectURL(file); setAddOptionImagePreviews(prev);
+                            } catch (err: any) {
+                              setAddError(err.message ?? 'Image upload failed');
+                            } finally {
+                              e.target.value = '';
+                            }
+                          }}
+                        />
+                      </label>
+                    </div>
+                  )}
                 </div>
               ))}
             </div>

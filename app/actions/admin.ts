@@ -49,6 +49,8 @@ export async function addQuestion(payload: {
   time_suggestion_sec?: number;
   explanation?: string;
   source?: string;
+  image_url?: string | null;
+  options_images?: (string | null)[] | null;
 }) {
   const { user, userData } = await getAuthedUser();
   if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
@@ -69,6 +71,8 @@ export async function addQuestion(payload: {
       source: payload.source ?? 'manual',
       active: true,
       approved_by: payload.source === 'gemini' ? user.id : null,
+      image_url: payload.image_url ?? null,
+      options_images: payload.options_images ?? null,
     })
     .select()
     .single();
@@ -251,6 +255,8 @@ export async function bulkAddQuestions(payload: Array<{
   correct_index: number;
   time_suggestion_sec?: number;
   explanation?: string;
+  image_url?: string | null;
+  options_images?: (string | null)[] | null;
 }>) {
   const { userData } = await getAuthedUser();
   if (!['ADMIN', 'MENTOR', 'SUB_ADMIN'].includes(userData?.role ?? '')) throw new Error('Not authorized');
@@ -269,6 +275,8 @@ export async function bulkAddQuestions(payload: Array<{
     explanation: q.explanation ?? null,
     source: 'manual',
     active: true,
+    image_url: q.image_url ?? null,
+    options_images: q.options_images ?? null,
   }));
 
   const { data, error } = await adminClient

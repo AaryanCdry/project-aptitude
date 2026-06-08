@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useState, useTransition, useEffect, useSyncExternalStore } from 'react';
 import { createPortal } from 'react-dom';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
@@ -37,8 +37,7 @@ export default function DepartmentCard({ dept }: { dept: Dept }) {
 
   // ── Edit modal state ──────────────────────────────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
-  const [mounted, setMounted] = useState(false);
-  useEffect(() => { setMounted(true); }, []);
+  const mounted = useSyncExternalStore(() => () => {}, () => true, () => false);
 
   // ── Body scroll lock when modal is open ───────────────────────────────────
   useEffect(() => {

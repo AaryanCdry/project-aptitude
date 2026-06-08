@@ -147,7 +147,6 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
 
   const handleSubmit = async () => {
     if (!selectedOption || !displayedQuestion) return;
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     setIsSubmitting(true);
     try {
       const elapsed = Date.now() - questionStartRef.current;
@@ -172,7 +171,6 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
 
   const handleSkip = async () => {
     if (!question || isReviewing) return;
-    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
     setIsSubmitting(true);
     try {
       const currentPos = progress + 1;
@@ -454,6 +452,16 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
                   {gradeDifficulty(displayedQuestion.difficulty ?? 3)}
                 </span>
               </div>
+              {displayedQuestion.image_url && (
+                <div className="mb-4 rounded-xl overflow-hidden border border-outline-variant bg-surface-container-low">
+                  <img
+                    src={displayedQuestion.image_url}
+                    alt="Question diagram"
+                    className="max-h-64 w-full object-contain p-3"
+                  />
+                </div>
+              )}
+
               <p className="font-question-text text-on-surface text-lg leading-relaxed">
                 {displayedQuestion.text}
               </p>
@@ -463,6 +471,7 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
               {Array.isArray(displayedQuestion.options) && displayedQuestion.options.map((optionText: string, index: number) => {
                 const isSelected = selectedOption === optionText;
                 const key = String.fromCharCode(65 + index);
+                const optImg = displayedQuestion.options_images?.[index] ?? null;
                 return (
                   <label key={index} className={`group relative flex items-center gap-4 p-5 rounded-lg border-2 cursor-pointer transition-all shadow-sm ${isSelected ? 'border-primary bg-surface-container-low' : 'border-outline-variant bg-surface-container-lowest hover:border-primary hover:bg-surface-container-low'}`}>
                     <input
@@ -473,12 +482,19 @@ export default function AssessmentClient({ testId, domainFilter = null }: Assess
                       type="radio"
                       value={optionText}
                     />
-                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-colors ${isSelected ? 'border-primary bg-primary' : 'border-outline-variant group-hover:border-primary'}`}>
+                    <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center shrink-0 transition-colors ${isSelected ? 'border-primary bg-primary' : 'border-outline-variant group-hover:border-primary'}`}>
                       <div className={`w-2.5 h-2.5 rounded-full bg-surface-container-lowest transition-opacity ${isSelected ? 'opacity-100' : 'opacity-0'}`} />
                     </div>
-                    <span className={`font-body-lg transition-colors ${isSelected ? 'text-primary font-medium' : 'text-on-surface group-hover:text-primary'}`}>
-                      <span className="font-metric-label mr-2">{key}.</span> {optionText}
-                    </span>
+                    {optImg ? (
+                      <div className={`flex flex-col items-start gap-2 transition-colors ${isSelected ? 'text-primary font-medium' : 'text-on-surface group-hover:text-primary'}`}>
+                        <span className="font-metric-label text-sm">{key}.</span>
+                        <img src={optImg} alt={`Option ${key}`} className="max-h-28 object-contain rounded-lg border border-outline-variant/50" />
+                      </div>
+                    ) : (
+                      <span className={`font-body-lg transition-colors ${isSelected ? 'text-primary font-medium' : 'text-on-surface group-hover:text-primary'}`}>
+                        <span className="font-metric-label mr-2">{key}.</span> {optionText}
+                      </span>
+                    )}
                   </label>
                 );
               })}
