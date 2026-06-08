@@ -2,6 +2,7 @@ import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
 import LogoutButton from '@/components/LogoutButton';
+import { getInitials } from '@/lib/utils';
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -14,11 +15,11 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     .single();
 
   const name = profile?.name ?? user?.email ?? 'Super Admin';
-  const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(name);
 
   return (
     <div className="flex h-screen bg-background">
-      <nav className="hidden md:flex flex-col py-gutter px-4 h-screen w-64 bg-surface-container-low border-r border-outline-variant flex-shrink-0 sticky top-0">
+      <nav className="hidden md:flex flex-col py-gutter px-4 h-screen w-64 bg-surface-container-low border-r border-outline-variant shrink-0 sticky top-0">
         <div className="mb-6 px-4 pt-6">
           <span className="text-headline-md font-headline-md text-error font-bold">AptitudePro</span>
         </div>

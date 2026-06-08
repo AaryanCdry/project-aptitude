@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { getClasses, getDepartments, getClassStudentCounts, getClassMentors } from '@/app/actions/departments';
 import { getCallerScope } from '@/app/actions/scope';
 import { getBatches } from '@/app/actions/batches';
+import { getAcademicYears } from '@/app/actions/academic-years';
 import CreateClassForm from './CreateClassForm';
 import ClassRowActions from './ClassRowActions';
 
@@ -13,6 +14,7 @@ interface ClassRow {
   year: number | null;
   section: string | null;
   batch_id: string | null;
+  academic_year_id: string | null;
   created_at: string;
   // Supabase infers joined rows as arrays even for many-to-one FKs
   departments: Array<{ name: string; course_type: string | null }> | null;
@@ -32,16 +34,17 @@ export default async function ClassesPage({
 }) {
   const { dept: deptFilter } = await searchParams;
 
-  const [classes, departments, scope, batches] = await Promise.all([
+  const [classes, departments, scope, batches, academicYears] = await Promise.all([
     getClasses(deptFilter),
     getDepartments(),
     getCallerScope(),
     getBatches(),
+    getAcademicYears(),
   ]);
   const isHOD = scope.role === 'SUB_ADMIN';
 
-  const typedClasses = classes as unknown as ClassRow[];
-  const typedDepts = departments as unknown as DeptRow[];
+  const typedClasses = classes as ClassRow[];
+  const typedDepts = departments as DeptRow[];
 
   const classIds = typedClasses.map((c) => c.id);
   const [studentCounts, mentorsByClass] = await Promise.all([
@@ -62,6 +65,10 @@ export default async function ClassesPage({
   const batchNameMap: Record<string, string> = Object.fromEntries(
     batches.map((b) => [b.id, b.name])
   );
+  const academicYearNameMap: Record<string, string> = Object.fromEntries(
+    academicYears.map((ay) => [ay.id, ay.name])
+  );
+  const ayList = academicYears.map((ay) => ({ id: ay.id, name: ay.name }));
 
   return (
     <div className="max-w-container-max-width mx-auto pb-24">
@@ -85,6 +92,7 @@ export default async function ClassesPage({
           <CreateClassForm
             departments={typedDepts.map((d) => ({ id: d.id, name: d.name, course_type: d.course_type ?? '' }))}
             defaultDeptId={deptFilter}
+            academicYears={ayList}
           />
         </div>
       </div>
@@ -177,8 +185,8 @@ export default async function ClassesPage({
                 <table className="w-full text-left border-collapse">
                   <thead>
                     <tr className="border-b border-outline-variant bg-surface-container-low/40">
-                      {['Class Name', 'Year / Section', 'Batch', 'Students', 'Mentor', 'Created', 'Actions'].map((h, i) => (
-                        <th key={h} className={`py-3 px-5 font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider ${i === 6 ? 'text-right' : ''}`}>{h}</th>
+                      {['Class Name', 'Year / Section', 'Batch', 'Academic Year', 'Students', 'Mentor', 'Created', 'Actions'].map((h, i) => (
+                        <th key={h} className={`py-3 px-5 font-metric-label text-on-surface-variant text-[11px] uppercase tracking-wider ${i === 7 ? 'text-right' : ''}`}>{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -212,6 +220,16 @@ export default async function ClassesPage({
                             )}
                           </td>
                           <td className="py-3.5 px-5">
+                            {c.academic_year_id && academicYearNameMap[c.academic_year_id] ? (
+                              <Link href="/admin/batches" className="inline-flex items-center gap-1 text-[11px] px-2 py-0.5 rounded-full bg-secondary/10 text-secondary border border-secondary/20 hover:bg-secondary/20 transition-colors font-medium">
+                                <span className="material-symbols-outlined text-[11px]" style={{ fontVariationSettings: '"FILL" 1' }}>calendar_month</span>
+                                {academicYearNameMap[c.academic_year_id]}
+                              </Link>
+                            ) : (
+                              <span className="text-outline text-[12px] italic">—</span>
+                            )}
+                          </td>
+                          <td className="py-3.5 px-5">
                             <span className="inline-flex items-center gap-1.5 text-[13px]">
                               <span className="material-symbols-outlined text-secondary text-[16px]" style={{ fontVariationSettings: '"FILL" 1' }}>group</span>
                               <span className="font-semibold text-on-surface">{count}</span>
@@ -232,8 +250,9 @@ export default async function ClassesPage({
                           </td>
                           <td className="py-3.5 px-5">
                             <ClassRowActions
-                              cls={{ id: c.id, name: c.name, dept_id: c.dept_id, year: c.year, section: c.section }}
+                              cls={{ id: c.id, name: c.name, dept_id: c.dept_id, year: c.year, section: c.section, academic_year_id: c.academic_year_id }}
                               departments={deptList}
+                              academicYears={ayList}
                             />
                           </td>
                         </tr>

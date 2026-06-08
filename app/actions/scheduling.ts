@@ -414,6 +414,45 @@ export async function updateTestDraft(
   return { success: true as const };
 }
 
+export async function deleteScheduledAssessment(assessmentId: string) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' };
+
+  const adminClient = createAdminClient();
+  const { data: row } = await adminClient
+    .from('cohort_assessments')
+    .select('id, status, created_by')
+    .eq('id', assessmentId)
+    .single();
+
+  if (!row) return { error: 'Assessment not found.' };
+  if (row.status === 'DRAFT') return { error: 'Use discard for draft assessments.' };
+
+  const isOwner = row.created_by === scope.userId;
+  const isPrincipal = scope.role === 'ADMIN' || scope.role === 'SUPER_ADMIN';
+  if (!isOwner && !isPrincipal) return { error: 'Not authorized to delete this assessment.' };
+
+  // Block deletion if any student has already completed this test
+  const { count } = await adminClient
+    .from('tests')
+    .select('id', { count: 'exact', head: true })
+    .eq('assessment_id', assessmentId)
+    .eq('status', 'COMPLETED');
+
+  if ((count ?? 0) > 0) {
+    return { error: `Cannot delete: ${count} student(s) have already completed this test. Export their results first.` };
+  }
+
+  const { error } = await adminClient
+    .from('cohort_assessments')
+    .delete()
+    .eq('id', assessmentId);
+
+  if (error) return { error: error.message };
+  revalidatePath('/admin/assessments');
+  return { success: true as const };
+}
+
 export async function updateActiveAssessment(
   assessmentId: string,
   data: {

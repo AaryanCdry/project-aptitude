@@ -1,6 +1,7 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import AdminShell from './AdminShell';
+import { getInitials } from '@/lib/utils';
 
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -17,7 +18,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const roleLabel = isHOD ? 'HOD' : 'Principal';
 
   const name = profile?.name ?? user?.email ?? roleLabel;
-  const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(name);
 
   return (
     <AdminShell name={name} initials={initials} roleLabel={roleLabel} isHOD={isHOD}>

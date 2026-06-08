@@ -20,7 +20,7 @@ export async function getEnrolledStudents() {
       id, name, email, role, created_at, temp_password,
       registration_id, section, semester, department_id, class_id,
       departments!department_id(name),
-      classes!class_id(name, year)
+      classes!class_id(name, year, batches!batch_id(name), academic_years!academic_year_id(name))
     `)
     .eq('role', 'STUDENT')
     .order('created_at', { ascending: false });
@@ -72,6 +72,8 @@ export async function getEnrolledStudents() {
       departmentName: (u.departments as any)?.name ?? null,
       className: (u.classes as any)?.name ?? null,
       classYear: (u.classes as any)?.year ?? null,
+      batchName: (u.classes as any)?.batches?.name ?? null,
+      academicYearName: (u.classes as any)?.academic_years?.name ?? null,
       status,
       dateEnrolled: new Date(u.created_at).toLocaleDateString('en-US', {
         month: 'short', day: 'numeric', year: 'numeric',

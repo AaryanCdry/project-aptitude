@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useMemo, useState, useTransition } from 'react';
+import React, { useEffect, useMemo, useRef, useState, useTransition } from 'react';
 import { useRouter } from 'next/navigation';
 import { addStudentsToClass } from '@/app/actions/mapping';
 import MultiSelectDropdown from '@/app/(dashboard)/admin/_shared/MultiSelectDropdown';
@@ -43,6 +43,14 @@ export default function AddStudentsButton({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [pending, startTransition] = useTransition();
   const [flash, setFlash] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
+  const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const closeDialog = () => {
+    if (closeTimer.current) { clearTimeout(closeTimer.current); closeTimer.current = null; }
+    setOpen(false);
+  };
+
+  useEffect(() => () => { if (closeTimer.current) clearTimeout(closeTimer.current); }, []);
 
   // Build dropdown option lists from the candidate pool.
   const { deptOptions, sectionOptions, yearOptions, semesterOptions } = useMemo(() => {
@@ -137,7 +145,7 @@ export default function AddStudentsButton({
         setSelected(new Set());
         setQuery('');
         router.refresh();
-        setTimeout(() => setOpen(false), 1200);
+        closeTimer.current = setTimeout(closeDialog, 1200);
       }
     });
   };
@@ -176,7 +184,7 @@ export default function AddStudentsButton({
                   Pick from students already enrolled in your scope. Selected students are moved to this class.
                 </p>
               </div>
-              <button onClick={() => setOpen(false)} className="text-on-surface-variant hover:text-on-surface">
+              <button onClick={closeDialog} className="text-on-surface-variant hover:text-on-surface">
                 <span className="material-symbols-outlined">close</span>
               </button>
             </div>
@@ -307,7 +315,7 @@ export default function AddStudentsButton({
               </span>
               <div className="flex items-center gap-2">
                 <button
-                  onClick={() => setOpen(false)}
+                  onClick={closeDialog}
                   className="px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-metric-label text-sm hover:bg-surface-container-low transition-colors"
                 >
                   Cancel

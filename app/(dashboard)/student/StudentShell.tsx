@@ -11,9 +11,12 @@ interface Props {
   initials: string;
   streak: number;
   totalPoints: number;
+  className?: string | null;
+  batchName?: string | null;
+  academicYearName?: string | null;
 }
 
-export default function StudentShell({ children, name, initials, streak, totalPoints }: Props) {
+export default function StudentShell({ children, name, initials, streak, totalPoints, className, batchName, academicYearName }: Props) {
   const [sidebarOpen, setSidebarOpen] = useState(false);
 
   const firstName = name.split(' ')[0];
@@ -33,7 +36,15 @@ export default function StudentShell({ children, name, initials, streak, totalPo
         </div>
         <div className="flex flex-col min-w-0">
           <p className="text-on-surface font-metric-label text-sm font-semibold truncate">{name}</p>
-          <p className="text-on-surface-variant font-caption text-xs">Student Portal</p>
+          {academicYearName ? (
+            <p className="text-on-surface-variant font-caption text-xs truncate">{academicYearName}</p>
+          ) : className ? (
+            <p className="text-on-surface-variant font-caption text-xs truncate">
+              {className}{batchName ? ` · ${batchName}` : ''}
+            </p>
+          ) : (
+            <p className="text-on-surface-variant font-caption text-xs">Student Portal</p>
+          )}
         </div>
         {/* Mobile close button */}
         <button

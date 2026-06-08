@@ -1,5 +1,6 @@
 import React from 'react';
 import { getLeaderboard } from '@/app/actions/progress';
+import { getInitials } from '@/lib/utils';
 
 const MEDAL: Record<number, { icon: string; color: string }> = {
   1: { icon: 'emoji_events', color: 'text-[#f59e0b]' },
@@ -31,7 +32,7 @@ export default async function LeaderboardPage({
   ];
 
   return (
-    <div className="max-w-[860px] mx-auto pb-24">
+    <div className="max-w-215 mx-auto pb-24">
       {/* Header */}
       <div className="mb-8 flex flex-col md:flex-row md:items-end justify-between gap-4">
         <div>
@@ -90,14 +91,14 @@ export default async function LeaderboardPage({
             if (!entry) return null;
             const heights = ['h-28', 'h-36', 'h-24'];
             const medal = MEDAL[entry.rank] ?? { icon: 'person', color: 'text-outline' };
-            const initials = entry.name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+            const initials = getInitials(entry.name);
             return (
               <div key={entry.id} className={`flex flex-col items-center justify-end ${podiumIdx === 1 ? 'order-2' : podiumIdx === 0 ? 'order-1' : 'order-3'}`}>
                 <div className="mb-2 text-center">
                   <div className={`w-14 h-14 rounded-full bg-surface-container-high flex items-center justify-center font-bold text-on-surface mx-auto mb-1 border-2 ${entry.isCurrentUser ? 'border-primary' : 'border-outline-variant'}`}>
                     {initials}
                   </div>
-                  <p className="font-body-md font-semibold text-on-surface text-center truncate max-w-[100px]">{entry.name}</p>
+                  <p className="font-body-md font-semibold text-on-surface text-center truncate max-w-25">{entry.name}</p>
                   <p className="font-caption text-primary">{entry.avgScore}%</p>
                 </div>
                 <div className={`w-full bg-surface-container-low border border-outline-variant rounded-t-lg ${heights[podiumIdx]} flex flex-col items-center justify-center`}>
@@ -136,7 +137,7 @@ export default async function LeaderboardPage({
               ) : ranked.map((entry) => {
                 const medal = MEDAL[entry.rank];
                 const grade = GRADE(entry.avgScore);
-                const initials = entry.name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+                const initials = getInitials(entry.name);
                 return (
                   <tr key={entry.id} className={`transition-colors ${entry.isCurrentUser ? 'bg-primary/5 border-l-2 border-l-primary' : 'hover:bg-surface-container'}`}>
                     <td className="py-3 px-5">

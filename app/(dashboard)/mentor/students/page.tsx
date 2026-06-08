@@ -1,6 +1,7 @@
 import React from 'react';
 import Link from 'next/link';
 import { getMentorDashboard, getStudentDetail } from '@/app/actions/mentor';
+import { getInitials } from '@/lib/utils';
 
 const DOMAIN_COLOR: Record<string, string> = {
   REASONING:    'bg-primary/10 text-primary border-primary/20',
@@ -10,7 +11,7 @@ const DOMAIN_COLOR: Record<string, string> = {
 };
 
 function InitialsAvatar({ name }: { name: string }) {
-  const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(name);
   return (
     <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 text-sm">
       {initials}
@@ -101,7 +102,7 @@ export default async function MentorStudentsPage({
             {/* Student header */}
             <div className="flex items-center gap-4 mb-6">
               <div className="w-14 h-14 rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary text-xl">
-                {(detail.student?.name ?? detail.student?.email ?? '?').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase()}
+                {getInitials(detail.student?.name ?? detail.student?.email)}
               </div>
               <div className="flex-1">
                 <h1 className="font-headline-md text-on-surface text-[22px] font-bold">{detail.student?.name ?? '—'}</h1>

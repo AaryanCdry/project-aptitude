@@ -5,6 +5,9 @@ interface ClassInfo {
   name: string;
   year?: number | null;
   section?: string | null;
+  batch_id?: string | null;
+  batches?: { id: string; name: string } | null;
+  academic_years?: { name: string } | null;
   departments?: { name: string; course_type?: string | null } | null;
 }
 
@@ -30,11 +33,15 @@ export default function CollegeCurriculumCard({
   }
 
   const dept = classInfo.departments;
+  const batch = classInfo.batches;
+  const academicYear = classInfo.academic_years;
 
   const metaItems = [
-    dept && { label: 'Department', value: dept.name, sub: dept.course_type ?? null },
-    { label: 'Class', value: classInfo.name, sub: classInfo.year ? `Year ${classInfo.year}${classInfo.section ? ` · Section ${classInfo.section}` : ''}` : null },
-  ].filter(Boolean) as { label: string; value: string; sub: string | null }[];
+    dept && { label: 'Department', value: dept.name, sub: dept.course_type ?? null, icon: 'account_tree' },
+    { label: 'Class', value: classInfo.name, sub: classInfo.year ? `Year ${classInfo.year}${classInfo.section ? ` · Section ${classInfo.section}` : ''}` : null, icon: 'meeting_room' },
+    batch && { label: 'Batch', value: batch.name, sub: null, icon: 'groups' },
+    academicYear && { label: 'Academic Year', value: academicYear.name, sub: null, icon: 'calendar_month' },
+  ].filter(Boolean) as { label: string; value: string; sub: string | null; icon: string }[];
 
   return (
     <section>
@@ -61,12 +68,15 @@ export default function CollegeCurriculumCard({
         {metaItems.length > 0 && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
             {metaItems.map((item) => (
-              <div key={item.label} className="bg-surface-container rounded-lg p-4">
-                <p className="font-caption text-on-surface-variant mb-1">{item.label}</p>
-                <p className="font-metric-label text-on-surface">{item.value}</p>
-                {item.sub && (
-                  <p className="font-caption text-on-surface-variant text-xs mt-0.5">{item.sub}</p>
-                )}
+              <div key={item.label} className="bg-surface-container rounded-lg p-4 flex items-start gap-3">
+                <span className="material-symbols-outlined text-[18px] text-on-surface-variant mt-0.5 shrink-0">{item.icon}</span>
+                <div className="min-w-0">
+                  <p className="font-caption text-on-surface-variant mb-1">{item.label}</p>
+                  <p className="font-metric-label text-on-surface truncate">{item.value}</p>
+                  {item.sub && (
+                    <p className="font-caption text-on-surface-variant text-xs mt-0.5">{item.sub}</p>
+                  )}
+                </div>
               </div>
             ))}
           </div>

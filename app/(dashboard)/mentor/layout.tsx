@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import LogoutButton from '@/components/LogoutButton';
 import NavLink from '@/components/NavLink';
+import { getInitials } from '@/lib/utils';
 
 export default async function MentorLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
@@ -14,7 +15,7 @@ export default async function MentorLayout({ children }: { children: React.React
     .single();
 
   const name = profile?.name ?? user?.email ?? 'Mentor';
-  const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(name);
 
   return (
     <div className="flex h-screen bg-background">
@@ -45,6 +46,7 @@ export default async function MentorLayout({ children }: { children: React.React
           <NavLink href="/schedule-test" icon="add_circle" label="Schedule Test" />
           <NavLink href="/mentor/questions" icon="help" label="Question Bank" />
           <NavLink href="/mentor/certificates" icon="workspace_premium" label="Certificates" />
+          <NavLink href="/mentor/jobs" icon="work" label="Jobs" />
           <NavLink href="/mentor/profile" icon="person" label="Profile" />
         </div>
 

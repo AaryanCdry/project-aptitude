@@ -51,6 +51,13 @@ function toLocalDatetime(iso: string | null): string {
   return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
 }
 
+// Inverse of toLocalDatetime: datetime-local value (wall-clock local time) → UTC ISO string.
+// Explicit helper so the local→UTC conversion intent is clear at the call site.
+function localDatetimeToISO(local: string): string | null {
+  if (!local) return null;
+  return new Date(local).toISOString();
+}
+
 export default function EditDraftModal({ draft, classes, onClose }: Props) {
   const router = useRouter();
   const [pending, startTransition] = useTransition();
@@ -66,7 +73,7 @@ export default function EditDraftModal({ draft, classes, onClose }: Props) {
     VERBAL: draft.domain_quotas['VERBAL'] ?? 0,
     SPATIAL: draft.domain_quotas['SPATIAL'] ?? 0,
   });
-  const [durationMinutes, setDurationMinutes] = useState(draft.duration_minutes ?? 45);
+  const [durationMinutes, setDurationMinutes] = useState<number | null>(draft.duration_minutes ?? 45);
   const [flash, setFlash] = useState<{ kind: 'ok' | 'err'; text: string } | null>(null);
 
   const totalQuota = useMemo(
@@ -94,13 +101,13 @@ export default function EditDraftModal({ draft, classes, onClose }: Props) {
       const res = await updateTestDraft(draft.id, {
         title: title.trim(),
         instructions: instructions.trim() || null,
-        scheduled_at: scheduledAt ? new Date(scheduledAt).toISOString() : null,
-        due_date: dueDate ? new Date(dueDate).toISOString() : null,
+        scheduled_at: localDatetimeToISO(scheduledAt),
+        due_date: localDatetimeToISO(dueDate),
         class_ids: [...classIds],
         domain_quotas: Object.fromEntries(
           QUOTA_DOMAINS.filter(d => quotas[d] > 0).map(d => [d, quotas[d]])
         ),
-        duration_minutes: Math.max(5, Math.min(180, durationMinutes || 45)),
+        duration_minutes: Math.min(180, Math.max(5, durationMinutes ?? 45)),
       });
 
       if ('error' in res && res.error) {
@@ -218,8 +225,20 @@ export default function EditDraftModal({ draft, classes, onClose }: Props) {
                 min={5}
                 max={180}
                 step={5}
-                value={durationMinutes}
-                onChange={e => setDurationMinutes(Math.max(5, Math.min(180, parseInt(e.target.value) || 45)))}
+                value={durationMinutes ?? ''}
+                onChange={e => {
+                  const raw = e.target.value;
+                  if (raw === '') { setDurationMinutes(null); return; }
+                  const parsed = parseInt(raw, 10);
+                  if (!Number.isNaN(parsed)) setDurationMinutes(parsed);
+                }}
+                onBlur={() => {
+                  const normalized =
+                    durationMinutes == null || Number.isNaN(durationMinutes)
+                      ? 45
+                      : Math.min(180, Math.max(5, durationMinutes));
+                  setDurationMinutes(normalized);
+                }}
                 className="w-28 px-3 py-2 rounded-lg border border-outline-variant bg-surface-container-lowest text-on-surface focus:outline-none focus:ring-2 focus:ring-primary"
               />
               <span className="font-caption text-on-surface-variant text-xs">minutes for the entire test</span>

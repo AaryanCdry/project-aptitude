@@ -54,7 +54,7 @@ export default async function ClassRosterPage({ params }: { params: Promise<{ id
         <AddStudentsButton
           classId={id}
           className={classInfo.name}
-          candidates={addableStudents as any}
+          candidates={addableStudents}
         />
       </div>
 
@@ -72,7 +72,7 @@ export default async function ClassRosterPage({ params }: { params: Promise<{ id
       </div>
 
       {/* Student Roster */}
-      <ClassRosterTable students={students as any} />
+      <ClassRosterTable students={students} />
     </div>
   );
 }

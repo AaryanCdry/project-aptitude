@@ -14,14 +14,19 @@ function formatScheduledTime(scheduledAt: string | null): string {
   if (!scheduledAt) return '—';
   const d = new Date(scheduledAt);
   const now = new Date();
-  const diff = d.getTime() - now.getTime();
-  const daysDiff = Math.round(diff / (1000 * 60 * 60 * 24));
+  // Strip time component so comparison is purely by calendar date, avoiding
+  // timezone-shift and midnight-boundary issues.
+  const dDay = new Date(d.getFullYear(), d.getMonth(), d.getDate()).getTime();
+  const nowDay = new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime();
+  const daysDiff = Math.round((dDay - nowDay) / (1000 * 60 * 60 * 24));
 
   if (daysDiff === 0) return `Today, ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   if (daysDiff === 1) return `Tomorrow, ${d.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit' })}`;
   if (daysDiff === -1) return 'Yesterday';
   return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 }
+
+type ClassRow = { id: string; name: string; section: string | null };
 
 export default async function AdminAssessmentsPage() {
   const [
@@ -46,8 +51,9 @@ export default async function AdminAssessmentsPage() {
   } else if (allowedClassIds !== null && allowedClassIds.length === 0) {
     classesQ = classesQ.in('id', ['__none__']);
   }
-  const { data: classRows } = await classesQ;
-  const classes = (classRows ?? []) as { id: string; name: string; section: string | null }[];
+  const { data, error: classesError } = await classesQ;
+  if (classesError) throw new Error(`Failed to load classes: ${classesError.message}`);
+  const classes = (data as ClassRow[] | null) ?? [];
 
   return (
     <>
@@ -67,7 +73,7 @@ export default async function AdminAssessmentsPage() {
       </div>
 
       {/* Draft Tests */}
-      <DraftTestsSection drafts={drafts as any} classes={classes} />
+      <DraftTestsSection drafts={drafts} classes={classes} />
 
       {/* Dashboard Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-gutter">
@@ -105,7 +111,11 @@ export default async function AdminAssessmentsPage() {
           </div>
 
           {/* Calendar */}
-          <MiniCalendar scheduledDates={assessmentStats.flatMap(a => [a.scheduledAt, a.dueDate])} />
+          <MiniCalendar
+            scheduledDates={assessmentStats
+              .flatMap(a => [a.scheduledAt, a.dueDate])
+              .filter((d): d is string => !!d)}
+          />
 
           {/* Scheduled assessments — per-assessment progress */}
           {assessmentStats.length > 0 && (
@@ -119,8 +129,9 @@ export default async function AdminAssessmentsPage() {
               </div>
               <div className="divide-y divide-outline-variant">
                 {assessmentStats.slice(0, 8).map(a => {
-                  const pct = a.total > 0 ? Math.round((a.completed / a.total) * 100) : 0;
-                  const isDone = a.completed === a.total && a.total > 0;
+                  const pctRaw = a.total > 0 ? (a.completed / a.total) * 100 : 0;
+                  const pct = Math.min(100, Math.max(0, Math.round(pctRaw)));
+                  const isDone = a.total > 0 && a.completed >= a.total;
                   return (
                     <div key={a.id} className="p-4 hover:bg-surface-container transition-colors">
                       <div className="flex items-start justify-between gap-3 mb-2">

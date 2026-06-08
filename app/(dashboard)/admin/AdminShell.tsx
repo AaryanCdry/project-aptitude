@@ -42,14 +42,15 @@ export default function AdminShell({ children, name, initials, roleLabel, isHOD 
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto" onClick={() => setSidebarOpen(false)}>
         <NavLink href="/admin" icon="dashboard" label="Overview" exact />
         <NavLink href="/admin/questions" icon="quiz" label="Questions" />
-        <NavLink href="/admin/assessments" icon="calendar_month" label="Scheduling" />
+        <NavLink href="/admin/assessments" icon="calendar_month" label="Test Scheduling" />
         <NavLink href="/admin/finals" icon="workspace_premium" label="Final Exams" />
         <NavLink href="/admin/enrollment" icon="group_add" label="Enrollment" />
         {!isHOD && <NavLink href="/admin/departments" icon="account_tree" label="Departments" />}
         <NavLink href="/admin/classes" icon="meeting_room" label="Classes" />
         <NavLink href="/admin/batches" icon="groups" label="Batches" />
         <NavLink href="/admin/staff" icon="badge" label="Staff" />
-        <NavLink href="/admin/reports" icon="assessment" label="Reports" />
+        <NavLink href="/admin/reports" icon="assessment" label="Analytics" />
+        <NavLink href="/admin/jobs" icon="work" label="Jobs" />
         {!isHOD && <NavLink href="/admin/settings" icon="settings" label="Settings" />}
         <NavLink href="/admin/profile" icon="person" label="Profile" />
       </nav>

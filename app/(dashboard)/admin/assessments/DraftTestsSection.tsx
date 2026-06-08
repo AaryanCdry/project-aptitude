@@ -37,6 +37,7 @@ function DraftCard({ draft, classes }: { draft: DraftRow; classes: ClassRow[] })
   const [editOpen, setEditOpen] = useState(false);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [discarding, startDiscard] = useTransition();
+  const [discardError, setDiscardError] = useState<string | null>(null);
 
   const progress = draft.total_quota > 0
     ? Math.round((draft.attached / draft.total_quota) * 100)
@@ -47,9 +48,15 @@ function DraftCard({ draft, classes }: { draft: DraftRow; classes: ClassRow[] })
     .map(([d, n]) => `${n} ${d.charAt(0) + d.slice(1).toLowerCase()}`);
 
   const handleDiscard = () => {
+    setDiscardError(null);
     startDiscard(async () => {
-      await discardDraft(draft.id);
-      router.refresh();
+      try {
+        await discardDraft(draft.id);
+        router.refresh();
+      } catch (err: unknown) {
+        setDiscardError(err instanceof Error ? err.message : 'Failed to discard draft. Please try again.');
+        setConfirmDiscard(false);
+      }
     });
   };
 
@@ -132,6 +139,13 @@ function DraftCard({ draft, classes }: { draft: DraftRow; classes: ClassRow[] })
             </Link>
           </div>
         </div>
+
+        {discardError && (
+          <p className="text-error font-caption text-xs mb-2 flex items-center gap-1">
+            <span className="material-symbols-outlined text-[12px]">error</span>
+            {discardError}
+          </p>
+        )}
 
         {/* Question progress bar */}
         <div className="flex items-center gap-2">

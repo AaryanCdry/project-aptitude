@@ -80,7 +80,7 @@ export default async function StudentDashboardContent({ studentId, viewerMode = 
     getStudentAssignedAssessments(studentId),
     getStudentFinalExams(studentId),
     adminClient.from('users').select('name, email, student_level, total_points').eq('id', studentId).single(),
-    adminClient.from('users').select('class_id, classes!class_id(name, year, section, departments!dept_id(name, course_type))').eq('id', studentId).single(),
+    adminClient.from('users').select('class_id, classes!class_id(name, year, section, batch_id, batches!batch_id(id, name), academic_years!academic_year_id(name), departments!dept_id(name, course_type))').eq('id', studentId).single(),
     isViewer ? Promise.resolve({ jobs: [] as Job[], courseType: null }) : getStudentDegreeJobs(),
   ]);
 

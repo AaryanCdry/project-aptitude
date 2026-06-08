@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Link from 'next/link';
+import { getInitials } from '@/lib/utils';
 
 type Student = {
   id: string;
@@ -152,7 +153,7 @@ export default function ClassRosterTable({ students }: { students: Student[] }) 
                 </td>
               </tr>
             ) : filtered.map((s, i) => {
-              const initials = (s.name || s.email || 'U').split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+              const initials = getInitials(s.name || s.email);
               const ci = (s.name?.charCodeAt(0) ?? i) % 3;
               return (
                 <tr key={s.id} className="hover:bg-surface-container transition-colors group">

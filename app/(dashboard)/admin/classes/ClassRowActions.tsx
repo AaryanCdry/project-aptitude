@@ -7,20 +7,24 @@ import { useRouter } from 'next/navigation';
 import { updateClass, deleteClass } from '@/app/actions/departments';
 
 interface Dept { id: string; name: string; }
+interface AcademicYearOption { id: string; name: string; }
 interface Cls {
   id: string;
   name: string;
   dept_id: string;
   year: number | null;
   section: string | null;
+  academic_year_id?: string | null;
 }
 
 export default function ClassRowActions({
   cls,
   departments,
+  academicYears = [],
 }: {
   cls: Cls;
   departments: Dept[];
+  academicYears?: AcademicYearOption[];
 }) {
   const router = useRouter();
 
@@ -48,6 +52,7 @@ export default function ClassRowActions({
   const [deptId, setDeptId] = useState(cls.dept_id);
   const [year, setYear] = useState(cls.year != null ? String(cls.year) : '');
   const [section, setSection] = useState(cls.section ?? '');
+  const [academicYearId, setAcademicYearId] = useState(cls.academic_year_id ?? '');
   const [editError, setEditError] = useState<string | null>(null);
   const [isSaving, startSave] = useTransition();
 
@@ -55,18 +60,34 @@ export default function ClassRowActions({
     setName(cls.name); setDeptId(cls.dept_id);
     setYear(cls.year != null ? String(cls.year) : '');
     setSection(cls.section ?? '');
+    setAcademicYearId(cls.academic_year_id ?? '');
     setEditError(null); setEditOpen(true);
   }
 
   function handleEdit(e: React.FormEvent) {
     e.preventDefault();
     setEditError(null);
+
+    const trimmedName = name.trim();
+    const trimmedSection = section.trim() || null;
+    const yearTrimmed = year.trim();
+    let parsedYear: number | null = null;
+    if (yearTrimmed !== '') {
+      const candidate = parseInt(yearTrimmed, 10);
+      if (!Number.isInteger(candidate) || candidate < 1 || candidate > 6) {
+        setEditError('Year must be an integer between 1 and 6.');
+        return;
+      }
+      parsedYear = candidate;
+    }
+
     startSave(async () => {
       const res = await updateClass(cls.id, {
-        name: name.trim(),
+        name: trimmedName,
         dept_id: deptId,
-        year: year ? parseInt(year, 10) : null,
-        section: section.trim() || null,
+        year: parsedYear,
+        section: trimmedSection,
+        academic_year_id: academicYearId || null,
       });
       if ('error' in res && res.error) { setEditError(res.error); return; }
       setEditOpen(false);
@@ -178,6 +199,16 @@ export default function ClassRowActions({
                       <input type="text" value={section} onChange={e => setSection(e.target.value)} autoComplete="off" className={inputCls} placeholder="e.g. A" />
                     </div>
                   </div>
+
+                  {academicYears.length > 0 && (
+                    <div>
+                      <label className="block font-metric-label text-on-surface text-[12px] mb-1.5">Academic Year</label>
+                      <select value={academicYearId} onChange={e => setAcademicYearId(e.target.value)} className={inputCls}>
+                        <option value="">— None —</option>
+                        {academicYears.map(ay => <option key={ay.id} value={ay.id}>{ay.name}</option>)}
+                      </select>
+                    </div>
+                  )}
                 </div>
 
                 <div className="px-6 py-4 border-t border-outline-variant bg-surface-container-low/40 flex items-center justify-end gap-3">

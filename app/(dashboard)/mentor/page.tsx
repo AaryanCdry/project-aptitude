@@ -1,9 +1,10 @@
 import React from 'react';
 import Link from 'next/link';
 import { getMentorDashboard } from '@/app/actions/mentor';
+import { getInitials } from '@/lib/utils';
 
 function InitialsAvatar({ name, size = 'md' }: { name: string; size?: 'sm' | 'md' }) {
-  const initials = name.split(' ').map(w => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(name);
   return (
     <div className={`rounded-full bg-primary/10 flex items-center justify-center font-bold text-primary shrink-0 ${size === 'sm' ? 'w-8 h-8 text-xs' : 'w-10 h-10 text-sm'}`}>
       {initials}

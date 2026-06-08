@@ -26,6 +26,8 @@ type Student = {
   departmentName: string | null;
   className: string | null;
   classYear: number | null;
+  batchName: string | null;
+  academicYearName: string | null;
   status: string;
   dateEnrolled: string;
   platformId: string;
@@ -39,6 +41,8 @@ type SortKey =
   | 'registration_id'
   | 'department'
   | 'class'
+  | 'batch'
+  | 'academic-year'
   | 'section'
   | 'enrolled'
   | 'status';
@@ -58,6 +62,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
   const [tab, setTab] = useState<'all' | 'active' | 'invited'>('all');
   const [deptSel, setDeptSel] = useState<string[]>([]);
   const [classSel, setClassSel] = useState<string[]>([]);
+  const [batchSel, setBatchSel] = useState<string[]>([]);
+  const [academicYearSel, setAcademicYearSel] = useState<string[]>([]);
   const [sectionSel, setSectionSel] = useState<string[]>([]);   // may include '__NONE__'
   const [yearSel, setYearSel] = useState<string[]>([]);         // class year (stringified)
   const [semesterSel, setSemesterSel] = useState<string[]>([]); // student semester (stringified)
@@ -67,9 +73,11 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
   const [page, setPage] = useState(1);
 
   // Unique values for the dropdowns
-  const { deptOptions, classOptions, sectionOptions, yearOptions, semesterOptions } = useMemo(() => {
+  const { deptOptions, classOptions, batchOptions, academicYearOptions, sectionOptions, yearOptions, semesterOptions } = useMemo(() => {
     const d = new Set<string>();
     const c = new Set<string>();
+    const b = new Set<string>();
+    const ay = new Set<string>();
     const s = new Set<string>();
     const y = new Set<number>();
     const sem = new Set<number>();
@@ -77,6 +85,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
     students.forEach(st => {
       if (st.departmentName) d.add(st.departmentName);
       if (st.className) c.add(st.className);
+      if (st.batchName) b.add(st.batchName);
+      if (st.academicYearName) ay.add(st.academicYearName);
       if (st.section) s.add(st.section); else hasNullSection = true;
       if (st.classYear != null) y.add(st.classYear);
       if (st.semester != null) sem.add(st.semester);
@@ -84,6 +94,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
     return {
       deptOptions: [...d].sort().map(v => ({ value: v, label: v })),
       classOptions: [...c].sort().map(v => ({ value: v, label: v })),
+      batchOptions: [...b].sort().map(v => ({ value: v, label: v })),
+      academicYearOptions: [...ay].sort().map(v => ({ value: v, label: v })),
       sectionOptions: [...s].sort().map(v => ({ value: v, label: v }))
         .concat(hasNullSection ? [{ value: '__NONE__', label: 'No section' }] : []),
       yearOptions: [...y].sort((a, b) => a - b).map(v => ({ value: String(v), label: `Year ${v}` })),
@@ -108,6 +120,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
 
     if (deptSel.length > 0)   rows = rows.filter(s => s.departmentName != null && deptSel.includes(s.departmentName));
     if (classSel.length > 0)  rows = rows.filter(s => s.className != null && classSel.includes(s.className));
+    if (batchSel.length > 0)  rows = rows.filter(s => s.batchName != null && batchSel.includes(s.batchName));
+    if (academicYearSel.length > 0) rows = rows.filter(s => s.academicYearName != null && academicYearSel.includes(s.academicYearName));
     if (sectionSel.length > 0) rows = rows.filter(s =>
       (s.section && sectionSel.includes(s.section)) ||
       (!s.section && sectionSel.includes('__NONE__'))
@@ -125,6 +139,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
         case 'registration_id': return dir * cmpStr(a.registration_id, b.registration_id);
         case 'department':      return dir * cmpStr(a.departmentName, b.departmentName);
         case 'class':           return dir * cmpStr(a.className, b.className);
+        case 'batch':           return dir * cmpStr(a.batchName, b.batchName);
+        case 'academic-year':   return dir * cmpStr(a.academicYearName, b.academicYearName);
         case 'section':         return dir * cmpStr(a.section, b.section);
         case 'status':          return dir * cmpStr(a.status, b.status);
         case 'enrolled':
@@ -133,7 +149,7 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
       }
     });
     return rows;
-  }, [students, query, tab, deptSel, classSel, sectionSel, yearSel, semesterSel, statusSel, sortBy, sortDir]);
+  }, [students, query, tab, deptSel, classSel, batchSel, academicYearSel, sectionSel, yearSel, semesterSel, statusSel, sortBy, sortDir]);
 
   const totalPages = Math.max(1, Math.ceil(filtered.length / PAGE_SIZE));
   const safePage = Math.min(page, totalPages);
@@ -145,6 +161,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
     tab !== 'all' ||
     deptSel.length > 0 ||
     classSel.length > 0 ||
+    batchSel.length > 0 ||
+    academicYearSel.length > 0 ||
     sectionSel.length > 0 ||
     yearSel.length > 0 ||
     semesterSel.length > 0 ||
@@ -155,6 +173,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
     setTab('all');
     setDeptSel([]);
     setClassSel([]);
+    setBatchSel([]);
+    setAcademicYearSel([]);
     setSectionSel([]);
     setYearSel([]);
     setSemesterSel([]);
@@ -234,6 +254,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
       <div className="px-5 py-3 border-b border-outline-variant bg-surface-container-low/40 flex flex-wrap items-center gap-2">
         <MultiSelectDropdown label="Department" options={deptOptions} selected={deptSel} onChange={v => { setDeptSel(v); setPage(1); }} />
         <MultiSelectDropdown label="Class" options={classOptions} selected={classSel} onChange={v => { setClassSel(v); setPage(1); }} />
+        <MultiSelectDropdown label="Batch" options={batchOptions} selected={batchSel} onChange={v => { setBatchSel(v); setPage(1); }} emptyOptionsLabel="No batch data" />
+        <MultiSelectDropdown label="Acad. Year" options={academicYearOptions} selected={academicYearSel} onChange={v => { setAcademicYearSel(v); setPage(1); }} emptyOptionsLabel="No academic year data" />
         <MultiSelectDropdown label="Section" options={sectionOptions} selected={sectionSel} onChange={v => { setSectionSel(v); setPage(1); }} />
         <MultiSelectDropdown label="Year" options={yearOptions} selected={yearSel} onChange={v => { setYearSel(v); setPage(1); }} emptyOptionsLabel="No year data" />
         <MultiSelectDropdown label="Semester" options={semesterOptions} selected={semesterSel} onChange={v => { setSemesterSel(v); setPage(1); }} emptyOptionsLabel="No semester data" />
@@ -267,6 +289,8 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
               {headerCell('Reg. ID', 'registration_id')}
               {headerCell('Department', 'department')}
               {headerCell('Class', 'class')}
+              {headerCell('Batch', 'batch')}
+              {headerCell('Acad. Year', 'academic-year')}
               {headerCell('Section', 'section')}
               {headerCell('Enrolled', 'enrolled')}
               {headerCell('Status', 'status')}
@@ -276,7 +300,7 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
           <tbody className="divide-y divide-outline-variant/60">
             {paginated.length === 0 ? (
               <tr>
-                <td colSpan={8} className="py-16 text-center text-on-surface-variant">
+                <td colSpan={10} className="py-16 text-center text-on-surface-variant">
                   <span className="material-symbols-outlined text-5xl block mb-3 text-outline">
                     {students.length === 0 ? 'person_off' : 'search_off'}
                   </span>
@@ -333,6 +357,28 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
 
                   <td className="py-3 px-4 text-[12px] text-on-surface-variant">
                     {student.className ?? <span className="text-outline/50">—</span>}
+                  </td>
+
+                  <td className="py-3 px-4">
+                    {student.batchName ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-primary bg-primary/8 border border-primary/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        <span className="material-symbols-outlined text-[12px]">groups</span>
+                        {student.batchName}
+                      </span>
+                    ) : (
+                      <span className="text-outline/50 text-sm">—</span>
+                    )}
+                  </td>
+
+                  <td className="py-3 px-4">
+                    {student.academicYearName ? (
+                      <span className="inline-flex items-center gap-1 text-[11px] font-medium text-secondary bg-secondary/8 border border-secondary/20 px-2 py-0.5 rounded-full whitespace-nowrap">
+                        <span className="material-symbols-outlined text-[12px]">calendar_month</span>
+                        {student.academicYearName}
+                      </span>
+                    ) : (
+                      <span className="text-outline/50 text-sm">—</span>
+                    )}
                   </td>
 
                   <td className="py-3 px-4">

@@ -2,6 +2,7 @@ import React from 'react';
 import { getAdminDashboardData } from '@/app/actions/dashboard';
 import { getCallerScope } from '@/app/actions/scope';
 import ExportButton from './_shared/ExportButton';
+import { getInitials } from '@/lib/utils';
 
 export default async function AdminDashboard() {
   const [{
@@ -172,7 +173,7 @@ export default async function AdminDashboard() {
           <h2 className="font-headline-md text-headline-md text-on-surface mb-6">Students at Risk</h2>
           <div className="space-y-4">
             {studentsAtRisk?.length ? studentsAtRisk.map((student) => {
-              const initials = student.name.split(' ').map((n: string) => n[0]).join('').substring(0, 2).toUpperCase();
+              const initials = getInitials(student.name);
               return (
                 <div key={student.id} className="flex items-center justify-between p-4 bg-surface rounded-lg border border-outline-variant/50 hover:border-error/30 transition-colors">
                   <div className="flex items-center space-x-4">

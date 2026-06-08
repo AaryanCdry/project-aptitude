@@ -32,19 +32,33 @@ export async function getBatches() {
 
   const batchIds = batches.map((b: any) => b.id as string);
 
-  // Classes per batch
+  // Classes per batch (with academic year)
   const { data: classes } = await adminClient
     .from('classes')
-    .select('id, name, batch_id')
+    .select('id, name, batch_id, academic_year_id, academic_years!academic_year_id(id, name)')
     .in('batch_id', batchIds);
 
   const classesByBatch: Record<string, Array<{ id: string; name: string }>> = {};
   const allClassIds: string[] = [];
+  // Track AY IDs per batch to derive consistent AY
+  const ayIdsByBatch: Record<string, Set<string>> = {};
+  const ayNameById: Record<string, string> = {};
+
   for (const c of classes ?? []) {
     const bid = (c as any).batch_id as string;
     if (!classesByBatch[bid]) classesByBatch[bid] = [];
     classesByBatch[bid].push({ id: (c as any).id, name: (c as any).name });
     allClassIds.push((c as any).id);
+    const ayId = (c as any).academic_year_id as string | null;
+    if (!ayIdsByBatch[bid]) ayIdsByBatch[bid] = new Set();
+    if (ayId) {
+      ayIdsByBatch[bid].add(ayId);
+      const ayName = (c as any).academic_years?.name as string | undefined;
+      if (ayName) ayNameById[ayId] = ayName;
+    } else {
+      // null sentinel so we can detect mixed
+      ayIdsByBatch[bid].add('__null__');
+    }
   }
 
   // Student counts per class
@@ -64,6 +78,14 @@ export async function getBatches() {
   return (batches as any[]).map((b) => {
     const bClasses = classesByBatch[b.id] ?? [];
     const studentTotal = bClasses.reduce((sum, c) => sum + (studentPerClass[c.id] ?? 0), 0);
+
+    // Derive current AY: consistent across all classes → show it; mixed/none → null
+    const aySet = ayIdsByBatch[b.id] ?? new Set();
+    const nonNullAys = [...aySet].filter(id => id !== '__null__');
+    const consistent = aySet.size === 1 && nonNullAys.length === 1;
+    const currentAcademicYearId = consistent ? nonNullAys[0] : null;
+    const currentAcademicYearName = currentAcademicYearId ? (ayNameById[currentAcademicYearId] ?? null) : null;
+
     return {
       id: b.id as string,
       name: b.name as string,
@@ -73,6 +95,8 @@ export async function getBatches() {
       classes: bClasses,
       classCount: bClasses.length,
       studentCount: studentTotal,
+      currentAcademicYearId,
+      currentAcademicYearName,
     };
   });
 }
@@ -245,6 +269,27 @@ export async function removeClassFromBatch(classId: string) {
   }
 
   const { error } = await adminClient.from('classes').update({ batch_id: null }).eq('id', classId);
+  if (error) return { error: error.message };
+  revalidateAll();
+  return { success: true as const };
+}
+
+export async function setBatchAcademicYear(batchId: string, academicYearId: string | null) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return { error: 'Not authenticated' };
+  if (!ALLOWED.includes(scope.role ?? '')) return { error: 'Not authorized.' };
+
+  const adminClient = createAdminClient();
+  const { data: existing } = await adminClient.from('batches').select('id, college_id').eq('id', batchId).single();
+  if (!existing) return { error: 'Batch not found.' };
+  if (scope.role !== 'SUPER_ADMIN' && (existing as any).college_id !== scope.collegeId)
+    return { error: 'Outside your college scope.' };
+
+  const { error } = await adminClient
+    .from('classes')
+    .update({ academic_year_id: academicYearId })
+    .eq('batch_id', batchId);
+
   if (error) return { error: error.message };
   revalidateAll();
   return { success: true as const };

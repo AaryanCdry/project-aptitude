@@ -117,7 +117,7 @@ export async function getClasses(deptId?: string) {
   let query = adminClient
     .from('classes')
     .select(`
-      id, name, year, section, created_at, dept_id,
+      id, name, year, section, created_at, dept_id, batch_id, academic_year_id,
       departments(name, course_type),
       sub_admin:users!sub_admin_id(id, name, email)
     `)
@@ -141,7 +141,7 @@ export async function getClasses(deptId?: string) {
 // ─── Update class ─────────────────────────────────────────────────────────────
 export async function updateClass(
   id: string,
-  data: { name: string; dept_id: string; year: number | null; section: string | null }
+  data: { name: string; dept_id: string; year: number | null; section: string | null; academic_year_id?: string | null }
 ) {
   const collegeId = await getCallerCollegeId();
   if (!collegeId) return { error: 'Not authenticated or no college assigned.' };
@@ -153,7 +153,7 @@ export async function updateClass(
 
   const { error } = await adminClient
     .from('classes')
-    .update({ name: data.name, dept_id: data.dept_id, year: data.year, section: data.section || null })
+    .update({ name: data.name, dept_id: data.dept_id, year: data.year, section: data.section || null, academic_year_id: data.academic_year_id ?? null })
     .eq('id', id);
 
   if (error) return { error: error.message };
@@ -182,6 +182,7 @@ export async function createClass(formData: FormData) {
   const name = formData.get('name') as string;
   const year = parseInt(formData.get('year') as string) || null;
   const section = formData.get('section') as string;
+  const academic_year_id = (formData.get('academic_year_id') as string) || null;
 
   if (!dept_id || !name) return { error: 'Department and class name are required.' };
 
@@ -202,6 +203,7 @@ export async function createClass(formData: FormData) {
     name,
     year,
     section,
+    academic_year_id,
   });
 
   if (error) return { error: error.message };

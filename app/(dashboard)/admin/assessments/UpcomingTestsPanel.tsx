@@ -2,6 +2,7 @@
 
 import React, { useMemo, useState, useTransition } from 'react';
 import { getAssessmentDetail } from '@/app/actions/admin';
+import { getInitials } from '@/lib/utils';
 
 type AssessmentStat = {
   id: string;
@@ -135,8 +136,8 @@ function AssessmentCard({ a, cat, onClick }: { a: AssessmentStat; cat: Category;
       </div>
       <div className="flex items-center gap-2 flex-wrap mb-2">
         {a.classLabel && (
-          <span className="font-caption text-on-surface-variant flex items-center gap-1 text-xs">
-            <span className="material-symbols-outlined text-sm">meeting_room</span>
+          <span className="font-caption text-on-surface-variant flex items-center gap-1 text-xs min-w-0 max-w-full">
+            <span className="material-symbols-outlined text-sm shrink-0">meeting_room</span>
             <span className="truncate">{a.classLabel}</span>
           </span>
         )}
@@ -430,7 +431,7 @@ export default function UpcomingTestsPanel({ assessments }: { assessments: Asses
                   </thead>
                   <tbody className="divide-y divide-outline-variant">
                     {detail.students.map(s => {
-                      const initials = s.name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+                      const initials = getInitials(s.name);
                       return (
                         <tr key={s.testId} className="hover:bg-surface-container transition-colors">
                           <td className="px-5 py-3">

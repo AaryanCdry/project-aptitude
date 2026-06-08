@@ -113,9 +113,10 @@ export async function getStudentProfile() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) throw new Error('Not authenticated');
 
-  const { data } = await supabase
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
     .from('users')
-    .select('id, name, email, role, created_at')
+    .select('id, name, email, role, created_at, classes!class_id(name, year, section, batches!batch_id(name), academic_years!academic_year_id(name), departments!dept_id(name, course_type))')
     .eq('id', user.id)
     .single();
 

@@ -1,6 +1,7 @@
 import React from 'react';
 import { getStudentProfile } from '@/app/actions/reports';
 import ProfileForm from '@/app/(dashboard)/student/profile/ProfileForm';
+import { getInitials } from '@/lib/utils';
 
 export default async function MentorProfilePage() {
   const profile = await getStudentProfile();
@@ -9,8 +10,7 @@ export default async function MentorProfilePage() {
     ? new Date(profile.created_at).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' })
     : '—';
 
-  const initials = (profile?.name ?? profile?.email ?? 'M')
-    .split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(profile?.name ?? profile?.email ?? 'M');
 
   return (
     <div className="max-w-2xl mx-auto p-8">

@@ -19,7 +19,8 @@ export default function MiniCalendar({ scheduledDates }: { scheduledDates: (stri
   const cells: { day: number; current: boolean }[] = [];
   for (let i = startOffset - 1; i >= 0; i--) cells.push({ day: daysInPrevMonth - i, current: false });
   for (let d = 1; d <= daysInMonth; d++) cells.push({ day: d, current: true });
-  while (cells.length % 7 !== 0) cells.push({ day: cells.length - daysInMonth - startOffset + 1, current: false });
+  let nextMonthDay = 1;
+  while (cells.length % 7 !== 0) { cells.push({ day: nextMonthDay, current: false }); nextMonthDay += 1; }
 
   const weeks: { day: number; current: boolean }[][] = [];
   for (let i = 0; i < cells.length; i += 7) weeks.push(cells.slice(i, i + 7));

@@ -2,6 +2,7 @@ import React from 'react';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import StudentShell from './StudentShell';
+import { getInitials } from '@/lib/utils';
 
 function calcStreak(completedAts: string[]): number {
   if (completedAts.length === 0) return 0;
@@ -26,18 +27,24 @@ export default async function StudentLayout({ children }: { children: React.Reac
   const { data: { user } } = await supabase.auth.getUser();
 
   const adminClient = createAdminClient();
-  const [{ data: profile }, { data: completedTests }] = await Promise.all([
+  const [{ data: profile }, { data: completedTests }, { data: classRow }] = await Promise.all([
     adminClient.from('users').select('name, email, total_points').eq('id', user?.id ?? '').single(),
     adminClient.from('tests').select('completed_at').eq('student_id', user?.id ?? '').eq('status', 'COMPLETED').not('completed_at', 'is', null),
+    adminClient.from('users').select('classes!class_id(name, year, section, batches!batch_id(name), academic_years!academic_year_id(name))').eq('id', user?.id ?? '').single(),
   ]);
 
   const name = profile?.name ?? user?.email ?? 'Student';
-  const initials = name.split(' ').map((w: string) => w[0]).join('').substring(0, 2).toUpperCase();
+  const initials = getInitials(name);
   const totalPoints = profile?.total_points ?? 0;
   const streak = calcStreak((completedTests ?? []).map((t: any) => t.completed_at as string));
 
+  const cls = (classRow as any)?.classes ?? null;
+  const className: string | null = cls?.name ?? null;
+  const batchName: string | null = cls?.batches?.name ?? null;
+  const academicYearName: string | null = cls?.academic_years?.name ?? null;
+
   return (
-    <StudentShell name={name} initials={initials} streak={streak} totalPoints={totalPoints}>
+    <StudentShell name={name} initials={initials} streak={streak} totalPoints={totalPoints} className={className} batchName={batchName} academicYearName={academicYearName}>
       {children}
     </StudentShell>
   );

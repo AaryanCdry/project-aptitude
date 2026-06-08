@@ -17,6 +17,11 @@ export async function searchJobsAction(params: JobSearchParams): Promise<Job[]> 
   return searchJobs(params);
 }
 
+export async function getGeneralJobs(): Promise<{ jobs: Job[] }> {
+  const jobs = await searchJobs({ query: 'software developer', location: 'India', page: 1 });
+  return { jobs: jobs.slice(0, 6) };
+}
+
 export async function getStudentDegreeJobs(): Promise<{ jobs: Job[]; courseType: string | null }> {
   const scope = await getCallerScope();
   const targetId = scope.userId;

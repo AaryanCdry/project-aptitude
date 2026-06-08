@@ -20,6 +20,12 @@ export async function getOrCreateActiveTest() {
     .single();
 
   if (existingTest) {
+    // Backfill expires_at for tests created before this column existed.
+    if (!existingTest.expires_at) {
+      const expires_at = new Date(Date.now() + 45 * 60 * 1000).toISOString();
+      await supabase.from('tests').update({ expires_at }).eq('id', existingTest.id);
+      return { ...existingTest, expires_at };
+    }
     return existingTest;
   }
 

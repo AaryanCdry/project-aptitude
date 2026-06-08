@@ -7,26 +7,34 @@ import { createClass } from '@/app/actions/departments';
 export default function CreateClassForm({
   departments,
   defaultDeptId,
+  academicYears = [],
 }: {
   departments: { id: string; name: string; course_type: string }[];
   defaultDeptId?: string;
+  academicYears?: { id: string; name: string }[];
 }) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [open, setOpen] = useState(false);
 
+  type CreateClassResult = { error: string } | { success: true };
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const res = await createClass(fd);
-      if ((res as any).error) {
-        setError((res as any).error);
-      } else {
-        setOpen(false);
-        router.refresh();
+      try {
+        const res = await createClass(fd) as CreateClassResult;
+        if ('error' in res) {
+          setError(res.error);
+        } else {
+          setOpen(false);
+          router.refresh();
+        }
+      } catch {
+        setError('Something went wrong. Please try again.');
       }
     });
   }
@@ -99,6 +107,22 @@ export default function CreateClassForm({
                   className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary focus:ring-1 focus:ring-primary transition-colors" />
               </div>
             </div>
+
+            {academicYears.length > 0 && (
+              <div className="space-y-1.5">
+                <label className="font-metric-label text-metric-label text-on-surface">Academic Year</label>
+                <div className="relative">
+                  <select name="academic_year_id" defaultValue=""
+                    className="w-full px-4 py-3 bg-surface border border-outline-variant rounded-lg font-body-md text-on-surface focus:outline-none focus:border-primary appearance-none">
+                    <option value="">— None —</option>
+                    {academicYears.map(ay => (
+                      <option key={ay.id} value={ay.id}>{ay.name}</option>
+                    ))}
+                  </select>
+                  <span className="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+                </div>
+              </div>
+            )}
           </div>
 
           <footer className="px-6 py-4 bg-surface-container flex justify-end gap-3 border-t border-outline-variant">

@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useTransition, useEffect } from 'react';
+import React, { useEffect, useRef, useState, useTransition } from 'react';
 import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { createClass } from '@/app/actions/departments';
@@ -10,13 +10,29 @@ export default function AddClassButton({
 }: {
   dept: { id: string; name: string; course_type: string };
 }) {
+  type CreateClassResult = { error: string } | { success: true };
+
   const router = useRouter();
+  const triggerRef = useRef<HTMLButtonElement>(null);
   const [open, setOpen] = useState(false);
   const [isPending, startTransition] = useTransition();
   const [error, setError] = useState<string | null>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => { setMounted(true); }, []);
+
+  useEffect(() => {
+    if (!open) return;
+    const onKeyDown = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') { e.stopPropagation(); closeModal(); }
+    };
+    document.addEventListener('keydown', onKeyDown);
+    return () => {
+      document.removeEventListener('keydown', onKeyDown);
+      triggerRef.current?.focus();
+    };
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open]);
 
   useEffect(() => {
     const scrollbarWidth = window.innerWidth - document.documentElement.clientWidth;
@@ -33,16 +49,18 @@ export default function AddClassButton({
     };
   }, [open]);
 
+  function closeModal() { setOpen(false); }
+
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
     setError(null);
     const fd = new FormData(e.currentTarget);
     startTransition(async () => {
-      const res = await createClass(fd);
-      if ((res as any).error) {
-        setError((res as any).error);
+      const res = await createClass(fd) as CreateClassResult;
+      if ('error' in res) {
+        setError(res.error);
       } else {
-        setOpen(false);
+        closeModal();
         router.refresh();
       }
     });
@@ -64,7 +82,8 @@ export default function AddClassButton({
             </p>
           </div>
           <button
-            onClick={() => setOpen(false)}
+            type="button"
+            onClick={closeModal}
             className="w-9 h-9 flex items-center justify-center rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant"
           >
             <span className="material-symbols-outlined">close</span>
@@ -127,7 +146,7 @@ export default function AddClassButton({
           <footer className="px-6 py-4 bg-surface-container flex justify-end gap-3 border-t border-outline-variant">
             <button
               type="button"
-              onClick={() => setOpen(false)}
+              onClick={closeModal}
               className="px-5 py-2.5 rounded-lg font-metric-label text-on-surface border border-outline hover:bg-surface-variant transition-colors"
             >
               Cancel
@@ -151,6 +170,8 @@ export default function AddClassButton({
   return (
     <>
       <button
+        type="button"
+        ref={triggerRef}
         onClick={() => setOpen(true)}
         className="flex-1 py-2 text-center bg-primary text-on-primary rounded-lg font-metric-label text-[13px] hover:bg-on-primary-fixed-variant transition-colors"
       >
