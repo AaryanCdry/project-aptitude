@@ -4,7 +4,7 @@ const resend = new Resend(process.env.RESEND_API_KEY);
 
 // Use your verified Resend domain in production.
 // During development, Resend allows sending to your own email via onboarding@resend.dev.
-const FROM = 'AptitudePro <onboarding@resend.dev>';
+const FROM = 'AptiLead <onboarding@resend.dev>';
 
 export interface EnrollmentEmailPayload {
   to: string;
@@ -24,7 +24,7 @@ export async function sendEnrollmentEmail(payload: EnrollmentEmailPayload) {
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>Welcome to AptitudePro</title>
+  <title>Welcome to AptiLead</title>
   <style>
     body { margin: 0; padding: 0; background: #f4f4f5; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
     .wrapper { max-width: 560px; margin: 40px auto; }
@@ -48,7 +48,7 @@ export async function sendEnrollmentEmail(payload: EnrollmentEmailPayload) {
   <div class="wrapper">
     <div class="card">
       <div class="header">
-        <h1>AptitudePro</h1>
+        <h1>AptiLead</h1>
         <p>Adaptive Aptitude Training Platform</p>
       </div>
       <div class="body">
@@ -71,7 +71,7 @@ export async function sendEnrollmentEmail(payload: EnrollmentEmailPayload) {
         </p>
       </div>
       <div class="footer">
-        <p>© ${new Date().getFullYear()} AptitudePro · This email was sent because an admin enrolled you.</p>
+        <p>© ${new Date().getFullYear()} AptiLead · This email was sent because an admin enrolled you.</p>
       </div>
     </div>
   </div>
@@ -82,7 +82,7 @@ export async function sendEnrollmentEmail(payload: EnrollmentEmailPayload) {
   const { data, error } = await resend.emails.send({
     from: FROM,
     to,
-    subject: `You've been enrolled in AptitudePro${cohortName ? ` — ${cohortName}` : ''}`,
+    subject: `You've been enrolled in AptiLead${cohortName ? ` — ${cohortName}` : ''}`,
     html,
   });
 

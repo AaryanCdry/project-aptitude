@@ -14,7 +14,7 @@ const BrandPanel = () => (
   >
     <div className="relative z-10 flex items-center gap-2.5">
       <span className="material-symbols-outlined text-on-primary text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-      <span className="font-headline-md text-on-primary text-xl font-bold tracking-tight">AptitudePro</span>
+      <span className="font-headline-md text-on-primary text-xl font-bold tracking-tight">AptiLead</span>
     </div>
     <div className="relative z-10">
       <p className="font-display-lg text-on-primary text-5xl font-bold leading-[1.1] mb-5">
@@ -24,7 +24,7 @@ const BrandPanel = () => (
         Adaptive aptitude assessments<br />for colleges that care about outcomes.
       </p>
     </div>
-    <p className="relative z-10 font-caption text-on-primary/40 text-sm">© 2026 AptitudePro</p>
+    <p className="relative z-10 font-caption text-on-primary/40 text-sm">© 2026 AptiLead</p>
   </div>
 );
 
@@ -65,7 +65,7 @@ export default function ForgotPasswordPage() {
           {/* Mobile wordmark */}
           <div className="flex lg:hidden items-center gap-2 mb-8 justify-center">
             <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-            <span className="font-headline-md text-primary text-xl font-bold tracking-tight">AptitudePro</span>
+            <span className="font-headline-md text-primary text-xl font-bold tracking-tight">AptiLead</span>
           </div>
 
           {sent ? (

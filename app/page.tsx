@@ -1,5 +1,7 @@
 import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { getRoleHome } from '@/lib/auth/roles';
 
 export default async function Home() {
   const supabase = await createClient();
@@ -9,19 +11,12 @@ export default async function Home() {
     redirect('/login');
   }
 
-  const role = user.user_metadata?.role ?? 'STUDENT';
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
 
-  if (role === 'SUPER_ADMIN') {
-    redirect('/super');
-  } else if (role === 'ADMIN') {
-    redirect('/admin');
-  } else if (role === 'SUB_ADMIN') {
-    // HOD shares the Principal dashboard at /admin, scoped to their department
-    // (matches roleHomeMap in lib/supabase/middleware.ts).
-    redirect('/admin');
-  } else if (role === 'MENTOR') {
-    redirect('/mentor');
-  } else {
-    redirect('/student');
-  }
+  redirect(getRoleHome(profile?.role) ?? '/login?error=profile');
 }

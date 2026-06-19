@@ -26,7 +26,7 @@ export default function StudentShell({ children, name, initials, streak, totalPo
       {/* Wordmark */}
       <div className="px-6 pt-5 pb-3 flex items-center gap-2 border-b border-outline-variant">
         <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-        <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptitudePro</span>
+        <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptiLead</span>
       </div>
 
       {/* User avatar */}

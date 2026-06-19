@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import Link from 'next/link';
 import { createClient } from '@/lib/supabase/client';
 import { useRouter } from 'next/navigation';
 
@@ -43,7 +44,7 @@ export default function LoginPage() {
         {/* Wordmark */}
         <div className="relative z-10 flex items-center gap-2.5">
           <span className="material-symbols-outlined text-on-primary text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-          <span className="font-headline-md text-on-primary text-xl font-bold tracking-tight">AptitudePro</span>
+          <span className="font-headline-md text-on-primary text-xl font-bold tracking-tight">AptiLead</span>
         </div>
 
         {/* Tagline */}
@@ -58,7 +59,7 @@ export default function LoginPage() {
 
         {/* Footer */}
         <div className="relative z-10 flex items-center gap-4">
-          <p className="font-caption text-on-primary/40 text-sm">© 2026 AptitudePro</p>
+          <p className="font-caption text-on-primary/40 text-sm">© 2026 AptiLead</p>
         </div>
       </div>
 
@@ -68,7 +69,7 @@ export default function LoginPage() {
           {/* Mobile wordmark */}
           <div className="flex lg:hidden items-center gap-2 mb-8 justify-center">
             <span className="material-symbols-outlined text-primary text-2xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-            <span className="font-headline-md text-primary text-xl font-bold tracking-tight">AptitudePro</span>
+            <span className="font-headline-md text-primary text-xl font-bold tracking-tight">AptiLead</span>
           </div>
 
           <div className="mb-8">
@@ -146,6 +147,11 @@ export default function LoginPage() {
               )}
             </button>
           </form>
+
+          <p className="mt-6 text-center font-body-md text-on-surface-variant text-sm">
+            Recruiting?{' '}
+            <Link href="/company-signup" className="text-primary font-metric-label hover:underline">Register as a company</Link>
+          </p>
         </div>
       </div>
     </div>

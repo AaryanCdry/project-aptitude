@@ -79,7 +79,7 @@ export default function SignupPage() {
       <main className="w-full max-w-[480px] bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0px_10px_15px_-3px_rgba(79,70,229,0.05)] overflow-hidden flex flex-col">
         <header className="px-8 py-6 border-b border-outline-variant flex justify-center items-center bg-surface-container-lowest">
           <div className="text-center">
-            <h1 className="font-display-sm text-display-sm text-on-surface">Aptitude Pro</h1>
+            <h1 className="font-display-sm text-display-sm text-on-surface">AptiLead</h1>
             <p className="font-body-md text-on-surface-variant mt-1">Create your student account.</p>
           </div>
         </header>

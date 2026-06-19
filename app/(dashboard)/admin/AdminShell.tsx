@@ -19,7 +19,7 @@ export default function AdminShell({ children, name, initials, roleLabel, isHOD 
     <>
       <div className="px-6 pt-5 pb-3 flex items-center gap-2 border-b border-outline-variant">
         <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-        <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptitudePro</span>
+        <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptiLead</span>
       </div>
 
       <div className="px-5 py-4 flex items-center gap-3 border-b border-outline-variant">
@@ -88,7 +88,7 @@ export default function AdminShell({ children, name, initials, roleLabel, isHOD 
           >
             <span className="material-symbols-outlined text-xl">menu</span>
           </button>
-          <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptitudePro</span>
+          <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptiLead</span>
         </header>
 
         <main className="flex-1 overflow-y-auto min-h-0 p-4 md:p-8">

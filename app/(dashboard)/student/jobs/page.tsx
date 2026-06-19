@@ -1,6 +1,6 @@
 import { createClient } from '@/lib/supabase/server';
 import { redirect } from 'next/navigation';
-import { getStudentDegreeJobs } from '@/app/actions/jobs';
+import { getStudentDegreeJobs, getPartnerJobPostings, getMyApplications } from '@/app/actions/jobs';
 import { DEGREE_JOB_MAPPINGS } from '@/lib/jobs/degreeJobMappings';
 import JobsClient from './JobsClient';
 
@@ -9,7 +9,11 @@ export default async function JobsPage() {
   const { data: { user } } = await supabase.auth.getUser();
   if (!user) redirect('/login');
 
-  const { jobs: initialJobs, courseType } = await getStudentDegreeJobs();
+  const [{ jobs: initialJobs, courseType }, partnerJobs, myApplications] = await Promise.all([
+    getStudentDegreeJobs(),
+    getPartnerJobPostings(),
+    getMyApplications(),
+  ]);
 
   return (
     <div className="p-6 max-w-container-max-width mx-auto">
@@ -24,6 +28,8 @@ export default async function JobsPage() {
         studentDegree={courseType}
         isConfigured={!!process.env.RAPIDAPI_KEY}
         allDegrees={Object.entries(DEGREE_JOB_MAPPINGS).map(([key, v]) => ({ value: key, label: v.label }))}
+        partnerJobs={partnerJobs}
+        myApplications={myApplications}
       />
     </div>
   );

@@ -33,62 +33,13 @@ export async function updateSession(request: NextRequest) {
 
   // Routes configuration
   const pathname = request.nextUrl.pathname;
-  
-  const publicPaths = ['/login', '/signup', '/verify', '/forgot-password', '/reset-password'];
+  const publicPaths = ['/login', '/signup', '/company-signup', '/verify', '/forgot-password', '/reset-password'];
   const isPublic = publicPaths.some(p => pathname.startsWith(p));
 
   if (!user && !isPublic) {
     const url = request.nextUrl.clone();
     url.pathname = '/login';
     return NextResponse.redirect(url);
-  }
-
-  if (user) {
-    const role = user.user_metadata?.role ?? 'STUDENT';
-
-    const roleHomeMap: Record<string, string> = {
-      SUPER_ADMIN: '/super',
-      ADMIN:       '/admin',
-      SUB_ADMIN:   '/admin',     // HOD shares the Principal dashboard, scoped to their department
-      MENTOR:      '/mentor',
-      STUDENT:     '/student',
-    };
-
-    // Redirect away from login/signup once authenticated
-    if (pathname === '/login' || pathname === '/signup') {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHomeMap[role] ?? '/student';
-      return NextResponse.redirect(url);
-    }
-
-    // Route guards — redirect to role home if accessing wrong dashboard
-    if (pathname.startsWith('/super') && role !== 'SUPER_ADMIN') {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHomeMap[role] ?? '/student';
-      return NextResponse.redirect(url);
-    }
-
-    if (pathname.startsWith('/admin') && !['ADMIN', 'SUB_ADMIN'].includes(role)) {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHomeMap[role] ?? '/student';
-      return NextResponse.redirect(url);
-    }
-
-    if (pathname.startsWith('/mentor') && !['MENTOR', 'ADMIN', 'SUPER_ADMIN'].includes(role)) {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHomeMap[role] ?? '/student';
-      return NextResponse.redirect(url);
-    }
-
-    // /student/* is the student's own portal. Admin/HOD/Mentor use their
-    // own viewer routes (/admin/students/[id], /mentor/students/[id],
-    // /admin/results/[id], /mentor/results/[id]) which sit under the
-    // matching layout — no need to ever route a non-student through /student.
-    if (pathname.startsWith('/student') && role !== 'STUDENT') {
-      const url = request.nextUrl.clone();
-      url.pathname = roleHomeMap[role] ?? '/student';
-      return NextResponse.redirect(url);
-    }
   }
 
   return supabaseResponse

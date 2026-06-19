@@ -1,5 +1,9 @@
 import React from 'react';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { canAccessDashboard } from '@/lib/auth/access';
+import { getRoleHome } from '@/lib/auth/roles';
+import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/LogoutButton';
 import NavLink from '@/components/NavLink';
 import { getInitials } from '@/lib/utils';
@@ -7,12 +11,18 @@ import { getInitials } from '@/lib/utils';
 export default async function MentorLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient
     .from('users')
-    .select('name, email')
-    .eq('id', user?.id ?? '')
+    .select('name, email, role')
+    .eq('id', user.id)
     .single();
+
+  if (!canAccessDashboard('/mentor', profile?.role)) {
+    redirect(getRoleHome(profile?.role) ?? '/login?error=profile');
+  }
 
   const name = profile?.name ?? user?.email ?? 'Mentor';
   const initials = getInitials(name);
@@ -23,7 +33,7 @@ export default async function MentorLayout({ children }: { children: React.React
         {/* Wordmark */}
         <div className="px-6 pt-5 pb-3 flex items-center gap-2 border-b border-outline-variant">
           <span className="material-symbols-outlined text-primary text-xl" style={{ fontVariationSettings: '"FILL" 1' }}>neurology</span>
-          <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptitudePro</span>
+          <span className="font-headline-md text-primary font-bold text-base tracking-tight">AptiLead</span>
         </div>
 
         {/* User info */}

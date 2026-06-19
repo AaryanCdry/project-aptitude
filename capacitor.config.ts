@@ -2,7 +2,7 @@ import { CapacitorConfig } from '@capacitor/cli';
 
 const config: CapacitorConfig = {
   appId: 'com.bigimpact.aptitudepro',
-  appName: 'AptitudePro',
+  appName: 'AptiLead',
   webDir: 'out',
   server: {
     // TODO: Replace with your Vercel production URL

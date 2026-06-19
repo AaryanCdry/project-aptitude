@@ -62,7 +62,7 @@ function generateHTML(d: ExportData): string {
 <head>
 <meta charset="UTF-8"/>
 <meta name="viewport" content="width=device-width,initial-scale=1"/>
-<title>AptitudePro — College Report</title>
+<title>AptiLead — College Report</title>
 <style>
   @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
   *{box-sizing:border-box;margin:0;padding:0}
@@ -77,7 +77,7 @@ function generateHTML(d: ExportData): string {
   <div style="background:linear-gradient(135deg,#3525cd 0%,#4f46e5 100%);border-radius:16px;padding:36px 40px;color:#fff;margin-bottom:32px;position:relative;overflow:hidden">
     <div style="position:absolute;top:0;left:0;right:0;bottom:0;opacity:.08;background-image:radial-gradient(circle,#fff 1px,transparent 1px);background-size:20px 20px"></div>
     <div style="position:relative">
-      <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px">AptitudePro</div>
+      <div style="font-size:22px;font-weight:800;letter-spacing:-0.5px;margin-bottom:4px">AptiLead</div>
       <div style="font-size:14px;opacity:.7">College Performance Report</div>
       <div style="margin-top:20px;font-size:13px;opacity:.6">Generated ${d.generatedAt}</div>
     </div>
@@ -129,7 +129,7 @@ function generateHTML(d: ExportData): string {
 
   <!-- Footer -->
   <div style="text-align:center;color:#9ca3af;font-size:12px">
-    AptitudePro Adaptive Assessment Platform &nbsp;·&nbsp; Confidential
+    AptiLead Adaptive Assessment Platform &nbsp;·&nbsp; Confidential
   </div>
 </div>
 
@@ -151,7 +151,7 @@ async function generateXLSX(d: ExportData): Promise<Uint8Array> {
 
   // Summary sheet
   const summaryData = [
-    ['AptitudePro — College Report'],
+    ['AptiLead — College Report'],
     [`Generated: ${d.generatedAt}`],
     [],
     ['Summary'],
@@ -201,7 +201,7 @@ async function generatePDF(d: ExportData): Promise<Uint8Array> {
   doc.setTextColor(255, 255, 255);
   doc.setFontSize(18);
   doc.setFont('helvetica', 'bold');
-  doc.text('AptitudePro', 22, 23);
+  doc.text('AptiLead', 22, 23);
   doc.setFontSize(10);
   doc.setFont('helvetica', 'normal');
   doc.text('College Performance Report', 22, 30);
@@ -300,7 +300,7 @@ async function generatePDF(d: ExportData): Promise<Uint8Array> {
     doc.setPage(i);
     doc.setFontSize(7);
     doc.setTextColor(156, 163, 175);
-    doc.text('AptitudePro — Confidential', 14, doc.internal.pageSize.getHeight() - 8);
+    doc.text('AptiLead — Confidential', 14, doc.internal.pageSize.getHeight() - 8);
     doc.text(`Page ${i} of ${pages}`, W - 14, doc.internal.pageSize.getHeight() - 8, { align: 'right' });
   }
 

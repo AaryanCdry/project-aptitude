@@ -17,7 +17,7 @@ const dmSans = DM_Sans({
 });
 
 export const metadata: Metadata = {
-  title: "Aptitude Pro Platform",
+  title: "AptiLead",
   description: "Adaptive Aptitude Assessment Platform",
 };
 

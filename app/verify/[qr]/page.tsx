@@ -44,7 +44,7 @@ export default async function VerifyCertificatePage({ params }: { params: { qr: 
           <p className="font-body-md text-on-surface-variant">
             {isRevoked
               ? 'This certificate has been revoked and is no longer valid.'
-              : 'This is an authentic Aptitude Pro certificate.'}
+              : 'This is an authentic AptiLead certificate.'}
           </p>
         </div>
 
@@ -58,7 +58,7 @@ export default async function VerifyCertificatePage({ params }: { params: { qr: 
             </div>
             <div className="flex flex-col gap-1">
               <p className="font-caption text-on-surface-variant">Certificate</p>
-              <p className="font-body-md text-on-surface">Aptitude Proficiency Certificate</p>
+              <p className="font-body-md text-on-surface">AptiLeadficiency Certificate</p>
             </div>
             <div className="flex flex-col gap-1">
               <p className="font-caption text-on-surface-variant">Issue Date</p>
@@ -71,7 +71,7 @@ export default async function VerifyCertificatePage({ params }: { params: { qr: 
             <div className="mt-2 p-3 bg-secondary-fixed/20 rounded-lg flex items-center gap-3">
               <span className="material-symbols-outlined text-secondary" style={{ fontVariationSettings: '"FILL" 1' }}>verified_user</span>
               <p className="font-caption text-on-surface-variant">
-                Verified by Aptitude Pro · Powered by Supabase
+                Verified by AptiLead · Powered by Supabase
               </p>
             </div>
           </div>

@@ -1,18 +1,28 @@
 import React from 'react';
 import Link from 'next/link';
 import { createClient } from '@/lib/supabase/server';
+import { createAdminClient } from '@/lib/supabase/admin';
+import { canAccessDashboard } from '@/lib/auth/access';
+import { getRoleHome } from '@/lib/auth/roles';
+import { redirect } from 'next/navigation';
 import LogoutButton from '@/components/LogoutButton';
 import { getInitials } from '@/lib/utils';
 
 export default async function SuperAdminLayout({ children }: { children: React.ReactNode }) {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
+  if (!user) redirect('/login');
 
-  const { data: profile } = await supabase
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient
     .from('users')
-    .select('name')
-    .eq('id', user?.id ?? '')
+    .select('name, role')
+    .eq('id', user.id)
     .single();
+
+  if (!canAccessDashboard('/super', profile?.role)) {
+    redirect(getRoleHome(profile?.role) ?? '/login?error=profile');
+  }
 
   const name = profile?.name ?? user?.email ?? 'Super Admin';
   const initials = getInitials(name);
@@ -21,7 +31,7 @@ export default async function SuperAdminLayout({ children }: { children: React.R
     <div className="flex h-screen bg-background">
       <nav className="hidden md:flex flex-col py-gutter px-4 h-screen w-64 bg-surface-container-low border-r border-outline-variant shrink-0 sticky top-0">
         <div className="mb-6 px-4 pt-6">
-          <span className="text-headline-md font-headline-md text-error font-bold">AptitudePro</span>
+          <span className="text-headline-md font-headline-md text-error font-bold">AptiLead</span>
         </div>
 
         <div className="flex items-center gap-3 px-4 py-3 mb-4">
