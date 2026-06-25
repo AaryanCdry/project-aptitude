@@ -42,7 +42,7 @@ export class JSearchProvider implements JobProvider {
       location: [item.job_city, item.job_country].filter(Boolean).join(', ') || 'Remote',
       source: item.job_publisher ?? 'JSearch',
       postedAt: item.job_posted_at_datetime_utc ?? null,
-      applyUrl: item.job_apply_link ?? '#',
+      applyUrl: /^https?:\/\//i.test(item.job_apply_link ?? '') ? item.job_apply_link : '#',
     }));
   }
 }

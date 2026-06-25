@@ -16,6 +16,15 @@ export async function POST(req: NextRequest) {
   const { test_id, tab_switches, face_detected, audio_flag, avg_time_ms, flagged } = body;
   if (!test_id) return NextResponse.json({ error: 'test_id required' }, { status: 400 });
 
+  const { data: testRow } = await supabase
+    .from('tests')
+    .select('student_id')
+    .eq('id', test_id)
+    .single();
+  if (!testRow || testRow.student_id !== user.id) {
+    return NextResponse.json({ error: 'Forbidden' }, { status: 403 });
+  }
+
   const { error } = await supabase.from('proctoring_logs').insert({
     test_id,
     tab_switches: tab_switches ?? 0,

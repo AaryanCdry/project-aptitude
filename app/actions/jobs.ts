@@ -66,12 +66,13 @@ export async function applyToPartnerJob(jobId: string) {
   const adminClient = createAdminClient();
 
   // Check if already applied
-  const { data: existing } = await adminClient
+  const { data: existing, error: existingError } = await adminClient
     .from('job_applications')
     .select('id')
     .eq('job_id', jobId)
     .eq('student_id', scope.userId)
-    .single();
+    .maybeSingle();
+  if (existingError) return { error: existingError.message };
   if (existing) return { error: 'Already applied' };
 
   // Build student snapshot
@@ -113,6 +114,27 @@ export async function applyToPartnerJob(jobId: string) {
 
   revalidatePath('/student/jobs');
   return { success: true as const };
+}
+
+export async function getJobPostingById(id: string) {
+  const scope = await getCallerScope();
+  if (!scope.userId) return null;
+
+  const adminClient = createAdminClient();
+  const { data } = await adminClient
+    .from('job_postings')
+    .select('*, company_profiles!company_id(company_name, industry, website)')
+    .eq('id', id)
+    .eq('is_active', true)
+    .single();
+  if (!data) return null;
+
+  return {
+    ...data,
+    companyName: (data.company_profiles as any)?.company_name ?? 'Unknown Company',
+    companyIndustry: (data.company_profiles as any)?.industry ?? null,
+    companyWebsite: (data.company_profiles as any)?.website ?? null,
+  };
 }
 
 export async function getMyApplications() {

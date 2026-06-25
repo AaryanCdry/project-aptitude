@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useTransition, useCallback } from 'react';
+import { useState, useTransition, useCallback, useRef } from 'react';
+import Link from 'next/link';
 import { searchJobsAction, applyToPartnerJob } from '@/app/actions/jobs';
 import { buildSearchQuery } from '@/lib/jobs/degreeJobMappings';
 import type { Job } from '@/lib/jobs/providers/base';
@@ -117,23 +118,33 @@ function PartnerJobCard({
         </div>
       )}
 
-      {status ? (
-        <span className={`mt-auto inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-metric-label border ${STATUS_STYLE[status] ?? ''}`}>
-          {STATUS_LABEL[status] ?? status}
-        </span>
-      ) : (
-        <button
-          onClick={() => onApply(job.id)}
-          disabled={applyPending}
-          className="mt-auto inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-secondary text-on-secondary font-metric-label text-sm hover:bg-secondary/90 transition-colors disabled:opacity-50"
+      <div className="mt-auto flex items-center gap-2 flex-wrap">
+        <Link
+          href={`/student/jobs/${job.id}`}
+          className="inline-flex items-center gap-1.5 px-4 py-2 rounded-lg border border-outline-variant text-on-surface-variant font-metric-label text-sm hover:bg-surface-container hover:text-on-surface transition-colors"
         >
-          {applyPending ? (
-            <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Applying…</>
-          ) : (
-            <><span className="material-symbols-outlined text-sm">send</span>Apply Now</>
-          )}
-        </button>
-      )}
+          <span className="material-symbols-outlined text-sm">open_in_new</span>
+          View Details
+        </Link>
+
+        {status ? (
+          <span className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-metric-label border ${STATUS_STYLE[status] ?? ''}`}>
+            {STATUS_LABEL[status] ?? status}
+          </span>
+        ) : (
+          <button
+            onClick={() => onApply(job.id)}
+            disabled={applyPending}
+            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-secondary text-on-secondary font-metric-label text-sm hover:bg-secondary/90 transition-colors disabled:opacity-50"
+          >
+            {applyPending ? (
+              <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Applying…</>
+            ) : (
+              <><span className="material-symbols-outlined text-sm">send</span>Apply</>
+            )}
+          </button>
+        )}
+      </div>
     </div>
   );
 }
@@ -198,7 +209,7 @@ export default function JobsClient({
   const [location, setLocation] = useState('India');
   const [page, setPage] = useState(1);
   const [isPending, startTransition] = useTransition();
-  const [debounceTimer, setDebounceTimer] = useState<ReturnType<typeof setTimeout> | null>(null);
+  const debounceTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const [rateLimitError, setRateLimitError] = useState<string | null>(null);
 
   // Map of job_id → status for applied jobs (optimistic updates included)
@@ -225,9 +236,8 @@ export default function JobsClient({
   function handleQueryChange(val: string) {
     setQuery(val);
     setPage(1);
-    if (debounceTimer) clearTimeout(debounceTimer);
-    const t = setTimeout(() => fetchJobs(val, degree, location, 1), 300);
-    setDebounceTimer(t);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    debounceTimerRef.current = setTimeout(() => fetchJobs(val, degree, location, 1), 300);
   }
 
   function handleDegreeChange(val: string) {
@@ -250,11 +260,14 @@ export default function JobsClient({
 
   async function handleApply(jobId: string) {
     setApplyingId(jobId);
-    const res = await applyToPartnerJob(jobId);
-    if ('success' in res) {
-      setAppliedMap(prev => new Map(prev).set(jobId, 'applied'));
+    try {
+      const res = await applyToPartnerJob(jobId);
+      if ('success' in res) {
+        setAppliedMap(prev => new Map(prev).set(jobId, 'applied'));
+      }
+    } finally {
+      setApplyingId(null);
     }
-    setApplyingId(null);
   }
 
   if (!isConfigured && partnerJobs.length === 0) {
