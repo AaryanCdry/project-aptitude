@@ -24,7 +24,10 @@
       "Bash(Write-Host \"Cache cleared\")",
       "Bash(Remove-Item -Recurse -Force \".next\" -ErrorAction SilentlyContinue)",
       "Bash(Write-Host \"Cleared .next cache\")",
-      "PowerShell(npm run build 2>&1)"
+      "PowerShell(npm run build 2>&1)",
+      "mcp__plugin_ecc_chrome-devtools__fill",
+      "mcp__plugin_ecc_chrome-devtools__take_screenshot",
+      "mcp__plugin_ecc_chrome-devtools__click"
     ]
   },
   "enableAllProjectMcpServers": true,
