@@ -59,6 +59,7 @@ export default function StudentShell({ children, name, initials, streak, totalPo
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto" onClick={() => setSidebarOpen(false)}>
         <NavLink href="/student" icon="dashboard" label="Dashboard" exact />
         <NavLink href="/assessment" icon="quiz" label="Take Test" />
+        <NavLink href="/student/assessments" icon="fact_check" label="Assessments" />
         <NavLink href="/student/progress" icon="analytics" label="My Progress" />
         <NavLink href="/student/leaderboard" icon="leaderboard" label="Leaderboard" />
         <NavLink href="/student/finals" icon="military_tech" label="Final Exams" />

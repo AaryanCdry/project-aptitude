@@ -4,20 +4,27 @@ import { useState, useTransition } from 'react';
 import { addQuestion, bulkAddQuestions, extractQuestionsFromPdf, generateBatchQuestions, toggleQuestionActive, deleteQuestion, generateExplanation } from '@/app/actions/admin';
 import { uploadQuestionImage } from '@/lib/uploadQuestionImage';
 
-const DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'] as const;
+const DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL', 'PERSONALITY', 'SJT'] as const;
 
 const SUB_TYPES: Record<string, string[]> = {
   QUANTITATIVE: ['Arithmetic', 'Algebra', 'Geometry', 'Data Interpretation', 'Number Series', 'Percentages', 'Ratios & Proportions'],
   LOGICAL: ['Series Completion', 'Analogies', 'Classification', 'Coding-Decoding', 'Blood Relations', 'Syllogisms', 'Direction Sense'],
   VERBAL: ['Reading Comprehension', 'Vocabulary', 'Grammar', 'Sentence Completion', 'Para Jumbles', 'Idioms & Phrases'],
   SPATIAL: ['Pattern Recognition', 'Mental Rotation', 'Figure Series', 'Matrices', 'Spatial Reasoning'],
+  PERSONALITY: ['Openness', 'Conscientiousness', 'Extraversion', 'Agreeableness', 'Neuroticism'],
+  SJT: ['Teamwork', 'Communication', 'Leadership', 'Problem Solving', 'Adaptability'],
 };
+
+const PERSONALITY_TRAITS = ['OPENNESS', 'CONSCIENTIOUSNESS', 'EXTRAVERSION', 'AGREEABLENESS', 'NEUROTICISM'];
+const SJT_CATEGORIES = ['TEAMWORK', 'COMMUNICATION', 'LEADERSHIP', 'PROBLEM_SOLVING', 'ADAPTABILITY'];
 
 const DOMAIN_BADGE: Record<string, string> = {
   QUANTITATIVE: 'bg-primary-fixed-dim text-on-primary-fixed',
   LOGICAL:      'bg-secondary-fixed text-on-secondary-fixed-variant',
   VERBAL:       'bg-surface-container-high text-on-surface',
   SPATIAL:      'bg-tertiary-fixed text-on-tertiary-fixed-variant',
+  PERSONALITY:  'bg-secondary/20 text-secondary',
+  SJT:          'bg-tertiary/20 text-tertiary',
 };
 
 function difficultyBadge(d: number) {
@@ -49,6 +56,13 @@ type Question = {
   source?: string | null;
   image_url?: string | null;
   options_images?: (string | null)[] | null;
+  question_type?: string | null;
+  personality_trait?: string | null;
+  trait_scores_map?: Array<{ trait: string; score: number }> | null;
+  forced_choice_opts?: Array<{ text: string; trait: string }> | null;
+  sjt_category?: string | null;
+  sjt_best_index?: number | null;
+  sjt_worst_index?: number | null;
 };
 
 type DraftQuestion = {
@@ -74,7 +88,7 @@ type ParsedRow = {
   error?: string;
 };
 
-const VALID_DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL'];
+const VALID_DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL', 'PERSONALITY', 'SJT'];
 const CORRECT_MAP: Record<string, number> = { A: 0, B: 1, C: 2, D: 3 };
 
 const CSV_TEMPLATE = `domain,sub_type,difficulty,text,option_a,option_b,option_c,option_d,correct,time_sec,explanation
@@ -168,6 +182,8 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
   const [loadingExplain, setLoadingExplain] = useState<string | null>(null);
   const [togglingId, setTogglingId] = useState<string | null>(null);
   const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [browseError, setBrowseError] = useState('');
+  const [bulkError, setBulkError] = useState('');
 
   // Add Manual
   const [addDomain, setAddDomain] = useState('QUANTITATIVE');
@@ -184,6 +200,20 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
   const [addOptionImages, setAddOptionImages] = useState<(string | null)[]>([null, null, null, null]);
   const [addOptionImagePreviews, setAddOptionImagePreviews] = useState<(string | null)[]>([null, null, null, null]);
   const [showOptionImages, setShowOptionImages] = useState(false);
+
+  // Question type for PERSONALITY / SJT domains
+  const [addQuestionType, setAddQuestionType] = useState('MCQ');
+  const [addPersonalityTrait, setAddPersonalityTrait] = useState(PERSONALITY_TRAITS[0]);
+  const [addForcedChoiceOpts, setAddForcedChoiceOpts] = useState([
+    { text: '', trait: PERSONALITY_TRAITS[0] },
+    { text: '', trait: PERSONALITY_TRAITS[1] },
+  ]);
+  const [addTraitScoresMap, setAddTraitScoresMap] = useState(
+    [0, 1, 2, 3].map(i => ({ trait: PERSONALITY_TRAITS[i % PERSONALITY_TRAITS.length], score: 2 }))
+  );
+  const [addSjtCategory, setAddSjtCategory] = useState(SJT_CATEGORIES[0]);
+  const [addSjtBestIndex, setAddSjtBestIndex] = useState<number | null>(null);
+  const [addSjtWorstIndex, setAddSjtWorstIndex] = useState<number | null>(null);
 
   // AI Generate
   const [genDomain, setGenDomain] = useState('QUANTITATIVE');
@@ -280,18 +310,24 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
     return true;
   });
 
-  function changeDomain(domain: string, setD: (d: string) => void, setST: (s: string) => void) {
+  function changeDomain(domain: string, setD: (d: string) => void, setST: (s: string) => void, isAdd = false) {
     setD(domain);
     setST(SUB_TYPES[domain]?.[0] ?? '');
+    if (isAdd) {
+      setAddQuestionType(domain === 'SJT' ? 'SJT' : domain === 'PERSONALITY' ? 'LIKERT' : 'MCQ');
+      setAddSjtBestIndex(null);
+      setAddSjtWorstIndex(null);
+    }
   }
 
   async function handleToggleActive(id: string, currentActive: boolean | undefined) {
     setTogglingId(id);
+    setBrowseError('');
     try {
       const res = await toggleQuestionActive(id);
       setQuestions(qs => qs.map(q => q.id === id ? { ...q, active: res.active } : q));
     } catch (err: any) {
-      alert(err.message);
+      setBrowseError(err.message ?? 'Failed to toggle question');
     } finally {
       setTogglingId(null);
     }
@@ -300,12 +336,13 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
   async function handleDelete(id: string) {
     if (!confirm('Delete this question? This cannot be undone.')) return;
     setDeletingId(id);
+    setBrowseError('');
     try {
       await deleteQuestion(id);
       setQuestions(qs => qs.filter(q => q.id !== id));
       if (expandedId === id) setExpandedId(null);
     } catch (err: any) {
-      alert(err.message);
+      setBrowseError(err.message ?? 'Failed to delete question');
     } finally {
       setDeletingId(null);
     }
@@ -313,11 +350,12 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
 
   async function handleGenerateExplanation(id: string) {
     setLoadingExplain(id);
+    setBrowseError('');
     try {
       const res = await generateExplanation(id);
       setQuestions(qs => qs.map(q => q.id === id ? { ...q, explanation: res.explanation } : q));
     } catch (err: any) {
-      alert(err.message);
+      setBrowseError(err.message ?? 'Failed to generate explanation');
     } finally {
       setLoadingExplain(null);
     }
@@ -326,11 +364,46 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
   function handleAddSubmit(e: React.FormEvent) {
     e.preventDefault();
     setAddError('');
-    const filledOptions = addOptions.map(o => o.trim()).filter(Boolean);
-    if (filledOptions.length < 2) { setAddError('Add at least 2 options.'); return; }
-    const correctText = addOptions[addCorrectIndex]?.trim();
-    if (!correctText) { setAddError('The selected correct option is empty.'); return; }
-    const newCorrectIndex = filledOptions.indexOf(correctText);
+
+    const isSjtDomain = addDomain === 'SJT';
+    const isPersonalityDomain = addDomain === 'PERSONALITY';
+    const isNonMcq = isSjtDomain || (isPersonalityDomain && addQuestionType !== 'MCQ');
+
+    // Build payload
+    let options: string[] = [];
+    let correctIndex: number | null = null;
+    let extraFields: Record<string, unknown> = {};
+
+    if (addQuestionType === 'LIKERT') {
+      options = ['1', '2', '3', '4', '5'];
+      extraFields = { personality_trait: addPersonalityTrait };
+    } else if (addQuestionType === 'FORCED_CHOICE') {
+      const fc = addForcedChoiceOpts.map(o => ({ text: o.text.trim(), trait: o.trait }));
+      if (fc.some(o => !o.text)) { setAddError('Fill in both forced-choice option texts.'); return; }
+      if (fc[0].trait === fc[1].trait) { setAddError('Forced-choice options must map to different personality traits.'); return; }
+      options = fc.map(o => o.text);
+      extraFields = { forced_choice_opts: fc };
+    } else if (addQuestionType === 'PERSONALITY_MCQ') {
+      const filledOpts = addOptions.map(o => o.trim()).filter(Boolean);
+      if (filledOpts.length < 2) { setAddError('Add at least 2 options.'); return; }
+      options = filledOpts;
+      extraFields = { trait_scores_map: addTraitScoresMap.slice(0, filledOpts.length) };
+    } else if (addQuestionType === 'SJT') {
+      const filledOpts = addOptions.map(o => o.trim()).filter(Boolean);
+      if (filledOpts.length < 2) { setAddError('Add at least 2 options.'); return; }
+      if (addSjtBestIndex === null || addSjtWorstIndex === null) { setAddError('Select Best and Worst response indices.'); return; }
+      if (addSjtBestIndex === addSjtWorstIndex) { setAddError('Best and Worst cannot be the same option.'); return; }
+      options = filledOpts;
+      extraFields = { sjt_category: addSjtCategory, sjt_best_index: addSjtBestIndex, sjt_worst_index: addSjtWorstIndex };
+    } else {
+      // Regular MCQ
+      const filledOpts = addOptions.map(o => o.trim()).filter(Boolean);
+      if (filledOpts.length < 2) { setAddError('Add at least 2 options.'); return; }
+      const correctText = addOptions[addCorrectIndex]?.trim();
+      if (!correctText) { setAddError('The selected correct option is empty.'); return; }
+      options = filledOpts;
+      correctIndex = filledOpts.indexOf(correctText);
+    }
 
     startTransition(async () => {
       try {
@@ -339,12 +412,14 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
           sub_type: addSubType,
           difficulty: addDifficulty,
           text: addText.trim(),
-          options: filledOptions,
-          correct_index: newCorrectIndex,
+          options,
+          correct_index: correctIndex ?? undefined,
           time_suggestion_sec: addTimeSec,
           source: 'manual',
           image_url: addImageUrl,
           options_images: addOptionImages.every(u => u === null) ? null : addOptionImages,
+          question_type: isNonMcq ? addQuestionType : 'MCQ',
+          ...extraFields,
         });
         setQuestions(qs => [q as Question, ...qs]);
         setAddText('');
@@ -355,6 +430,8 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
         setAddOptionImages([null, null, null, null]);
         setAddOptionImagePreviews([null, null, null, null]);
         setShowOptionImages(false);
+        setAddSjtBestIndex(null);
+        setAddSjtWorstIndex(null);
         setTab('browse');
       } catch (err: any) {
         setAddError(err.message ?? 'Failed to add question');
@@ -394,7 +471,7 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
       setQuestions(qs => [q as Question, ...qs]);
       setDrafts(ds => ds.filter((_, i) => i !== idx));
     } catch (err: any) {
-      alert(err.message);
+      setGenError(err.message ?? 'Failed to approve draft');
     } finally {
       setApprovingIdx(null);
     }
@@ -405,13 +482,14 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
     if (!valid.length) return;
     setBulkUploading(true);
     setBulkResult(null);
+    setBulkError('');
     try {
       const added = await bulkAddQuestions(valid);
       setQuestions(qs => [...(added as Question[]), ...qs]);
       setParsedRows([]);
       setBulkResult({ added: added.length });
     } catch (err: any) {
-      alert(err.message);
+      setBulkError(err.message ?? 'Upload failed');
     } finally {
       setBulkUploading(false);
     }
@@ -516,6 +594,16 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
             <span className="font-caption text-on-surface-variant ml-auto">{filtered.length} result{filtered.length !== 1 ? 's' : ''}</span>
           </div>
 
+          {browseError && (
+            <div className="flex items-center gap-2 mb-3 px-4 py-2 bg-error-container text-on-error-container rounded-lg text-sm">
+              <span className="material-symbols-outlined text-sm">error</span>
+              <span className="flex-1">{browseError}</span>
+              <button onClick={() => setBrowseError('')} className="shrink-0 hover:opacity-70" aria-label="Dismiss">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
+            </div>
+          )}
+
           {/* Question list */}
           <div className="bg-surface-container-lowest border border-outline-variant rounded-xl overflow-hidden shadow-sm">
             {filtered.length === 0 ? (
@@ -587,31 +675,77 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                     <div className="px-10 pb-5 pt-1 bg-surface-container-low/30 border-t border-outline-variant/30">
                       <p className="font-body-md text-on-surface mt-3 mb-3 leading-relaxed">{q.text}</p>
 
+                      {/* Type metadata chip */}
+                      {q.question_type && q.question_type !== 'MCQ' && (
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          <span className="text-xs font-metric-label px-2 py-0.5 rounded-full bg-secondary/20 text-secondary border border-secondary/30">
+                            {q.question_type}
+                          </span>
+                          {q.personality_trait && (
+                            <span className="text-xs font-metric-label px-2 py-0.5 rounded-full bg-primary/10 text-primary">
+                              Trait: {q.personality_trait}
+                            </span>
+                          )}
+                          {q.sjt_category && (
+                            <span className="text-xs font-metric-label px-2 py-0.5 rounded-full bg-tertiary/10 text-tertiary">
+                              {q.sjt_category.replace('_', ' ')}
+                            </span>
+                          )}
+                        </div>
+                      )}
+
                       {q.image_url && (
                         <div className="mb-3 rounded-xl overflow-hidden border border-outline-variant bg-surface-container-low inline-block max-w-full">
                           <img src={q.image_url} alt="Question diagram" className="max-h-56 object-contain p-2" />
                         </div>
                       )}
 
-                      <div className="grid grid-cols-2 gap-2 mb-4">
-                        {q.options.map((opt, i) => (
-                          <div
-                            key={i}
-                            className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-sm ${
-                              i === correctIdx
-                                ? 'bg-green-50 border-green-300 text-green-800 font-semibold'
-                                : 'bg-surface-container-low border-outline-variant text-on-surface-variant'
-                            }`}
-                          >
-                            <span className="font-bold shrink-0">{String.fromCharCode(65 + i)}.</span>
-                            {q.options_images?.[i]
-                              ? <img src={q.options_images[i]!} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-20 object-contain rounded" />
-                              : <span className="flex-1">{opt}</span>
-                            }
-                            {i === correctIdx && <span className="material-symbols-outlined text-green-600 text-sm shrink-0">check_circle</span>}
-                          </div>
-                        ))}
-                      </div>
+                      {/* Options — type-specific rendering */}
+                      {q.question_type === 'FORCED_CHOICE' && q.forced_choice_opts ? (
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {q.forced_choice_opts.map((fc, i) => (
+                            <div key={i} className="flex items-start gap-2 px-3 py-2 rounded-lg border border-secondary/30 bg-secondary/5 text-sm">
+                              <span className="font-bold shrink-0">{String.fromCharCode(65 + i)}.</span>
+                              <span className="flex-1">{fc.text}</span>
+                              <span className="text-xs font-metric-label text-secondary shrink-0">{fc.trait.slice(0, 3)}</span>
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="grid grid-cols-2 gap-2 mb-4">
+                          {q.options.map((opt, i) => {
+                            const isBest = q.domain === 'SJT' && i === q.sjt_best_index;
+                            const isWorst = q.domain === 'SJT' && i === q.sjt_worst_index;
+                            const tsEntry = q.trait_scores_map?.[i];
+                            return (
+                              <div
+                                key={i}
+                                className={`flex items-start gap-2 px-3 py-2 rounded-lg border text-sm ${
+                                  isBest ? 'bg-green-50 border-green-300 text-green-800 font-semibold'
+                                    : isWorst ? 'bg-red-50 border-red-300 text-red-800 font-semibold'
+                                    : i === correctIdx && q.domain !== 'SJT' && q.domain !== 'PERSONALITY'
+                                      ? 'bg-green-50 border-green-300 text-green-800 font-semibold'
+                                      : 'bg-surface-container-low border-outline-variant text-on-surface-variant'
+                                }`}
+                              >
+                                <span className="font-bold shrink-0">{String.fromCharCode(65 + i)}.</span>
+                                {q.options_images?.[i]
+                                  ? <img src={q.options_images[i]!} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-20 object-contain rounded" />
+                                  : <span className="flex-1">{opt}</span>
+                                }
+                                {isBest && <span className="material-symbols-outlined text-green-600 text-sm shrink-0" title="Best">thumb_up</span>}
+                                {isWorst && <span className="material-symbols-outlined text-red-600 text-sm shrink-0" title="Worst">thumb_down</span>}
+                                {!isBest && !isWorst && i === correctIdx && q.domain !== 'SJT' && q.domain !== 'PERSONALITY' && (
+                                  <span className="material-symbols-outlined text-green-600 text-sm shrink-0">check_circle</span>
+                                )}
+                                {tsEntry && (
+                                  <span className="text-xs font-metric-label text-secondary shrink-0">{tsEntry.trait.slice(0, 3)}+{tsEntry.score}</span>
+                                )}
+                              </div>
+                            );
+                          })}
+                        </div>
+                      )}
 
                       {q.time_suggestion_sec != null && (
                         <p className="font-caption text-on-surface-variant mb-3 flex items-center gap-1">
@@ -625,7 +759,7 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                           <p className="font-metric-label text-on-surface-variant text-xs uppercase mb-1">Explanation</p>
                           <p className="font-body-md text-on-surface-variant text-sm leading-relaxed">{q.explanation}</p>
                         </div>
-                      ) : (
+                      ) : q.domain !== 'PERSONALITY' && q.domain !== 'SJT' ? (
                         <button
                           onClick={() => handleGenerateExplanation(q.id)}
                           disabled={loadingExplain === q.id}
@@ -636,7 +770,7 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                           </span>
                           {loadingExplain === q.id ? 'Generating…' : 'Generate Explanation'}
                         </button>
-                      )}
+                      ) : null}
                     </div>
                   )}
                 </div>
@@ -656,7 +790,7 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
               <label className="block font-metric-label text-on-surface-variant text-sm mb-1.5">Domain</label>
               <select
                 value={addDomain}
-                onChange={e => changeDomain(e.target.value, setAddDomain, setAddSubType)}
+                onChange={e => changeDomain(e.target.value, setAddDomain, setAddSubType, true)}
                 className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
               >
                 {DOMAINS.map(d => <option key={d} value={d}>{d}</option>)}
@@ -673,6 +807,87 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
               </select>
             </div>
           </div>
+
+          {/* Question Type selector — PERSONALITY domain only */}
+          {addDomain === 'PERSONALITY' && (
+            <div className="mb-4">
+              <label className="block font-metric-label text-on-surface-variant text-sm mb-1.5">Question Format</label>
+              <div className="flex flex-wrap gap-2">
+                {(['LIKERT', 'FORCED_CHOICE', 'PERSONALITY_MCQ'] as const).map(qt => (
+                  <button
+                    key={qt}
+                    type="button"
+                    onClick={() => setAddQuestionType(qt)}
+                    className={`px-3 py-1.5 rounded-lg text-sm font-metric-label border transition-colors ${addQuestionType === qt ? 'bg-primary text-on-primary border-primary' : 'border-outline-variant text-on-surface-variant hover:bg-surface-container'}`}
+                  >
+                    {qt === 'LIKERT' ? 'Likert Scale (1–5)' : qt === 'FORCED_CHOICE' ? 'Forced Choice (A or B)' : 'Personality MCQ'}
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* SJT category */}
+          {addDomain === 'SJT' && (
+            <div className="mb-4">
+              <label className="block font-metric-label text-on-surface-variant text-sm mb-1.5">SJT Competency Category</label>
+              <select
+                value={addSjtCategory}
+                onChange={e => setAddSjtCategory(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {SJT_CATEGORIES.map(c => <option key={c} value={c}>{c.replace('_', ' ')}</option>)}
+              </select>
+            </div>
+          )}
+
+          {/* LIKERT: trait selector (options auto-set to 1–5) */}
+          {addDomain === 'PERSONALITY' && addQuestionType === 'LIKERT' && (
+            <div className="mb-4 p-4 bg-secondary/5 border border-secondary/20 rounded-xl">
+              <label className="block font-metric-label text-on-surface-variant text-sm mb-1.5">Personality Trait measured</label>
+              <select
+                value={addPersonalityTrait}
+                onChange={e => setAddPersonalityTrait(e.target.value)}
+                className="w-full bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2.5 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+              >
+                {PERSONALITY_TRAITS.map(t => <option key={t} value={t}>{t}</option>)}
+              </select>
+              <p className="text-xs text-on-surface-variant mt-2">Response options 1–5 are added automatically (1 = Strongly Disagree, 5 = Strongly Agree).</p>
+            </div>
+          )}
+
+          {/* FORCED_CHOICE: two option-trait pairs */}
+          {addDomain === 'PERSONALITY' && addQuestionType === 'FORCED_CHOICE' && (
+            <div className="mb-4 p-4 bg-secondary/5 border border-secondary/20 rounded-xl">
+              <p className="font-metric-label text-on-surface-variant text-sm mb-3">Two options — each maps to a personality trait</p>
+              {addForcedChoiceOpts.map((fc, i) => (
+                <div key={i} className="flex gap-2 mb-2">
+                  <input
+                    type="text"
+                    value={fc.text}
+                    onChange={e => {
+                      const next = [...addForcedChoiceOpts];
+                      next[i] = { ...next[i], text: e.target.value };
+                      setAddForcedChoiceOpts(next);
+                    }}
+                    placeholder={`Option ${String.fromCharCode(65 + i)} text`}
+                    className="flex-1 bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <select
+                    value={fc.trait}
+                    onChange={e => {
+                      const next = [...addForcedChoiceOpts];
+                      next[i] = { ...next[i], trait: e.target.value };
+                      setAddForcedChoiceOpts(next);
+                    }}
+                    className="bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  >
+                    {PERSONALITY_TRAITS.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                </div>
+              ))}
+            </div>
+          )}
 
           <div className="grid grid-cols-2 gap-4 mb-4">
             <div>
@@ -757,90 +972,168 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
             </label>
           </div>
 
-          <div className="mb-5">
-            <div className="flex items-center justify-between mb-2">
-              <label className="block font-metric-label text-on-surface-variant text-sm">
-                Options <span className="font-normal">(click the radio to mark the correct answer)</span>
-              </label>
-              <button
-                type="button"
-                onClick={() => setShowOptionImages(v => !v)}
-                className="inline-flex items-center gap-1 text-xs text-on-surface-variant hover:text-primary transition-colors font-metric-label"
-              >
-                <span className="material-symbols-outlined text-[14px]">{showOptionImages ? 'hide_image' : 'add_photo_alternate'}</span>
-                {showOptionImages ? 'Hide option images' : 'Add option images'}
-              </button>
-            </div>
-            <div className="flex flex-col gap-2">
+          {/* PERSONALITY_MCQ: options with trait+score per option */}
+          {addDomain === 'PERSONALITY' && addQuestionType === 'PERSONALITY_MCQ' && (
+            <div className="mb-5 p-4 bg-secondary/5 border border-secondary/20 rounded-xl">
+              <p className="font-metric-label text-on-surface-variant text-sm mb-3">Options — each maps to a trait and score (1–4)</p>
               {addOptions.map((opt, i) => (
-                <div key={i} className="flex flex-col gap-1">
-                  <div
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${addCorrectIndex === i ? 'border-primary bg-primary/5' : 'border-outline-variant'}`}
+                <div key={i} className="flex gap-2 mb-2 items-center">
+                  <span className="font-bold text-on-surface-variant text-sm w-5 shrink-0">{String.fromCharCode(65 + i)}.</span>
+                  <input
+                    type="text" value={opt}
+                    onChange={e => { const next = [...addOptions]; next[i] = e.target.value; setAddOptions(next); }}
+                    placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                    className="flex-1 bg-surface-container-low border border-outline-variant rounded-lg px-3 py-2 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
+                  <select
+                    value={addTraitScoresMap[i]?.trait ?? PERSONALITY_TRAITS[0]}
+                    onChange={e => {
+                      const next = [...addTraitScoresMap];
+                      next[i] = { ...next[i], trait: e.target.value };
+                      setAddTraitScoresMap(next);
+                    }}
+                    className="bg-surface-container-low border border-outline-variant rounded-lg px-2 py-2 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-primary"
                   >
-                    <input
-                      type="radio" name="correct"
-                      checked={addCorrectIndex === i}
-                      onChange={() => setAddCorrectIndex(i)}
-                      className="text-primary focus:ring-primary shrink-0"
-                    />
-                    <span className="font-bold text-on-surface-variant text-sm w-5 shrink-0">{String.fromCharCode(65 + i)}.</span>
-                    <input
-                      type="text" value={opt}
-                      onChange={e => {
-                        const next = [...addOptions];
-                        next[i] = e.target.value;
-                        setAddOptions(next);
-                      }}
-                      placeholder={`Option ${String.fromCharCode(65 + i)}`}
-                      className="flex-1 bg-transparent border-none outline-none text-on-surface text-sm"
-                    />
-                    {addCorrectIndex === i && <span className="material-symbols-outlined text-primary text-sm shrink-0">check_circle</span>}
-                  </div>
-                  {showOptionImages && (
-                    <div className="ml-9 flex items-center gap-2">
-                      {addOptionImagePreviews[i] && (
-                        <div className="relative inline-block">
-                          <img src={addOptionImagePreviews[i]!} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-16 rounded border border-outline-variant object-contain bg-surface-container-low" />
-                          <button
-                            type="button"
-                            onClick={() => {
-                              const urls = [...addOptionImages]; urls[i] = null; setAddOptionImages(urls);
-                              const prev = [...addOptionImagePreviews]; prev[i] = null; setAddOptionImagePreviews(prev);
-                            }}
-                            className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-on-error rounded-full flex items-center justify-center hover:opacity-90"
-                          >
-                            <span className="material-symbols-outlined text-[12px]">close</span>
-                          </button>
-                        </div>
-                      )}
-                      <label className="inline-flex items-center gap-1 text-xs text-on-surface-variant border border-outline-variant rounded-lg px-2 py-1 cursor-pointer hover:bg-surface-container-low transition-colors font-metric-label">
-                        <span className="material-symbols-outlined text-[13px]">image</span>
-                        {addOptionImagePreviews[i] ? 'Replace' : 'Add image'}
-                        <input
-                          type="file"
-                          accept="image/*"
-                          className="sr-only"
-                          onChange={async e => {
-                            const file = e.target.files?.[0];
-                            if (!file) return;
-                            try {
-                              const url = await uploadQuestionImage(file);
-                              const urls = [...addOptionImages]; urls[i] = url; setAddOptionImages(urls);
-                              const prev = [...addOptionImagePreviews]; prev[i] = URL.createObjectURL(file); setAddOptionImagePreviews(prev);
-                            } catch (err: any) {
-                              setAddError(err.message ?? 'Image upload failed');
-                            } finally {
-                              e.target.value = '';
-                            }
-                          }}
-                        />
-                      </label>
-                    </div>
-                  )}
+                    {PERSONALITY_TRAITS.map(t => <option key={t} value={t}>{t.slice(0, 3)}</option>)}
+                  </select>
+                  <input
+                    type="number" min={1} max={4}
+                    value={addTraitScoresMap[i]?.score ?? 2}
+                    onChange={e => {
+                      const next = [...addTraitScoresMap];
+                      next[i] = { ...next[i], score: Number(e.target.value) };
+                      setAddTraitScoresMap(next);
+                    }}
+                    className="w-14 bg-surface-container-low border border-outline-variant rounded-lg px-2 py-2 text-on-surface text-sm text-center focus:outline-none focus:ring-2 focus:ring-primary"
+                  />
                 </div>
               ))}
             </div>
-          </div>
+          )}
+
+          {/* Regular MCQ / SJT options — hidden when PERSONALITY sub-format handles options itself */}
+          {addQuestionType !== 'LIKERT' && addQuestionType !== 'FORCED_CHOICE' && addQuestionType !== 'PERSONALITY_MCQ' && (
+            <div className="mb-5">
+              <div className="flex items-center justify-between mb-2">
+                <label className="block font-metric-label text-on-surface-variant text-sm">
+                  Options {addQuestionType === 'SJT' ? <span className="font-normal">(4–5 workplace responses)</span> : <span className="font-normal">(click the radio to mark the correct answer)</span>}
+                </label>
+                {addQuestionType === 'MCQ' && (
+                  <button
+                    type="button"
+                    onClick={() => setShowOptionImages(v => !v)}
+                    className="inline-flex items-center gap-1 text-xs text-on-surface-variant hover:text-primary transition-colors font-metric-label"
+                  >
+                    <span className="material-symbols-outlined text-[14px]">{showOptionImages ? 'hide_image' : 'add_photo_alternate'}</span>
+                    {showOptionImages ? 'Hide option images' : 'Add option images'}
+                  </button>
+                )}
+              </div>
+              <div className="flex flex-col gap-2">
+                {addOptions.map((opt, i) => (
+                  <div key={i} className="flex flex-col gap-1">
+                    <div
+                      className={`flex items-center gap-2 px-3 py-2.5 rounded-lg border transition-colors ${
+                        addQuestionType === 'SJT'
+                          ? addSjtBestIndex === i ? 'border-green-400 bg-green-50' : addSjtWorstIndex === i ? 'border-red-400 bg-red-50' : 'border-outline-variant'
+                          : addCorrectIndex === i ? 'border-primary bg-primary/5' : 'border-outline-variant'
+                      }`}
+                    >
+                      {addQuestionType === 'MCQ' && (
+                        <input
+                          type="radio" name="correct"
+                          checked={addCorrectIndex === i}
+                          onChange={() => setAddCorrectIndex(i)}
+                          className="text-primary focus:ring-primary shrink-0"
+                        />
+                      )}
+                      <span className="font-bold text-on-surface-variant text-sm w-5 shrink-0">{String.fromCharCode(65 + i)}.</span>
+                      <input
+                        type="text" value={opt}
+                        onChange={e => {
+                          const next = [...addOptions];
+                          next[i] = e.target.value;
+                          setAddOptions(next);
+                        }}
+                        placeholder={`Option ${String.fromCharCode(65 + i)}`}
+                        className="flex-1 bg-transparent border-none outline-none text-on-surface text-sm"
+                      />
+                      {addQuestionType === 'MCQ' && addCorrectIndex === i && <span className="material-symbols-outlined text-primary text-sm shrink-0">check_circle</span>}
+                    </div>
+                    {showOptionImages && addQuestionType === 'MCQ' && (
+                      <div className="ml-9 flex items-center gap-2">
+                        {addOptionImagePreviews[i] && (
+                          <div className="relative inline-block">
+                            <img src={addOptionImagePreviews[i]!} alt={`Option ${String.fromCharCode(65 + i)}`} className="h-16 rounded border border-outline-variant object-contain bg-surface-container-low" />
+                            <button
+                              type="button"
+                              onClick={() => {
+                                const urls = [...addOptionImages]; urls[i] = null; setAddOptionImages(urls);
+                                const prev = [...addOptionImagePreviews]; prev[i] = null; setAddOptionImagePreviews(prev);
+                              }}
+                              className="absolute -top-1.5 -right-1.5 w-5 h-5 bg-error text-on-error rounded-full flex items-center justify-center hover:opacity-90"
+                            >
+                              <span className="material-symbols-outlined text-[12px]">close</span>
+                            </button>
+                          </div>
+                        )}
+                        <label className="inline-flex items-center gap-1 text-xs text-on-surface-variant border border-outline-variant rounded-lg px-2 py-1 cursor-pointer hover:bg-surface-container-low transition-colors font-metric-label">
+                          <span className="material-symbols-outlined text-[13px]">image</span>
+                          {addOptionImagePreviews[i] ? 'Replace' : 'Add image'}
+                          <input
+                            type="file"
+                            accept="image/*"
+                            className="sr-only"
+                            onChange={async e => {
+                              const file = e.target.files?.[0];
+                              if (!file) return;
+                              try {
+                                const url = await uploadQuestionImage(file);
+                                const urls = [...addOptionImages]; urls[i] = url; setAddOptionImages(urls);
+                                const prev = [...addOptionImagePreviews]; prev[i] = URL.createObjectURL(file); setAddOptionImagePreviews(prev);
+                              } catch (err: any) {
+                                setAddError(err.message ?? 'Image upload failed');
+                              } finally {
+                                e.target.value = '';
+                              }
+                            }}
+                          />
+                        </label>
+                      </div>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              {/* SJT best/worst pickers */}
+              {addQuestionType === 'SJT' && (
+                <div className="mt-3 grid grid-cols-2 gap-3">
+                  <div>
+                    <label className="block font-metric-label text-xs text-on-surface-variant mb-1">Best response (expert key)</label>
+                    <select
+                      value={addSjtBestIndex ?? ''}
+                      onChange={e => setAddSjtBestIndex(e.target.value === '' ? null : Number(e.target.value))}
+                      className="w-full bg-surface-container-low border border-green-300 rounded-lg px-3 py-2 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">— Select —</option>
+                      {addOptions.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block font-metric-label text-xs text-on-surface-variant mb-1">Worst response (expert key)</label>
+                    <select
+                      value={addSjtWorstIndex ?? ''}
+                      onChange={e => setAddSjtWorstIndex(e.target.value === '' ? null : Number(e.target.value))}
+                      className="w-full bg-surface-container-low border border-red-300 rounded-lg px-3 py-2 text-on-surface text-sm focus:outline-none focus:ring-2 focus:ring-red-500"
+                    >
+                      <option value="">— Select —</option>
+                      {addOptions.map((_, i) => <option key={i} value={i}>{String.fromCharCode(65 + i)}</option>)}
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+          )}
 
           {addError && <p className="text-error font-caption text-sm mb-3">{addError}</p>}
 
@@ -1181,11 +1474,20 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
             </div>
           </div>
 
-          {/* Success banner */}
+          {/* Success / error banners */}
           {bulkResult && (
             <div className="flex items-center gap-3 bg-green-50 border border-green-200 rounded-xl px-5 py-3 mb-5">
               <span className="material-symbols-outlined text-green-600">check_circle</span>
               <p className="font-body-md text-green-800 text-sm">{bulkResult.added} question{bulkResult.added !== 1 ? 's' : ''} added successfully.</p>
+            </div>
+          )}
+          {bulkError && (
+            <div className="flex items-center gap-3 bg-error-container text-on-error-container rounded-xl px-5 py-3 mb-5">
+              <span className="material-symbols-outlined">error</span>
+              <p className="font-body-md text-sm flex-1">{bulkError}</p>
+              <button onClick={() => setBulkError('')} className="shrink-0 hover:opacity-70" aria-label="Dismiss">
+                <span className="material-symbols-outlined text-sm">close</span>
+              </button>
             </div>
           )}
 
