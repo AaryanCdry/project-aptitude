@@ -2,7 +2,7 @@
 
 import { useState, useTransition, useCallback, useRef } from 'react';
 import Link from 'next/link';
-import { searchJobsAction, applyToPartnerJob } from '@/app/actions/jobs';
+import { searchJobsAction } from '@/app/actions/jobs';
 import { buildSearchQuery } from '@/lib/jobs/degreeJobMappings';
 import type { Job } from '@/lib/jobs/providers/base';
 
@@ -61,13 +61,9 @@ const STATUS_STYLE: Record<string, string> = {
 function PartnerJobCard({
   job,
   status,
-  onApply,
-  applyPending,
 }: {
   job: PartnerJob;
   status: string | null;
-  onApply: (jobId: string) => void;
-  applyPending: boolean;
 }) {
   const deadline = job.application_deadline
     ? new Date(job.application_deadline).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })
@@ -127,22 +123,10 @@ function PartnerJobCard({
           View Details
         </Link>
 
-        {status ? (
+        {status && (
           <span className={`inline-flex items-center justify-center gap-1.5 px-4 py-2 rounded-lg text-xs font-metric-label border ${STATUS_STYLE[status] ?? ''}`}>
             {STATUS_LABEL[status] ?? status}
           </span>
-        ) : (
-          <button
-            onClick={() => onApply(job.id)}
-            disabled={applyPending}
-            className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-lg bg-secondary text-on-secondary font-metric-label text-sm hover:bg-secondary/90 transition-colors disabled:opacity-50"
-          >
-            {applyPending ? (
-              <><span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>Applying…</>
-            ) : (
-              <><span className="material-symbols-outlined text-sm">send</span>Apply</>
-            )}
-          </button>
         )}
       </div>
     </div>
@@ -216,7 +200,6 @@ export default function JobsClient({
   const [appliedMap, setAppliedMap] = useState<Map<string, string>>(
     () => new Map(myApplications.map(a => [a.job_id, a.status])),
   );
-  const [applyingId, setApplyingId] = useState<string | null>(null);
 
   const fetchJobs = useCallback((q: string, deg: string, loc: string, pg: number) => {
     const searchQuery = q.trim() || buildSearchQuery(deg) || 'fresher jobs India';
@@ -258,17 +241,6 @@ export default function JobsClient({
     window.scrollTo({ top: 0, behavior: 'smooth' });
   }
 
-  async function handleApply(jobId: string) {
-    setApplyingId(jobId);
-    try {
-      const res = await applyToPartnerJob(jobId);
-      if ('success' in res) {
-        setAppliedMap(prev => new Map(prev).set(jobId, 'applied'));
-      }
-    } finally {
-      setApplyingId(null);
-    }
-  }
 
   if (!isConfigured && partnerJobs.length === 0) {
     return (
@@ -298,8 +270,6 @@ export default function JobsClient({
                 key={job.id}
                 job={job}
                 status={appliedMap.get(job.id) ?? null}
-                onApply={handleApply}
-                applyPending={applyingId === job.id}
               />
             ))}
           </div>

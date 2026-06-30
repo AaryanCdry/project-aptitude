@@ -9,6 +9,7 @@ type Application = {
   job_id: string;
   status: string;
   applied_at: string;
+  resume_url: string | null;
   student_snapshot: Record<string, unknown> | null;
   job_postings: unknown;
 };
@@ -150,6 +151,18 @@ export default function ApplicationsClient({
             <p className="font-caption text-on-surface-variant text-xs mb-3">
               Applied {new Date(selectedApp.applied_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })}
             </p>
+
+            {selectedApp.resume_url && (
+              <a
+                href={selectedApp.resume_url}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex items-center justify-center gap-1.5 w-full py-2 mb-3 rounded-lg border border-outline-variant text-on-surface-variant font-metric-label text-xs hover:bg-surface-container-low transition-colors"
+              >
+                <span className="material-symbols-outlined text-[16px]">description</span>
+                View Resume
+              </a>
+            )}
 
             <div className="flex gap-2">
               <button

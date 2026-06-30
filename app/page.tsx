@@ -2,13 +2,14 @@ import { redirect } from 'next/navigation';
 import { createClient } from '@/lib/supabase/server';
 import { createAdminClient } from '@/lib/supabase/admin';
 import { getRoleHome } from '@/lib/auth/roles';
+import LandingPage from '@/components/LandingPage';
 
 export default async function Home() {
   const supabase = await createClient();
   const { data: { user } } = await supabase.auth.getUser();
 
   if (!user) {
-    redirect('/login');
+    return <LandingPage />;
   }
 
   const adminClient = createAdminClient();
