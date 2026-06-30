@@ -1,5 +1,6 @@
 import { notFound } from 'next/navigation';
 import Link from 'next/link';
+import { createClient } from '@/lib/supabase/server';
 import { getJobPostingById, getMyApplications } from '@/app/actions/jobs';
 import ApplyButton from './ApplyButton';
 
@@ -11,6 +12,8 @@ const JOB_TYPE_STYLE: Record<string, string> = {
 
 export default async function JobDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
   const [job, myApplications] = await Promise.all([
     getJobPostingById(id),
     getMyApplications(),
@@ -86,7 +89,7 @@ export default async function JobDetailPage({ params }: { params: Promise<{ id: 
           </div>
         )}
 
-        <ApplyButton jobId={id} initialStatus={myApp?.status ?? null} />
+        <ApplyButton jobId={id} studentId={user?.id ?? ''} initialStatus={myApp?.status ?? null} />
       </div>
 
       {/* Description */}

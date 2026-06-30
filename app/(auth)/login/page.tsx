@@ -148,10 +148,16 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <p className="mt-6 text-center font-body-md text-on-surface-variant text-sm">
-            Recruiting?{' '}
-            <Link href="/company-signup" className="text-primary font-metric-label hover:underline">Register as a company</Link>
-          </p>
+          <div className="mt-6 flex flex-col items-center gap-2">
+            <p className="text-center font-body-md text-on-surface-variant text-sm">
+              Recruiting?{' '}
+              <Link href="/company-signup" className="text-primary font-metric-label hover:underline">Register as a company</Link>
+            </p>
+            <p className="text-center font-body-md text-on-surface-variant text-sm">
+              Registering a college?{' '}
+              <Link href="/college-signup" className="text-primary font-metric-label hover:underline">Get started here</Link>
+            </p>
+          </div>
         </div>
       </div>
     </div>

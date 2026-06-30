@@ -3,6 +3,7 @@
 import { createAdminClient } from '@/lib/supabase/admin';
 import { createClient } from '@/lib/supabase/server';
 import { revalidatePath } from 'next/cache';
+import crypto from 'crypto';
 
 export async function getCollegeWithAdmins(collegeId: string) {
   const adminClient = createAdminClient();
@@ -73,4 +74,76 @@ export async function removeCollegeAdmin(adminId: string, collegeId: string) {
 
   revalidatePath(`/super/colleges/${collegeId}`);
   return { success: true };
+}
+
+async function requireSuperAdmin() {
+  const supabase = await createClient();
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) return null;
+  const adminClient = createAdminClient();
+  const { data: profile } = await adminClient
+    .from('users')
+    .select('role')
+    .eq('id', user.id)
+    .single();
+  if (profile?.role !== 'SUPER_ADMIN') return null;
+  return user;
+}
+
+export async function generateRegistrationCode() {
+  const user = await requireSuperAdmin();
+  if (!user) return { error: 'Forbidden' };
+
+  // 10 random bytes → 20 hex chars → 80 bits of entropy
+  const code = crypto.randomBytes(10).toString('hex').toUpperCase();
+  const adminClient = createAdminClient();
+
+  const { error } = await adminClient
+    .from('college_registration_codes')
+    .insert({ code });
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/super/codes');
+  return { success: true as const, code };
+}
+
+export async function listRegistrationCodes() {
+  const user = await requireSuperAdmin();
+  if (!user) return [];
+
+  const adminClient = createAdminClient();
+  const { data, error } = await adminClient
+    .from('college_registration_codes')
+    .select('id, code, is_used, used_by_college_id, created_at, used_at')
+    .order('created_at', { ascending: false });
+
+  if (error) return [];
+  return data ?? [];
+}
+
+export async function revokeRegistrationCode(id: string) {
+  const user = await requireSuperAdmin();
+  if (!user) return { error: 'Forbidden' };
+
+  const adminClient = createAdminClient();
+
+  const { data: existing } = await adminClient
+    .from('college_registration_codes')
+    .select('is_used')
+    .eq('id', id)
+    .single();
+
+  if (!existing) return { error: 'Code not found.' };
+  if (existing.is_used) return { error: 'Cannot revoke an already-used code.' };
+
+  const { error } = await adminClient
+    .from('college_registration_codes')
+    .delete()
+    .eq('id', id);
+
+  if (error) return { error: error.message };
+
+  revalidatePath('/super/codes');
+  return { success: true as const };
 }

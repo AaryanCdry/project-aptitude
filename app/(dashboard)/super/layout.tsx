@@ -57,6 +57,10 @@ export default async function SuperAdminLayout({ children }: { children: React.R
             <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>analytics</span>
             <span>Analytics</span>
           </Link>
+          <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/super/codes">
+            <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>key</span>
+            <span>Registration Codes</span>
+          </Link>
           <Link className="flex items-center space-x-3 px-4 py-3 text-on-surface-variant hover:bg-surface-container-high rounded-lg transition-all" href="/super/settings">
             <span className="material-symbols-outlined" style={{ fontVariationSettings: '"FILL" 1' }}>settings</span>
             <span>Platform Settings</span>

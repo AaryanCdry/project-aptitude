@@ -58,12 +58,20 @@ export async function getPartnerJobPostings() {
   }));
 }
 
-export async function applyToPartnerJob(jobId: string) {
+export async function applyToPartnerJob(jobId: string, resumePath: string) {
   const scope = await getCallerScope();
   if (!scope.userId) return { error: 'Not authenticated' };
   if (scope.role !== 'STUDENT') return { error: 'Only students can apply' };
 
+  // Validate the storage path belongs to this student — prevents client from injecting arbitrary URLs
+  const expectedPrefix = `${scope.userId}/`;
+  if (!resumePath.startsWith(expectedPrefix) || resumePath.includes('..')) {
+    return { error: 'Invalid resume path.' };
+  }
+
   const adminClient = createAdminClient();
+  const { data: urlData } = adminClient.storage.from('resumes').getPublicUrl(resumePath);
+  const resumeUrl = urlData.publicUrl;
 
   // Check if already applied
   const { data: existing, error: existingError } = await adminClient
@@ -109,6 +117,7 @@ export async function applyToPartnerJob(jobId: string) {
     student_id: scope.userId,
     status: 'applied',
     student_snapshot: snapshot,
+    resume_url: resumeUrl,
   });
   if (error) return { error: error.message };
 
