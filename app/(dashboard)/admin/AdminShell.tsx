@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import LogoutButton from '@/components/LogoutButton';
 import NavLink from '@/components/NavLink';
+import NavSectionLabel from '@/components/NavSectionLabel';
+import CollapsibleNavSection from '@/components/CollapsibleNavSection';
 
 interface Props {
   children: React.ReactNode;
@@ -40,18 +42,23 @@ export default function AdminShell({ children, name, initials, roleLabel, isHOD 
       </div>
 
       <nav className="flex-1 p-3 flex flex-col gap-0.5 overflow-y-auto" onClick={() => setSidebarOpen(false)}>
+        <NavSectionLabel label="Daily Operations" />
         <NavLink href="/admin" icon="dashboard" label="Overview" exact />
         <NavLink href="/admin/questions" icon="quiz" label="Questions" />
         <NavLink href="/admin/assessments" icon="calendar_month" label="Test Scheduling" />
         <NavLink href="/admin/finals" icon="workspace_premium" label="Final Exams" />
-        <NavLink href="/admin/enrollment" icon="group_add" label="Enrollment" />
-        {!isHOD && <NavLink href="/admin/departments" icon="account_tree" label="Departments" />}
-        <NavLink href="/admin/classes" icon="meeting_room" label="Classes" />
-        <NavLink href="/admin/batches" icon="groups" label="Batches" />
-        <NavLink href="/admin/staff" icon="badge" label="Staff" />
         <NavLink href="/admin/reports" icon="assessment" label="Analytics" />
-        <NavLink href="/admin/jobs" icon="work" label="Jobs" />
-        {!isHOD && <NavLink href="/admin/settings" icon="settings" label="Settings" />}
+
+        <CollapsibleNavSection storageKey="sidebar-setup-collapsed:admin" label="Setup & Configuration">
+          <NavLink href="/admin/enrollment" icon="group_add" label="Enrollment" />
+          {!isHOD && <NavLink href="/admin/departments" icon="account_tree" label="Departments" />}
+          <NavLink href="/admin/classes" icon="meeting_room" label="Classes" />
+          <NavLink href="/admin/batches" icon="groups" label="Batches" />
+          <NavLink href="/admin/staff" icon="badge" label="Staff" />
+          <NavLink href="/admin/jobs" icon="work" label="Jobs" />
+          {!isHOD && <NavLink href="/admin/settings" icon="settings" label="Settings" />}
+        </CollapsibleNavSection>
+
         <NavLink href="/admin/profile" icon="person" label="Profile" />
       </nav>
 
