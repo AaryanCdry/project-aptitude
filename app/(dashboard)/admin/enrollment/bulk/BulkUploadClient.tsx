@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useRef, useTransition, useCallback } from 'react';
+import React, { useState, useRef, useTransition, useCallback, useMemo } from 'react';
 import Link from 'next/link';
 import { processBulkEnrollment, BulkRow, BulkResult } from '@/app/actions/enrollment';
 
@@ -56,6 +56,18 @@ export default function BulkUploadClient() {
   const [isPending, startTransition] = useTransition();
   const [progress, setProgress] = useState(0);
   const fileRef = useRef<HTMLInputElement>(null);
+
+  const duplicateEmails = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const r of rows) {
+      const key = r.email?.trim().toLowerCase();
+      if (!key) continue;
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    return new Set([...counts.entries()].filter(([, c]) => c > 1).map(([k]) => k));
+  }, [rows]);
+
+  const hasDuplicates = duplicateEmails.size > 0;
 
   const handleFile = useCallback((file: File) => {
     setFileName(file.name);
@@ -242,11 +254,11 @@ export default function BulkUploadClient() {
             <div className="mt-6 pt-4 border-t border-outline-variant">
               <button
                 onClick={handleProcess}
-                disabled={!rows.length || isPending}
+                disabled={!rows.length || isPending || hasDuplicates}
                 className="w-full bg-primary text-on-primary font-metric-label py-3 px-4 rounded-lg hover:bg-on-primary-fixed-variant transition-colors flex justify-center items-center gap-2 disabled:opacity-60"
               >
-                <span className="material-symbols-outlined text-sm">{isPending ? 'hourglass_empty' : 'play_arrow'}</span>
-                {isPending ? 'Processing…' : `Process ${rows.length ? `(${rows.length} rows)` : 'Upload'}`}
+                <span className="material-symbols-outlined text-sm">{isPending ? 'hourglass_empty' : hasDuplicates ? 'error' : 'play_arrow'}</span>
+                {isPending ? 'Processing…' : hasDuplicates ? 'Resolve duplicates to continue' : `Process ${rows.length ? `(${rows.length} rows)` : 'Upload'}`}
               </button>
             </div>
           </div>
@@ -283,6 +295,24 @@ export default function BulkUploadClient() {
                   <p className="font-caption text-on-error-container mb-1">Errors</p>
                   <p className="font-display-sm text-[28px] text-error">{results ? errors.length : '—'}</p>
                 </div>
+              </div>
+            </div>
+          )}
+
+          {/* Duplicate warning banner */}
+          {!results && hasDuplicates && (
+            <div className="bg-error-container/40 border border-error/30 rounded-xl p-4 flex items-start gap-3">
+              <span className="material-symbols-outlined text-error mt-0.5">warning</span>
+              <div>
+                <p className="font-metric-label text-on-error-container mb-1">
+                  {duplicateEmails.size} duplicate email{duplicateEmails.size !== 1 ? 's' : ''} found
+                </p>
+                <p className="font-caption text-on-error-container break-all">
+                  {[...duplicateEmails].join(', ')}
+                </p>
+                <p className="font-caption text-on-error-container mt-1">
+                  Remove or fix the duplicate rows in your file and re-upload before processing.
+                </p>
               </div>
             </div>
           )}
@@ -334,17 +364,23 @@ export default function BulkUploadClient() {
                         )}
                       </td>
                     </tr>
-                  )) : rows.slice(0, 5).map((r, i) => (
-                    <tr key={i} className="hover:bg-surface-container-lowest transition-colors">
-                      <td className="py-3 px-4">{r.name || <span className="text-outline italic">empty</span>}</td>
-                      <td className="py-3 px-4 text-on-surface-variant">{r.email || <span className="text-error italic">missing</span>}</td>
-                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.registration_id || <span className="text-outline">—</span>}</td>
-                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.department || <span className="text-outline">—</span>}</td>
-                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.class || <span className="text-outline">—</span>}</td>
-                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.section || <span className="text-outline">—</span>}</td>
-                      <td className="py-3 px-4 text-sm text-on-surface-variant">{r.semester || <span className="text-outline">—</span>}</td>
-                    </tr>
-                  ))}
+                  )) : rows.slice(0, 5).map((r, i) => {
+                    const isDup = !!r.email && duplicateEmails.has(r.email.trim().toLowerCase());
+                    return (
+                      <tr key={i} className={`hover:bg-surface-container-lowest transition-colors ${isDup ? 'bg-error-container/10' : ''}`}>
+                        <td className="py-3 px-4">{r.name || <span className="text-outline italic">empty</span>}</td>
+                        <td className="py-3 px-4 text-on-surface-variant">
+                          {r.email || <span className="text-error italic">missing</span>}
+                          {isDup && <span className="ml-2 inline-flex items-center px-1.5 py-0.5 rounded text-[10px] font-medium bg-error-container text-error">Duplicate</span>}
+                        </td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.registration_id || <span className="text-outline">—</span>}</td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.department || <span className="text-outline">—</span>}</td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.class || <span className="text-outline">—</span>}</td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.section || <span className="text-outline">—</span>}</td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.semester || <span className="text-outline">—</span>}</td>
+                      </tr>
+                    );
+                  })}
                   {!results && rows.length === 0 && (
                     <tr>
                       <td colSpan={5} className="py-12 text-center text-on-surface-variant">
