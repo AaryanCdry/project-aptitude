@@ -146,6 +146,33 @@ export default function ExamAnalyticsTable({ rows }: { rows: ExamRow[] }) {
     URL.revokeObjectURL(a.href);
   }
 
+  async function exportXlsx() {
+    const XLSX = await import('xlsx');
+    const headers = ['Student', 'Email', 'Class', 'Assessment', 'Type', 'Date', 'Q%', 'L%', 'V%', 'S%', 'Overall%', 'Percentile', 'Certificate', 'Badge'];
+    const allFiltered = groups.flatMap(g => g.rows);
+    const aoa = [headers, ...allFiltered.map(r => [
+      r.studentName, r.studentEmail, r.className ?? '', r.assessmentTitle ?? '',
+      r.type,
+      r.completedAt ? new Date(r.completedAt).toLocaleDateString() : '',
+      r.domainScores.QUANTITATIVE, r.domainScores.LOGICAL,
+      r.domainScores.VERBAL, r.domainScores.SPATIAL,
+      r.overallScore, r.avgPercentile,
+      r.certTier ?? '', r.badgeTier ?? '',
+    ])];
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+    ws['!cols'] = headers.map(() => ({ wch: 16 }));
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Exam Analytics');
+    const buf = XLSX.write(wb, { type: 'array', bookType: 'xlsx' }) as Uint8Array;
+    const blob = new Blob([buf.buffer as ArrayBuffer], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' });
+    const a = Object.assign(document.createElement('a'), {
+      href: URL.createObjectURL(blob),
+      download: `exam_analytics_${new Date().toISOString().slice(0, 10)}.xlsx`,
+    });
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
   const tabDefs: { key: TypeFilter; label: string; icon: string }[] = [
     { key: 'ALL',    label: 'All Tests',      icon: 'list' },
     { key: 'CENTER', label: 'Assigned Tests',  icon: 'assignment' },
@@ -225,7 +252,15 @@ export default function ExamAnalyticsTable({ rows }: { rows: ExamRow[] }) {
             className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-metric-label text-sm hover:bg-surface-container disabled:opacity-50"
           >
             <span className="material-symbols-outlined text-sm">download</span>
-            Export CSV
+            CSV
+          </button>
+          <button
+            onClick={exportXlsx}
+            disabled={groups.length === 0}
+            className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-outline-variant text-on-surface font-metric-label text-sm hover:bg-surface-container disabled:opacity-50"
+          >
+            <span className="material-symbols-outlined text-sm">download</span>
+            Excel
           </button>
         </div>
 
