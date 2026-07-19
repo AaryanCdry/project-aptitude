@@ -1,0 +1,68 @@
+<h2>How should the two sidebar sections behave?</h2>
+<p class="subtitle">Admin sidebar split into "Daily Operations" (top, always visible) and "Setup & Configuration" (bottom). Which interaction style feels right?</p>
+
+<div class="split">
+  <div class="mockup">
+    <div class="mockup-header">A — Static labeled sections</div>
+    <div class="mockup-body">
+      <div class="mock-sidebar" style="width:220px;text-align:left;padding:12px">
+        <div class="label" style="margin:4px 0 6px 4px">DAILY OPERATIONS</div>
+        <div style="padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.06);margin-bottom:2px">📊 Overview</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">❓ Questions</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">📅 Test Scheduling</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">🏅 Final Exams</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">📈 Analytics</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:10px">💼 Jobs</div>
+        <div class="label" style="margin:4px 0 6px 4px">SETUP & CONFIGURATION</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">➕ Enrollment</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">🌳 Departments</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">🏫 Classes</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">👥 Batches</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">🪪 Staff</div>
+      </div>
+    </div>
+  </div>
+  <div class="mockup">
+    <div class="mockup-header">B — Collapsible, Setup collapsed by default</div>
+    <div class="mockup-body">
+      <div class="mock-sidebar" style="width:220px;text-align:left;padding:12px">
+        <div class="label" style="margin:4px 0 6px 4px">DAILY OPERATIONS</div>
+        <div style="padding:8px 10px;border-radius:8px;background:rgba(0,0,0,.06);margin-bottom:2px">📊 Overview</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">❓ Questions</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">📅 Test Scheduling</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">🏅 Final Exams</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:2px">📈 Analytics</div>
+        <div style="padding:8px 10px;border-radius:8px;margin-bottom:10px">💼 Jobs</div>
+        <div style="display:flex;align-items:center;justify-content:space-between;padding:6px 4px;cursor:pointer;border-top:1px solid #ddd;margin-top:4px;padding-top:12px">
+          <span class="label" style="margin:0">SETUP & CONFIGURATION</span>
+          <span>▸</span>
+        </div>
+        <div style="font-size:12px;opacity:.6;padding:4px 10px">(collapsed — click to expand)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="section">
+  <div class="pros-cons">
+    <div class="pros"><h4>A: Static sections — Pros</h4><ul><li>Zero clicks, setup items still one click away</li><li>Simpler to implement (~no state)</li><li>Nothing ever "hidden"</li></ul></div>
+    <div class="cons"><h4>A: Static sections — Cons</h4><ul><li>Sidebar is still the same total height</li><li>Less visual "decluttering" payoff</li></ul></div>
+  </div>
+</div>
+<div class="section">
+  <div class="pros-cons">
+    <div class="pros"><h4>B: Collapsible — Pros</h4><ul><li>Daily-use sidebar visually shrinks a lot</li><li>Reinforces "you rarely need this" signal</li></ul></div>
+    <div class="cons"><h4>B: Collapsible — Cons</h4><ul><li>One extra click when setup IS needed</li><li>Needs open/closed state (localStorage) per admin</li></ul></div>
+  </div>
+</div>
+
+<div class="options">
+  <div class="option" data-choice="a" onclick="toggleSelect(this)">
+    <div class="letter">A</div>
+    <div class="content"><h3>Static labeled sections</h3><p>Both groups always fully visible, just visually separated by a label and spacing/divider.</p></div>
+  </div>
+  <div class="option" data-choice="b" onclick="toggleSelect(this)">
+    <div class="letter">B</div>
+    <div class="content"><h3>Collapsible, Setup collapsed by default (recommended)</h3><p>Daily Operations always expanded; Setup & Configuration starts collapsed and remembers state per admin.</p></div>
+  </div>
+</div>
