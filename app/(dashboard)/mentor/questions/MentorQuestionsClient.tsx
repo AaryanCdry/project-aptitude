@@ -3,6 +3,7 @@
 import { useState, useTransition } from 'react';
 import { addQuestion, bulkAddQuestions, extractQuestionsFromPdf, generateBatchQuestions, toggleQuestionActive, deleteQuestion, generateExplanation } from '@/app/actions/admin';
 import { uploadQuestionImage } from '@/lib/uploadQuestionImage';
+import * as xlsx from 'xlsx';
 
 const DOMAINS = ['QUANTITATIVE', 'LOGICAL', 'VERBAL', 'SPATIAL', 'PERSONALITY', 'SJT'] as const;
 
@@ -116,48 +117,64 @@ function parseCSVLine(line: string): string[] {
   return fields;
 }
 
+function validateRow(row: Record<string, string>, rowNum: number): ParsedRow {
+  const domain = (row.domain ?? '').trim().toUpperCase();
+  const blank: ParsedRow = { rowNum, domain, difficulty: 0, text: '', options: [], correct_index: 0, time_suggestion_sec: 90 };
+  if (!VALID_DOMAINS.includes(domain)) return { ...blank, error: `Invalid domain "${row.domain}"` };
+
+  const difficulty = parseInt(row.difficulty ?? '');
+  if (isNaN(difficulty) || difficulty < 1 || difficulty > 10) return { ...blank, error: 'Difficulty must be 1–10' };
+
+  const text = (row.text ?? '').trim();
+  if (!text) return { ...blank, difficulty, error: 'Question text is required' };
+
+  const optA = (row.option_a ?? '').trim();
+  const optB = (row.option_b ?? '').trim();
+  if (!optA || !optB) return { ...blank, difficulty, text, error: 'At least options A and B are required' };
+
+  const correctKey = (row.correct ?? '').trim().toUpperCase();
+  if (!['A', 'B', 'C', 'D'].includes(correctKey)) return { ...blank, difficulty, text, error: 'Correct must be A, B, C, or D' };
+
+  const options = [optA, optB, (row.option_c ?? '').trim(), (row.option_d ?? '').trim()].filter(Boolean);
+  const correct_index = CORRECT_MAP[correctKey];
+  if (correct_index >= options.length) return { ...blank, difficulty, text, options, error: `Option ${correctKey} is empty` };
+
+  return {
+    rowNum,
+    domain,
+    sub_type: (row.sub_type ?? '').trim() || undefined,
+    difficulty,
+    text,
+    options,
+    correct_index,
+    time_suggestion_sec: parseInt(row.time_sec ?? '') || 90,
+    explanation: (row.explanation ?? '').trim() || undefined,
+  };
+}
+
 function parseAndValidateCSV(text: string): ParsedRow[] {
   const lines = text.split('\n').map(l => l.trim()).filter(Boolean);
   if (lines.length < 2) return [];
   const headers = parseCSVLine(lines[0]).map(h => h.toLowerCase().replace(/\s+/g, '_'));
 
   return lines.slice(1).map((line, i) => {
-    const rowNum = i + 2;
     const values = parseCSVLine(line);
     const row: Record<string, string> = {};
     headers.forEach((h, idx) => { row[h] = values[idx] ?? ''; });
+    return validateRow(row, i + 2);
+  });
+}
 
-    const domain = (row.domain ?? '').trim().toUpperCase();
-    if (!VALID_DOMAINS.includes(domain)) return { rowNum, domain, difficulty: 0, text: '', options: [], correct_index: 0, time_suggestion_sec: 90, error: `Invalid domain "${row.domain}"` };
-
-    const difficulty = parseInt(row.difficulty ?? '');
-    if (isNaN(difficulty) || difficulty < 1 || difficulty > 10) return { rowNum, domain, difficulty: 0, text: '', options: [], correct_index: 0, time_suggestion_sec: 90, error: 'Difficulty must be 1–10' };
-
-    const text = (row.text ?? '').trim();
-    if (!text) return { rowNum, domain, difficulty, text: '', options: [], correct_index: 0, time_suggestion_sec: 90, error: 'Question text is required' };
-
-    const optA = (row.option_a ?? '').trim();
-    const optB = (row.option_b ?? '').trim();
-    if (!optA || !optB) return { rowNum, domain, difficulty, text, options: [], correct_index: 0, time_suggestion_sec: 90, error: 'At least options A and B are required' };
-
-    const correctKey = (row.correct ?? '').trim().toUpperCase();
-    if (!['A', 'B', 'C', 'D'].includes(correctKey)) return { rowNum, domain, difficulty, text, options: [], correct_index: 0, time_suggestion_sec: 90, error: 'Correct must be A, B, C, or D' };
-
-    const options = [optA, optB, (row.option_c ?? '').trim(), (row.option_d ?? '').trim()].filter(Boolean);
-    const correct_index = CORRECT_MAP[correctKey];
-    if (correct_index >= options.length) return { rowNum, domain, difficulty, text, options, correct_index: 0, time_suggestion_sec: 90, error: `Option ${correctKey} is empty` };
-
-    return {
-      rowNum,
-      domain,
-      sub_type: (row.sub_type ?? '').trim() || undefined,
-      difficulty,
-      text,
-      options,
-      correct_index,
-      time_suggestion_sec: parseInt(row.time_sec ?? '') || 90,
-      explanation: (row.explanation ?? '').trim() || undefined,
-    };
+function parseAndValidateExcel(buffer: ArrayBuffer): ParsedRow[] {
+  const workbook = xlsx.read(buffer, { type: 'array' });
+  const sheet = workbook.Sheets[workbook.SheetNames[0]];
+  const rawRows = xlsx.utils.sheet_to_json<Record<string, unknown>>(sheet, { defval: '' });
+  return rawRows.map((raw, i) => {
+    const row: Record<string, string> = {};
+    for (const [k, v] of Object.entries(raw)) {
+      row[k.toLowerCase().replace(/\s+/g, '_')] = String(v ?? '').trim();
+    }
+    return validateRow(row, i + 2);
   });
 }
 
@@ -503,6 +520,16 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
     a.download = 'questions_template.csv';
     a.click();
     URL.revokeObjectURL(url);
+  }
+
+  function downloadExcelTemplate() {
+    const ws = xlsx.utils.aoa_to_sheet([
+      ['domain', 'sub_type', 'difficulty', 'text', 'option_a', 'option_b', 'option_c', 'option_d', 'correct', 'time_sec', 'explanation'],
+      ['QUANTITATIVE', 'Arithmetic', 3, 'What is 25% of 200?', '25', '50', '75', '100', 'B', 60, '25% of 200 = 50'],
+    ]);
+    const wb = xlsx.utils.book_new();
+    xlsx.utils.book_append_sheet(wb, ws, 'Questions');
+    xlsx.writeFile(wb, 'questions_template.xlsx');
   }
 
   const tabs = [
@@ -1447,26 +1474,42 @@ export default function MentorQuestionsClient({ initialQuestions }: { initialQue
                 className="inline-flex items-center gap-2 px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-metric-label text-sm hover:bg-surface-container transition-colors"
               >
                 <span className="material-symbols-outlined text-sm">download</span>
-                Download Template
+                CSV Template
+              </button>
+
+              <button
+                onClick={downloadExcelTemplate}
+                className="inline-flex items-center gap-2 px-4 py-2 border border-outline-variant text-on-surface rounded-lg font-metric-label text-sm hover:bg-surface-container transition-colors"
+              >
+                <span className="material-symbols-outlined text-sm">download</span>
+                Excel Template
               </button>
 
               <label className="inline-flex items-center gap-2 px-4 py-2 bg-primary text-on-primary rounded-lg font-metric-label text-sm hover:opacity-90 transition-opacity cursor-pointer">
                 <span className="material-symbols-outlined text-sm">upload_file</span>
-                Choose CSV File
+                Choose File
                 <input
                   type="file"
-                  accept=".csv,text/csv"
+                  accept=".csv,text/csv,.xlsx,.xls,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,application/vnd.ms-excel"
                   className="hidden"
                   onChange={e => {
                     const file = e.target.files?.[0];
                     if (!file) return;
                     setBulkResult(null);
+                    const isExcel = file.name.endsWith('.xlsx') || file.name.endsWith('.xls');
                     const reader = new FileReader();
-                    reader.onload = ev => {
-                      const text = ev.target?.result as string;
-                      setParsedRows(parseAndValidateCSV(text));
-                    };
-                    reader.readAsText(file);
+                    if (isExcel) {
+                      reader.onload = ev => {
+                        setParsedRows(parseAndValidateExcel(ev.target?.result as ArrayBuffer));
+                      };
+                      reader.readAsArrayBuffer(file);
+                    } else {
+                      reader.onload = ev => {
+                        const text = ev.target?.result as string;
+                        setParsedRows(parseAndValidateCSV(text));
+                      };
+                      reader.readAsText(file);
+                    }
                     e.target.value = '';
                   }}
                 />
