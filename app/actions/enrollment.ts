@@ -249,7 +249,38 @@ export async function processBulkEnrollment(
     }
   }
 
+  // ─── Duplicate detection (defense in depth — client also blocks these) ────
+  const emailCounts = new Map<string, number>();
+  for (const r of rows) {
+    const key = r.email?.trim().toLowerCase();
+    if (!key) continue;
+    emailCounts.set(key, (emailCounts.get(key) ?? 0) + 1);
+  }
+
+  const existingEmails = new Set<string>();
+  if (collegeId) {
+    const { data: existingRows } = await adminClient
+      .from('users')
+      .select('email')
+      .eq('college_id', collegeId);
+    (existingRows ?? []).forEach((u: any) => {
+      if (u.email) existingEmails.add(String(u.email).trim().toLowerCase());
+    });
+  }
+
   for (const row of rows) {
+    const emailKey = row.email?.trim().toLowerCase();
+
+    if (emailKey && (emailCounts.get(emailKey) ?? 0) > 1) {
+      results.push({ ...row, status: 'error', message: 'Duplicate email within this upload' });
+      continue;
+    }
+
+    if (emailKey && existingEmails.has(emailKey)) {
+      results.push({ ...row, status: 'error', message: 'Email already enrolled' });
+      continue;
+    }
+
     if (!row.name || !row.email || !row.email.includes('@')) {
       results.push({ ...row, status: 'error', message: 'Invalid email or name' });
       continue;
