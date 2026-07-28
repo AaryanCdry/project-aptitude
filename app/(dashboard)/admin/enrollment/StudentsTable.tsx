@@ -213,6 +213,71 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
     </th>
   );
 
+  const printCredentials = () => {
+    if (!filtered.length) return;
+
+    const escHtml = (s: string) => s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+
+    const cards = filtered.map(r => [
+      '<div class="card">',
+      '  <div class="card-header">',
+      `    <div class="card-name">${escHtml(r.name || '—')}</div>`,
+      `    <div class="card-email">${escHtml(r.email || '—')}</div>`,
+      '  </div>',
+      '  <div class="card-body">',
+      `    <div class="field"><span class="label">Reg ID</span><span class="value">${escHtml(r.registration_id || '—')}</span></div>`,
+      `    <div class="field"><span class="label">Department</span><span class="value">${escHtml(r.departmentName || '—')}</span></div>`,
+      `    <div class="field"><span class="label">Class</span><span class="value">${escHtml(r.className || '—')}${r.section ? ' · ' + escHtml(r.section) : ''}</span></div>`,
+      `    <div class="field"><span class="label">Semester</span><span class="value">${escHtml(r.semester ? String(r.semester) : '—')}</span></div>`,
+      '  </div>',
+      '  <div class="card-footer">',
+      '    <div class="cred-label">Temporary Password</div>',
+      `    <div class="cred-value">${escHtml(r.temp_password ?? '—')}</div>`,
+      '    <div class="cred-note">Change password on first login</div>',
+      '  </div>',
+      '</div>',
+    ].join('\n')).join('\n');
+
+    const styles = [
+      '* { box-sizing: border-box; margin: 0; padding: 0; }',
+      "body { font-family: 'Segoe UI', sans-serif; background: #fff; color: #1a1a2e; padding: 24px; }",
+      'h1 { font-size: 18px; font-weight: 700; margin-bottom: 4px; }',
+      '.meta { font-size: 12px; color: #666; margin-bottom: 20px; }',
+      '.grid { display: grid; grid-template-columns: repeat(2, 1fr); gap: 16px; }',
+      '.card { border: 1.5px solid #e2e8f0; border-radius: 10px; overflow: hidden; break-inside: avoid; }',
+      '.card-header { background: #f1f5ff; padding: 12px 14px; border-bottom: 1px solid #e2e8f0; }',
+      '.card-name { font-size: 14px; font-weight: 700; }',
+      '.card-email { font-size: 11px; color: #555; margin-top: 2px; }',
+      '.card-body { padding: 10px 14px; display: flex; flex-direction: column; gap: 5px; }',
+      '.field { display: flex; justify-content: space-between; font-size: 11px; }',
+      '.label { color: #888; }',
+      '.value { font-weight: 600; }',
+      '.card-footer { background: #1e293b; color: #fff; padding: 10px 14px; }',
+      '.cred-label { font-size: 9px; text-transform: uppercase; letter-spacing: 1px; color: #94a3b8; margin-bottom: 3px; }',
+      ".cred-value { font-family: 'Courier New', monospace; font-size: 16px; font-weight: 700; letter-spacing: 2px; color: #fbbf24; }",
+      '.cred-note { font-size: 9px; color: #94a3b8; margin-top: 5px; }',
+      '@media print { body { padding: 12px; } @page { margin: 12mm; size: A4; } }',
+    ].join('\n');
+
+    const date = new Date().toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' });
+
+    const parts = [
+      '<!DOCTYPE html><html><head><meta charset="utf-8">',
+      '<title>Student Credentials</title>',
+      `<style>${styles}</style>`,
+      '</head><body>',
+      '<h1>Student Login Credentials</h1>',
+      `<p class="meta">Generated ${date} &middot; ${filtered.length} students &middot; Keep this sheet confidential</p>`,
+      `<div class="grid">${cards}</div>`,
+      '</body></html>',
+    ];
+
+    const blob = new Blob(parts, { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const win = window.open(url, '_blank');
+    if (win) setTimeout(() => URL.revokeObjectURL(url), 30000);
+  };
+
   return (
     <div className="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-sm overflow-hidden flex flex-col">
       {/* Toolbar — tabs + search */}
@@ -238,15 +303,26 @@ export default function StudentsTable({ students, totalEnrolled, departments, cl
             </button>
           ))}
         </div>
-        <div className="relative w-full sm:w-72">
-          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
-          <input
-            value={query}
-            onChange={e => { setQuery(e.target.value); setPage(1); }}
-            className="w-full pl-9 pr-4 py-2 bg-surface border border-outline-variant rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-on-background placeholder:text-outline-variant transition-colors"
-            placeholder="Search by name, email or ID…"
-            type="text"
-          />
+        <div className="flex items-center gap-3 w-full sm:w-auto">
+          <div className="relative w-full sm:w-72">
+            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-outline text-[18px]">search</span>
+            <input
+              value={query}
+              onChange={e => { setQuery(e.target.value); setPage(1); }}
+              className="w-full pl-9 pr-4 py-2 bg-surface border border-outline-variant rounded-lg text-[13px] focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary text-on-background placeholder:text-outline-variant transition-colors"
+              placeholder="Search by name, email or ID…"
+              type="text"
+            />
+          </div>
+          <button
+            onClick={printCredentials}
+            disabled={filtered.length === 0}
+            className="flex items-center text-primary font-metric-label bg-primary-fixed/20 px-3 py-1.5 rounded-lg text-sm hover:bg-primary-fixed/40 transition-colors disabled:opacity-50"
+            title="Export Credentials for filtered students"
+          >
+            <span className="material-symbols-outlined mr-2 text-sm">print</span>
+            Export
+          </button>
         </div>
       </div>
 

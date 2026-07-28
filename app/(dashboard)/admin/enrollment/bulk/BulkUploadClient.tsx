@@ -31,7 +31,7 @@ function parseCSV(text: string): BulkRow[] {
   const hasHeader = firstLower.includes('name') || firstLower.includes('email');
   const headers = hasHeader
     ? parseCSVLine(lines[0]).map(h => h.toLowerCase().trim())
-    : ['name', 'email', 'registration_id', 'department', 'class', 'section', 'semester'];
+    : ['name', 'email', 'registration_id', 'department', 'class', 'batch', 'academic_year', 'section', 'semester'];
   const dataLines = hasHeader ? lines.slice(1) : lines;
   return dataLines.map((line) => {
     const values = parseCSVLine(line);
@@ -42,6 +42,8 @@ function parseCSV(text: string): BulkRow[] {
       registration_id: get('registration_id'),
       department: get('department'),
       class: get('class'),
+      batch: get('batch'),
+      academic_year: get('academic_year'),
       section: get('section'),
       semester: get('semester'),
     };
@@ -179,9 +181,9 @@ export default function BulkUploadClient() {
   // Download template CSV
   const downloadTemplate = () => {
     const csv = [
-      'name,email,registration_id,department,class,section,semester',
-      'Jane Doe,jane.doe@university.edu,REG-2024-001,Computer Science,BCA-24-25-A,A,3',
-      'John Smith,john.smith@university.edu,REG-2024-002,Commerce,BCom-24-25-B,,',
+      'name,email,registration_id,department,class,batch,academic_year,section,semester',
+      'Jane Doe,jane.doe@university.edu,REG-2024-001,Computer Science,BCA-24-25-A,Batch 2024-2028,2024-2025,A,3',
+      'John Smith,john.smith@university.edu,REG-2024-002,Commerce,BCom-24-25-B,Batch 2024-2027,2024-2025,,',
     ].join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
@@ -230,7 +232,7 @@ export default function BulkUploadClient() {
             <p className="font-caption text-on-surface-variant">
               {fileName ? `${rows.length} rows parsed` : <>or <span className="text-primary font-semibold">browse files</span> to upload</>}
             </p>
-            <p className="font-caption text-outline mt-4 text-xs">Required: name, email · Optional: registration_id, department, class, section, semester</p>
+            <p className="font-caption text-outline mt-4 text-xs">Required: name, email · Optional: registration_id, department, class, batch, academic_year, section, semester</p>
           </div>
 
           {/* Settings */}
@@ -338,8 +340,8 @@ export default function BulkUploadClient() {
                 <thead>
                   <tr className="border-b border-outline-variant bg-surface-container-low">
                     {(results
-                      ? ['Student Name', 'Email', 'Reg ID', 'Dept', 'Class', 'Sec', 'Sem', 'Temp Password', 'Status']
-                      : ['Name', 'Email', 'Reg ID', 'Department', 'Class', 'Section', 'Semester']
+                      ? ['Student Name', 'Email', 'Reg ID', 'Dept', 'Class', 'Batch', 'Acad. Year', 'Sec', 'Sem', 'Temp Password', 'Status']
+                      : ['Name', 'Email', 'Reg ID', 'Department', 'Class', 'Batch', 'Acad. Year', 'Section', 'Semester']
                     ).map((h) => (
                       <th key={h} className="py-3 px-4 font-caption text-on-surface-variant font-semibold whitespace-nowrap">{h}</th>
                     ))}
@@ -353,6 +355,8 @@ export default function BulkUploadClient() {
                       <td className="py-3 px-4 text-sm">{r.registration_id || <span className="text-outline">—</span>}</td>
                       <td className="py-3 px-4 text-sm">{r.department || <span className="text-outline">—</span>}</td>
                       <td className="py-3 px-4 text-sm">{r.class || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm">{r.batch || <span className="text-outline">—</span>}</td>
+                      <td className="py-3 px-4 text-sm">{r.academic_year || <span className="text-outline">—</span>}</td>
                       <td className="py-3 px-4 text-sm">{r.section || <span className="text-outline">—</span>}</td>
                       <td className="py-3 px-4 text-sm">{r.semester || <span className="text-outline">—</span>}</td>
                       <td className="py-3 px-4 font-mono text-sm tracking-widest">{r.tempPassword ?? '—'}</td>
@@ -376,6 +380,8 @@ export default function BulkUploadClient() {
                         <td className="py-3 px-4 text-sm text-on-surface-variant">{r.registration_id || <span className="text-outline">—</span>}</td>
                         <td className="py-3 px-4 text-sm text-on-surface-variant">{r.department || <span className="text-outline">—</span>}</td>
                         <td className="py-3 px-4 text-sm text-on-surface-variant">{r.class || <span className="text-outline">—</span>}</td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.batch || <span className="text-outline">—</span>}</td>
+                        <td className="py-3 px-4 text-sm text-on-surface-variant">{r.academic_year || <span className="text-outline">—</span>}</td>
                         <td className="py-3 px-4 text-sm text-on-surface-variant">{r.section || <span className="text-outline">—</span>}</td>
                         <td className="py-3 px-4 text-sm text-on-surface-variant">{r.semester || <span className="text-outline">—</span>}</td>
                       </tr>

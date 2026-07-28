@@ -189,6 +189,8 @@ export interface BulkRow {
   registration_id?: string;
   department?: string;   // name — resolved to ID on server
   class?: string;        // name — resolved to ID on server
+  batch?: string;        // name — resolved to ID on server
+  academic_year?: string;// name — resolved to ID on server
   section?: string;
   semester?: string;     // numeric string 1-12
 }
@@ -230,15 +232,122 @@ export async function processBulkEnrollment(
         .eq('college_id', collegeId)
         .in('name', deptNames);
       (deptRows ?? []).forEach((d: any) => { deptNameMap[d.name.toLowerCase()] = d.id; });
+
+      // Auto-create missing departments
+      const missingDepts = deptNames.filter(name => !deptNameMap[name.toLowerCase()]);
+      if (missingDepts.length > 0) {
+        const newDepts = missingDepts.map(name => ({
+          name,
+          college_id: collegeId,
+          course_type: 'UG',
+          semester_count: 8
+        }));
+        const { data: insertedDepts } = await adminClient
+          .from('departments')
+          .insert(newDepts)
+          .select('id, name');
+        (insertedDepts ?? []).forEach((d: any) => { deptNameMap[d.name.toLowerCase()] = d.id; });
+      }
+    }
+  }
+
+  // Batch-resolve batch names → IDs for this college
+  const batchNameMap: Record<string, string> = {};
+  if (collegeId) {
+    const batchNames = [...new Set(rows.map(r => r.batch?.trim()).filter(Boolean))] as string[];
+    if (batchNames.length > 0) {
+      const { data: batchRows } = await adminClient
+        .from('batches')
+        .select('id, name')
+        .eq('college_id', collegeId)
+        .in('name', batchNames);
+      (batchRows ?? []).forEach((b: any) => { batchNameMap[b.name.toLowerCase()] = b.id; });
+
+      const missingBatches = batchNames.filter(name => !batchNameMap[name.toLowerCase()]);
+      if (missingBatches.length > 0) {
+        const newBatches = missingBatches.map(name => ({
+          name,
+          college_id: collegeId,
+          start_date: `${new Date().getFullYear()}-08-01`,
+          end_date: `${new Date().getFullYear() + 4}-05-31`,
+          status: 'ACTIVE'
+        }));
+        const { data: insertedBatches } = await adminClient.from('batches').insert(newBatches).select('id, name');
+        (insertedBatches ?? []).forEach((b: any) => { batchNameMap[b.name.toLowerCase()] = b.id; });
+      }
+    }
+  }
+
+  // Batch-resolve academic year names → IDs for this college
+  const academicYearNameMap: Record<string, string> = {};
+  if (collegeId) {
+    const ayNames = [...new Set(rows.map(r => r.academic_year?.trim()).filter(Boolean))] as string[];
+    if (ayNames.length > 0) {
+      const { data: ayRows } = await adminClient
+        .from('academic_years')
+        .select('id, name')
+        .eq('college_id', collegeId)
+        .in('name', ayNames);
+      (ayRows ?? []).forEach((ay: any) => { academicYearNameMap[ay.name.toLowerCase()] = ay.id; });
+
+      const missingAys = ayNames.filter(name => !academicYearNameMap[name.toLowerCase()]);
+      if (missingAys.length > 0) {
+        const newAys = missingAys.map(name => ({
+          name,
+          college_id: collegeId,
+          start_date: `${new Date().getFullYear()}-08-01`,
+          end_date: `${new Date().getFullYear() + 1}-05-31`,
+          is_current: true
+        }));
+        const { data: insertedAys } = await adminClient.from('academic_years').insert(newAys).select('id, name');
+        (insertedAys ?? []).forEach((ay: any) => { academicYearNameMap[ay.name.toLowerCase()] = ay.id; });
+      }
     }
   }
 
   // Batch-resolve class names → IDs for this college
   const classNameMap: Record<string, string> = {};
   if (collegeId) {
+    // 1. Ensure a default Academic Year exists (for fallback)
+    let defaultAcademicYearId: string | null = null;
+    const { data: currentAy } = await adminClient.from('academic_years')
+      .select('id').eq('college_id', collegeId).eq('is_current', true).limit(1).single();
+    
+    if (currentAy) {
+      defaultAcademicYearId = currentAy.id;
+    } else {
+      const year = new Date().getFullYear();
+      const { data: newAy } = await adminClient.from('academic_years').insert({
+        college_id: collegeId,
+        name: `${year}-${year + 1}`,
+        start_date: `${year}-08-01`,
+        end_date: `${year + 1}-05-31`,
+        is_current: true
+      }).select('id').single();
+      defaultAcademicYearId = newAy?.id ?? null;
+    }
+
+    // 2. Ensure a default Batch exists (for fallback)
+    let defaultBatchId: string | null = null;
+    const { data: batches } = await adminClient.from('batches')
+      .select('id').eq('college_id', collegeId).order('created_at', { ascending: false }).limit(1);
+    
+    if (batches && batches.length > 0) {
+      defaultBatchId = batches[0].id;
+    } else {
+      const year = new Date().getFullYear();
+      const { data: newBatch } = await adminClient.from('batches').insert({
+        college_id: collegeId,
+        name: `Batch ${year}-${year + 4}`,
+        start_date: `${year}-08-01`,
+        end_date: `${year + 4}-05-31`,
+        status: 'ACTIVE'
+      }).select('id').single();
+      defaultBatchId = newBatch?.id ?? null;
+    }
+
     const classNames = [...new Set(rows.map(r => r.class?.trim()).filter(Boolean))] as string[];
     if (classNames.length > 0) {
-      const deptIds = Object.values(deptNameMap);
       let classQ = adminClient.from('classes').select('id, name, dept_id, departments!dept_id(college_id)').in('name', classNames);
       const { data: classRows } = await classQ;
       (classRows ?? []).forEach((c: any) => {
@@ -246,6 +355,43 @@ export async function processBulkEnrollment(
           classNameMap[c.name.toLowerCase()] = c.id;
         }
       });
+
+      // Auto-create missing classes
+      // We need to associate them with the department specified in the row.
+      const missingClasses = classNames.filter(name => !classNameMap[name.toLowerCase()]);
+      if (missingClasses.length > 0) {
+        const newClasses = [];
+        for (const clsName of missingClasses) {
+          // Find the department for this class from the first row that mentions it
+          const rowForClass = rows.find(r => r.class?.trim().toLowerCase() === clsName.toLowerCase());
+          const deptName = rowForClass?.department?.trim().toLowerCase();
+          const deptId = deptName ? deptNameMap[deptName] : null;
+          
+          const rowBatchName = rowForClass?.batch?.trim().toLowerCase();
+          const rowAyName = rowForClass?.academic_year?.trim().toLowerCase();
+
+          const batchIdToUse = rowBatchName && batchNameMap[rowBatchName] ? batchNameMap[rowBatchName] : defaultBatchId;
+          const ayIdToUse = rowAyName && academicYearNameMap[rowAyName] ? academicYearNameMap[rowAyName] : defaultAcademicYearId;
+          
+          if (deptId) {
+            newClasses.push({
+              name: rowForClass!.class!.trim(),
+              dept_id: deptId,
+              year: 1, // default to year 1
+              academic_year_id: ayIdToUse,
+              batch_id: batchIdToUse
+            });
+          }
+        }
+        
+        if (newClasses.length > 0) {
+          const { data: insertedClasses } = await adminClient
+            .from('classes')
+            .insert(newClasses)
+            .select('id, name');
+          (insertedClasses ?? []).forEach((c: any) => { classNameMap[c.name.toLowerCase()] = c.id; });
+        }
+      }
     }
   }
 
